@@ -3,6 +3,7 @@ import { Auth, GetUsuario } from 'src/auth/decorators';
 import { Usuario } from '../entities/usuario.entity';
 import { RolService } from '../services/rol.service';
 import { CreateUpdateRolDto } from '../dto/rol.dto';
+import { GetClientIp } from 'src/auth/decorators/get-client-ip.decorator';
 
 @Controller('rol')
 export class RolController {
@@ -22,25 +23,25 @@ export class RolController {
 
   @Post()
   @Auth()
-  create(@Body() dto: CreateUpdateRolDto) {
-    return this.opcionService.create(dto);
+  create(@Body() dto: CreateUpdateRolDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+    return this.opcionService.create(dto, user.login, ip);
   }
 
   @Patch(':id')
   @Auth()
-  update(@Param('id') id: number, @Body() dto: CreateUpdateRolDto) {
-    return this.opcionService.update(id, dto);
+  update(@Param('id') id: number,@Body() dto: CreateUpdateRolDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+    return this.opcionService.update(id,dto, user.login, ip);
   }
 
   @Delete(':id')
   @Auth()
-  delete(@Param('id') id: number) {
-    return this.opcionService.delete(id);
+  delete(@Param('id') id: number, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+    return this.opcionService.delete(id, user.login, ip);
   }
 
   @Post('delete-all')
   @Auth()
-  deleteMany(@Body() ids: number[]) {
-    return this.opcionService.deleteMany(ids);
+  deleteMany(@Body() ids: number[], @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+    return this.opcionService.deleteMany(ids, user.login, ip);
   }
 }

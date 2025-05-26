@@ -1,33 +1,32 @@
 // src/permisos/dto/create-update-permiso.dto.ts
-import { IsString, IsOptional, IsBoolean, IsNotEmpty, Length } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNotEmpty, Length, IsNumber } from 'class-validator';
 
-export class CreateUpdatePermisoDto {
-  
-  @IsString()
+export class CreatePermisoDto {
   @IsNotEmpty()
-  @Length(1, 100)
-  nombre: string;
+  @IsNumber()
+  idRol: number;
 
-  @IsOptional()
-  @IsString()
-  @Length(0, 255)
-  descripcion?: string;
+  @IsNotEmpty()
+  @IsNumber()
+  idOpcion: number;
 
-  @IsOptional()
+  @IsNotEmpty()
+  @IsNumber()
+  idAccion: number;
+}
+
+
+
+export class PermisoBulkDto {
+  @IsNumber()
+  idRol: number;
+
+  @IsNumber()
+  idOpcion: number;
+
+  @IsNumber()
+  idAccion: number;
+
   @IsBoolean()
-  activo?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  eliminado?: boolean;
-
-  @IsOptional()
-  @IsString()
-  @Length(0, 50)
-  ipRegistro?: string;
-
-  @IsOptional()
-  @IsString()
-  @Length(0, 100)
-  usuarioRegistro?: string;
+  asignado: boolean;
 }
