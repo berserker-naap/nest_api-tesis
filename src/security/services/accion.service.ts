@@ -23,7 +23,7 @@ export class AccionService {
 
   async findOne(id: number): Promise<StatusResponseDto<any>> {
     try {
-      const accion = await this.accionRepository.findOne({ where: { id }, relations: ['accion'] });
+      const accion = await this.accionRepository.findOne({ where: { id } });
       if (!accion) {
         return new StatusResponseDto(false, 404, 'Opción no encontrada', null);
       }

@@ -10,7 +10,7 @@ export class OpcionService {
   constructor(
     @InjectRepository(Opcion)
     private readonly opcionRepository: Repository<Opcion>
-  ) {}
+  ) { }
 
   async findAll(): Promise<StatusResponseDto<any>> {
     try {
@@ -33,49 +33,88 @@ export class OpcionService {
     }
   }
 
-  async create(dto: CreateUpdateOpcionDto): Promise<StatusResponseDto<any>> {
+  async create(dto: CreateUpdateOpcionDto, usuario: string, ip: string): Promise<StatusResponseDto<any>> {
     try {
-      const opcion = this.opcionRepository.create(dto);
-      await this.opcionRepository.save(opcion);
-      return new StatusResponseDto(true, 200, 'Opción creada', opcion);
+      const opcion = this.opcionRepository.create({
+        ...dto,
+        modulo: { id: dto.idModulo }, // 👈 Relación explícita
+        usuarioRegistro: usuario,
+        ipRegistro: ip,
+      });
+
+      const saved = await this.opcionRepository.save(opcion);
+      return new StatusResponseDto(true, 201, 'Opción creada', saved);
     } catch (error) {
       return new StatusResponseDto(false, 500, 'Error al crear opción', error);
     }
   }
 
-  async update(id: number, dto: CreateUpdateOpcionDto): Promise<StatusResponseDto<any>> {
+  async update(id: number, dto: CreateUpdateOpcionDto, usuario: string, ip: string): Promise<StatusResponseDto<any>> {
     try {
-      const opcion = await this.opcionRepository.findOne({ where: { id } });
+      const opcion = await this.opcionRepository.findOne({ where: { id }, relations: ['modulo'] });
       if (!opcion) {
         return new StatusResponseDto(false, 404, 'Opción no encontrada', null);
       }
-      await this.opcionRepository.update(id, dto);
-      const updated = await this.opcionRepository.findOne({ where: { id } });
-      return new StatusResponseDto(true, 200, 'Opción actualizada', updated);
+
+      const actualizado = this.opcionRepository.create({
+        ...opcion,
+        ...dto,
+        modulo: { id: dto.idModulo }, // 👈 Actualiza la relación
+        usuarioModificacion: usuario,
+        ipModificacion: ip,
+        fechaModificacion: new Date(),
+      });
+
+      const saved = await this.opcionRepository.save(actualizado);
+      return new StatusResponseDto(true, 200, 'Opción actualizada', saved);
     } catch (error) {
       return new StatusResponseDto(false, 500, 'Error al actualizar opción', error);
     }
   }
 
-  async delete(id: number): Promise<StatusResponseDto<any>> {
+  async delete(id: number, usuario: string, ip: string): Promise<StatusResponseDto<any>> {
     try {
-      const opcion = await this.opcionRepository.findOne({ where: { id } });
+      const opcion = await this.opcionRepository.findOne({ where: { id }, relations: ['modulo'] });
       if (!opcion) {
         return new StatusResponseDto(false, 404, 'Opción no encontrada', null);
       }
+
+      opcion.usuarioEliminacion = usuario;
+      opcion.ipEliminacion = ip;
+      opcion.fechaEliminacion = new Date();
+
+      await this.opcionRepository.save(opcion);
       await this.opcionRepository.remove(opcion);
+
       return new StatusResponseDto(true, 200, 'Opción eliminada', opcion);
     } catch (error) {
       return new StatusResponseDto(false, 500, 'Error al eliminar opción', error);
     }
   }
 
-  async deleteMany(ids: number[]): Promise<StatusResponseDto<any>> {
+  async deleteMany(ids: number[], usuario: string, ip: string): Promise<StatusResponseDto<any>> {
     try {
-      await this.opcionRepository.delete({ id: In(ids) });
+      const opciones = await this.opcionRepository.findBy({ id: In(ids) });
+
+      if (!opciones.length) {
+        return new StatusResponseDto(false, 404, 'No se encontraron opciones para eliminar', null);
+      }
+
+      const auditadas = opciones.map((opcion) => {
+        opcion.usuarioEliminacion = usuario;
+        opcion.ipEliminacion = ip;
+        opcion.fechaEliminacion = new Date();
+        return opcion;
+      });
+
+      await this.opcionRepository.save(auditadas);
+      await this.opcionRepository.remove(auditadas);
+
       return new StatusResponseDto(true, 200, 'Opciones eliminadas', ids);
     } catch (error) {
       return new StatusResponseDto(false, 500, 'Error al eliminar múltiples opciones', error);
     }
   }
+
+
 }
