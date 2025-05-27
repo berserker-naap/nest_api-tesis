@@ -1,4 +1,6 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested } from 'class-validator';
+import { PersonaDto } from './persona.dto';
 
 export class CreateUpdateUsuarioDto {
   @IsString()
@@ -17,6 +19,29 @@ export class CreateUpdateUsuarioDto {
   usuarioRegistro?: string;
 }
 
+export class CreateUsuarioDto {
+  @IsString() @IsNotEmpty()
+  login: string;
+
+  @IsString() @IsNotEmpty()
+  password: string;
+
+  @IsOptional()
+  idPersona?: number;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PersonaDto)
+  persona?: PersonaDto;
+
+  @IsArray()
+  roles: number[];
+}
+
+export class AsignarUsuarioRolesDto {
+  @IsArray()
+  roles: number[];
+}
 
 export class CreateUsuarioWithPersonaDto {
   // Datos de la Persona

@@ -1,28 +1,33 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
-import { CreateUpdateUsuarioDto, CreateUsuarioWithPersonaDto } from '../dto/usuario.dto';
+import { Controller, Post, Body, Get, ParseIntPipe, Param } from '@nestjs/common';
+import { AsignarUsuarioRolesDto, CreateUpdateUsuarioDto, CreateUsuarioDto, CreateUsuarioWithPersonaDto } from '../dto/usuario.dto';
 import { UsuarioService } from '../services/usuario.service';
-import { GetClientIp } from 'src/auth/decorators';
+import { Auth, GetClientIp, GetUsuario } from 'src/auth/decorators';
+import { Usuario } from '../entities/usuario.entity';
 
 
 @Controller('usuario')
 export class UsuarioController {
-  constructor(private readonly usuarioService: UsuarioService) {}
+  constructor(private readonly usuarioService: UsuarioService) { }
 
-  @Post('create')
-  create(@Body() createUsuarioDto: CreateUpdateUsuarioDto) {
-    return this.usuarioService.create(createUsuarioDto);
-  }
-
-  @Post('create-with-persona')
-  async createUsuarioWithPersona(
-    @Body() createUsuarioWithPersonaDto: CreateUsuarioWithPersonaDto,
-    @GetClientIp() ip: string,
-  ) {
-    return this.usuarioService.createUsuarioWithPersona(createUsuarioWithPersonaDto, ip);
-  }
 
   @Get()
-  findAll() {
+  async findAll() {
     return this.usuarioService.findAll();
+  }
+
+  @Post()
+  @Auth()
+  async create(@Body() dto: CreateUsuarioDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+    return this.usuarioService.create(dto,user.login, ip);
+  }
+
+  @Post(':id/roles')
+  @Auth()
+  async asignarRoles(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AsignarUsuarioRolesDto,
+    @GetUsuario() user: Usuario,  @GetClientIp() ip: string
+  ) {
+    return this.usuarioService.asignarRoles(id, dto,user.login, ip);
   }
 }

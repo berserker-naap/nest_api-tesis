@@ -1,155 +1,111 @@
-import { Injectable } from '@nestjs/common';
+import { AsignarUsuarioRolesDto, CreateUsuarioDto } from './../dto/usuario.dto';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Usuario } from '../entities/usuario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { StatusResponseDto } from 'src/common/dto/response.dto';
 import { CreateUpdateUsuarioDto, CreateUsuarioWithPersonaDto } from '../dto/usuario.dto';
 import { Persona } from '../entities/persona.entity';
+import { UsuarioRol } from '../entities/usuario-rol.entity';
+import { Rol } from '../entities/rol.entity';
 
-
+import * as bcrypt from 'bcrypt';
 @Injectable()
 export class UsuarioService {
   constructor(
+    @InjectRepository(UsuarioRol)
+    private readonly usuarioRolRepository: Repository<UsuarioRol>,
+    @InjectRepository(Rol)
+    private readonly rolRepository: Repository<Rol>,
+
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
     @InjectRepository(Persona)
     private readonly personaRepository: Repository<Persona>,
-  ) {}
+  ) { }
 
-  async create(
-    createUsuarioDto: CreateUpdateUsuarioDto,
-  ): Promise<StatusResponseDto<any>> {
-    try {
-      const usuario = this.usuarioRepository.create({
-        ...createUsuarioDto,
-      });
 
-      await this.usuarioRepository.save(usuario);
-      return new StatusResponseDto(true, 200, 'Usuario creado', usuario);
-    } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al crear usuario', error);
-    }
-  }
 
-  async createUsuarioWithPersona(dto: CreateUsuarioWithPersonaDto, ip: string): Promise<StatusResponseDto<any>> {
-    try {
-      // 1. Crear Persona
-      const persona = this.personaRepository.create({
-        nombre: dto.nombre,
-        apellido: dto.apellido,
-        idTipoDocumentoIdentidad: dto.idTipoDocumentoIdentidad,
-        documentoIdentidad: dto.documentoIdentidad,
-        fechaNacimiento: dto.fechaNacimiento,
-        ipRegistro: ip,
-        usuarioRegistro: dto.usuarioRegistro,
-      });
-      await this.personaRepository.save(persona);
-
-      // 2. Crear Usuario asociado a Persona
-      const usuario = this.usuarioRepository.create({
-        login: dto.login,
-        password: dto.password,
-        persona: persona,
-        ipRegistro: ip,
-        usuarioRegistro: dto.usuarioRegistro,
-      });
-      await this.usuarioRepository.save(usuario);
-
-      return new StatusResponseDto(true, 200, 'Usuario creados', usuario);
-    } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al crear usuario y persona', error);
-    }
-  }
-
-  // Obtener todos los usuarios
   async findAll(): Promise<StatusResponseDto<any>> {
     try {
-      const usuarios = await this.usuarioRepository.find();
-      return new StatusResponseDto(true, 200, 'Usuarios obtenidos', usuarios);
+      const usuarios = await this.usuarioRepository.find({
+        relations: ['persona', 'roles', 'roles.rol'],
+      });
+      return new StatusResponseDto(true, 200, 'Acciones obtenidas', usuarios);
     } catch (error) {
-      return new StatusResponseDto(
-        false,
-        500,
-        'Error al obtener usuarios',
-        error,
-      );
+      return new StatusResponseDto(false, 500, 'Error al obtener acciones', error);
     }
   }
 
-  // Obtener un usuario por ID
-  async findOne(id: number): Promise<StatusResponseDto<any>> {
+  async create(dto: CreateUsuarioDto, usuarioRegistro: string, ip: string): Promise<StatusResponseDto<any>> {
     try {
-      const usuario = await this.usuarioRepository.findOne({ where: { id } });
-      if (!usuario) {
-        return new StatusResponseDto(false, 404, 'Usuario no encontrado', null);
-      }
-      return new StatusResponseDto(true, 200, 'Usuario encontrado', usuario);
-    } catch (error) {
-      return new StatusResponseDto(
-        false,
-        500,
-        'Error al obtener usuario',
-        error,
-      );
-    }
-  }
+      let persona;
 
-  // Actualizar un Usuario
-  async update(
-    id: number,
-    updateUsuarioDto: CreateUpdateUsuarioDto,
-  ): Promise<StatusResponseDto<any>> {
-    try {
-        const usuario = await this.usuarioRepository.findOne({ where: { id } });
-      if (!usuario) {
-        return new StatusResponseDto(false, 404, 'Usuario no encontrado', null);
+      if (dto.idPersona) {
+        persona = await this.personaRepository.findOneBy({ id: dto.idPersona });
+        if (!persona) throw new NotFoundException('Persona no encontrada');
+      } else if (dto.persona) {
+        persona = this.personaRepository.create(dto.persona);
+        persona = await this.personaRepository.save(persona);
+      } else {
+        throw new BadRequestException('Debe enviar persona o idPersona');
       }
 
-      // Actualizamos el usuario
-      await this.usuarioRepository.update(id, updateUsuarioDto);
-      const updatedUsuario = await this.usuarioRepository.findOne({ where: { id } });
+      const usuario = this.usuarioRepository.create({
+        login: dto.login,
+        password: bcrypt.hashSync(dto.password, 10),
+        persona,
+      });
 
-      return new StatusResponseDto(
-        true,
-        200,
-        'Usuario actualizado',
-        updatedUsuario,
-      );
-    } catch (error) {
-      return new StatusResponseDto(
-        false,
-        500,
-        'Error al actualizar usuario',
-        error,
-      );
-    }
-  }
+      const saved = await this.usuarioRepository.save(usuario);
 
-  // Eliminar un Usuario (solo actualizando la propiedad `eliminado`)
-  async delete(id: number): Promise<StatusResponseDto<any>> {
-    try {
-      const usuario = await this.usuarioRepository.findOne({ where: { id } });
-      if (!usuario) {
-        return new StatusResponseDto(false, 404, 'Usuario no encontrado', null);
+      // Asignar roles
+      const roles = await this.rolRepository.findBy({ id: In(dto.roles) });
+      for (const rol of roles) {
+        const rel = this.usuarioRolRepository.create({ usuario: saved, rol });
+        await this.usuarioRolRepository.save({
+          ...rel,
+          usuarioRegistro: usuarioRegistro,
+          ipRegistro: ip,
+        });
       }
 
-      // Actualizamos la propiedad `eliminado` a true
-      usuario.eliminado = true;
-      await this.usuarioRepository.save(usuario);
-
-      return new StatusResponseDto(true, 200, 'Usuario eliminado', usuario);
+      return new StatusResponseDto(true, 201, 'Usuario registrado', saved);
     } catch (error) {
-      return new StatusResponseDto(
-        false,
-        500,
-        'Error al eliminar usuario',
-        error,
-      );
+      return new StatusResponseDto(false, 500, 'Error al crear acción', error);
     }
   }
+
+  async asignarRoles(idUsuario: number, dto: AsignarUsuarioRolesDto, usuarioUpdate: string, ip: string): Promise<StatusResponseDto<any>> {
+    try {
+      const usuario = await this.usuarioRepository.findOneBy({ id: idUsuario });
+      if (!usuario) throw new NotFoundException('Usuario no encontrado');
+
+      // Eliminar roles anteriores
+      await this.usuarioRolRepository.delete({ usuario: { id: idUsuario } });
+
+      // Asignar nuevos
+      const roles = await this.rolRepository.findBy({ id: In(dto.roles) });
+      for (const rol of roles) {
+        const rel = this.usuarioRolRepository.create({ usuario, rol });
+        await this.usuarioRolRepository.save(
+          {
+            ...rel,
+            usuarioModificacion: usuarioUpdate,
+            ipModificacion: ip,
+            fechaModificacion: new Date(),
+          });
+      }
+
+      return new StatusResponseDto(true, 200, 'Roles asignados correctamente');
+    } catch (error) {
+      return new StatusResponseDto(false, 500, 'Error al crear acción', error);
+    }
+  }
+
 
   // Activar o Desactivar un Usuario (actualizando la propiedad `activo`)
-  async activate(id: number, activo: boolean): Promise<StatusResponseDto<any>> {
+  async activate(id: number, activo: boolean, usuarioUpdate: string, ip: string): Promise<StatusResponseDto<any>> {
     try {
       const usuario = await this.usuarioRepository.findOne({ where: { id } });
       if (!usuario) {
@@ -158,21 +114,17 @@ export class UsuarioService {
 
       // Actualizamos la propiedad `activo`
       usuario.activo = activo;
-      await this.usuarioRepository.save(usuario);
-
-      return new StatusResponseDto(
-        true,
-        200,
-        `Usuario ${activo ? 'activado' : 'desactivado'}`,
+      await this.usuarioRepository.save({
         usuario,
-      );
+        usuarioModificacion: usuarioUpdate,
+        ipModificacion: ip,
+        fechaModificacion: new Date(),
+      });
+
+      return new StatusResponseDto(true, 200, `Usuario ${activo ? 'activado' : 'desactivado'}`, usuario);
     } catch (error) {
       return new StatusResponseDto(
-        false,
-        500,
-        'Error al actualizar el estado del usuario',
-        error,
-      );
+        false, 500, 'Error al actualizar el estado del usuario', error);
     }
   }
 }
