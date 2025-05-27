@@ -26,6 +26,8 @@ import { AccionService } from './services/accion.service';
 import { ModuloService } from './services/modulo.service';
 import { AccionController } from './controllers/accion.controller';
 import { ModuloController } from './controllers/modulo.controller';
+import { UsuarioService } from './services/usuario.service';
+import { UsuarioController } from './controllers/usuario.controller';
 
 @Module({
   imports: [
@@ -67,7 +69,8 @@ import { ModuloController } from './controllers/modulo.controller';
     OpcionController,
     MultitablaController, 
     PermisoController, 
-    RolController, 
+    RolController,
+    UsuarioController 
   ],
   providers: [
     AccionService,
@@ -76,6 +79,7 @@ import { ModuloController } from './controllers/modulo.controller';
     MultitablaService, 
     PermisoService, 
     RolService,
+    UsuarioService
   ],
 
 })

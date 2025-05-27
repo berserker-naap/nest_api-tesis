@@ -4,8 +4,8 @@ import { UsuarioService } from '../services/usuario.service';
 import { GetClientIp } from 'src/auth/decorators';
 
 
-@Controller('secutity/usuario')
-export class UsuarioContusuarioler {
+@Controller('usuario')
+export class UsuarioController {
   constructor(private readonly usuarioService: UsuarioService) {}
 
   @Post('create')

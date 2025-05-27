@@ -1,3 +1,4 @@
+import { UsuarioRol } from './../security/entities/usuario-rol.entity';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -8,13 +9,13 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { Usuario } from 'src/security/entities/usuario.entity';
-import { SecurityModule } from 'src/security/security.module';
+import { Permiso } from 'src/security/entities/permiso.entity';
 
 @Module({
 
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([Usuario]),
+    TypeOrmModule.forFeature([Usuario,Permiso,UsuarioRol]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
 
     JwtModule.registerAsync({
