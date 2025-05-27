@@ -28,6 +28,8 @@ import { AccionController } from './controllers/accion.controller';
 import { ModuloController } from './controllers/modulo.controller';
 import { UsuarioService } from './services/usuario.service';
 import { UsuarioController } from './controllers/usuario.controller';
+import { PersonaService } from './services/persona.service';
+import { PersonaController } from './controllers/persona.controller';
 
 @Module({
   imports: [
@@ -70,7 +72,8 @@ import { UsuarioController } from './controllers/usuario.controller';
     MultitablaController, 
     PermisoController, 
     RolController,
-    UsuarioController 
+    UsuarioController,
+    PersonaController 
   ],
   providers: [
     AccionService,
@@ -79,7 +82,8 @@ import { UsuarioController } from './controllers/usuario.controller';
     MultitablaService, 
     PermisoService, 
     RolService,
-    UsuarioService
+    UsuarioService,
+    PersonaService
   ],
 
 })
