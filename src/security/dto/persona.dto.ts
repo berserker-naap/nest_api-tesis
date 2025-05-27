@@ -1,6 +1,6 @@
 import { IsString, IsNotEmpty, IsOptional } from "class-validator";
 
-export class PersonaDto {
+export class CreateUpdatePersonaDto {
   @IsString() @IsNotEmpty()
   nombre: string;
 

@@ -4,7 +4,6 @@ import { Usuario } from '../entities/usuario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { StatusResponseDto } from 'src/common/dto/response.dto';
-import { CreateUpdateUsuarioDto, CreateUsuarioWithPersonaDto } from '../dto/usuario.dto';
 import { Persona } from '../entities/persona.entity';
 import { UsuarioRol } from '../entities/usuario-rol.entity';
 import { Rol } from '../entities/rol.entity';
