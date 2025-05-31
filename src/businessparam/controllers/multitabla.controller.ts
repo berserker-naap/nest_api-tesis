@@ -39,12 +39,20 @@ export class MultitablaController {
     return this.multitablaService.update(dto, user.login, ip);
 }
 
-  // @Delete(':id')
-  // async eliminar(
-  //   @Param('id') id: number,
-  //   @GetUsuario() user: Usuario, @GetClientIp() ip: string
-  // ) {
-  //   return this.multitablaService.eliminar(+id, user.login, ip);
-  // }
+  @Delete(':id')
+  @Auth()
+  async eliminar(
+    @Param('id') id: number,
+    @GetUsuario() user: Usuario, @GetClientIp() ip: string
+  ) {
+    return this.multitablaService.eliminar(+id, user.login, ip);
+  }
+
+  
+  @Post('delete-all')
+  @Auth()
+  deleteMany(@Body() ids: number[], @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+    return this.multitablaService.deleteMany(ids, user.login, ip);
+  }
 
 }

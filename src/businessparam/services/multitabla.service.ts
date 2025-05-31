@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponseDto } from 'src/common/dto/response.dto';
-import { DataSource, Repository, IsNull } from 'typeorm';
+import { DataSource, Repository, IsNull, In } from 'typeorm';
 import { Multitabla } from '../entities/multitabla.entity';
 import { CreateUpdateMultitablaDto } from '../dto/multitabla.dto';
 
@@ -17,8 +17,10 @@ export class MultitablaService {
   async findAll(): Promise<StatusResponseDto<any>> {
     try {
       const cabeceras = await this.multitablaRepository.find({
-        where: { idMultitabla: IsNull(),  activo: true,
-        eliminado: false, },
+        where: {
+          idMultitabla: IsNull(), activo: true,
+          eliminado: false,
+        },
         order: { nombre: 'ASC' }, // opcional: ordenar por nombre
       });
 
@@ -32,8 +34,10 @@ export class MultitablaService {
     try {
       // 1. Obtener cabecera
       const cabecera = await this.multitablaRepository.findOne({
-        where: { id ,  activo: true,
-        eliminado: false, },
+        where: {
+          id, activo: true,
+          eliminado: false,
+        },
       });
 
       if (!cabecera || cabecera.idMultitabla !== null) {
@@ -42,8 +46,10 @@ export class MultitablaService {
 
       // 2. Obtener sus items
       const items = await this.multitablaRepository.find({
-        where: { idMultitabla: id,   activo: true,
-        eliminado: false,},
+        where: {
+          idMultitabla: id, activo: true,
+          eliminado: false,
+        },
         order: { nombre: 'ASC' },
       });
 
@@ -113,134 +119,158 @@ export class MultitablaService {
     }
   }
 
- async update(dto: CreateUpdateMultitablaDto, usuario: string, ip: string): Promise<StatusResponseDto<any>> {
-  const queryRunner = this.dataSource.createQueryRunner();
-  await queryRunner.connect();
-  await queryRunner.startTransaction();
+  async update(dto: CreateUpdateMultitablaDto, usuario: string, ip: string): Promise<StatusResponseDto<any>> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  try {
-    const cabeceraOriginal = await this.multitablaRepository.findOne({ where: { id: dto.id } });
+    try {
+      const cabecera = await this.multitablaRepository.findOne({ where: { id: dto.id } });
 
-    if (!cabeceraOriginal || cabeceraOriginal.idMultitabla !== null) {
-      return new StatusResponseDto(false, 404, 'Cabecera no encontrada', null);
-    }
+      if (!cabecera || cabecera.idMultitabla !== null) {
+        return new StatusResponseDto(false, 404, 'Cabecera no encontrada', null);
+      }
+      // Verificar si la cabecera cambió y actualizar
+      cabecera.nombre = dto.nombre;
+      if (dto.valor !== undefined) {
+        cabecera.valor = dto.valor;
+      }
 
-    const cabecera: any = {...cabeceraOriginal};
-    // Verificar si la cabecera cambió y actualizar
-    cabecera.nombre = dto.nombre;
-    cabecera.valor = dto.valor;
-    cabecera.valor2 = dto.valor2;
-    cabecera.fechaModificacion = new Date();
-    cabecera.usuarioModificacion = usuario;
-    cabecera.ipModificacion = ip;
+      if (dto.valor2 !== undefined) {
+        cabecera.valor2 = dto.valor2;
+      }
+      cabecera.fechaModificacion = new Date();
+      cabecera.usuarioModificacion = usuario;
+      cabecera.ipModificacion = ip;
 
-    const updatedCabecera = await queryRunner.manager.save(cabecera);
+      const updatedCabecera = await queryRunner.manager.save(cabecera);
 
-    // 1. Obtener los items actuales desde la BD
-    const existingItems = await this.multitablaRepository.find({
-      where: { idMultitabla: dto.id }
-    });
+      // 1. Obtener los items actuales desde la BD
+      const existingItems = await this.multitablaRepository.find({
+        where: { idMultitabla: dto.id }
+      });
 
-    const existingItemMap = new Map<number, Multitabla>();
-    existingItems.forEach(item => existingItemMap.set(item.id, item));
+      const existingItemMap = new Map<number, Multitabla>();
+      existingItems.forEach(item => existingItemMap.set(item.id, item));
 
-    const processedIds = new Set<number>();
-    const nuevosItems: Multitabla[] = [];
+      const processedIds = new Set<number>();
+      const nuevosItems: Multitabla[] = [];
 
-    // 2. Procesar todos los items del dto
-    if (dto.items?.length) {
-      for (const itemDto of dto.items) {
-        const idItem = itemDto.id;
+      // 2. Procesar todos los items del dto
+      if (dto.items?.length) {
+        for (const itemDto of dto.items) {
+          const idItem = itemDto.id;
 
-        if (idItem && existingItemMap.has(idItem)) {
-          // UPDATE
-          const itemExistente : any = existingItemMap.get(idItem);
-          Object.assign(itemExistente, {
-            nombre: itemDto.nombre,
-            valor: itemDto.valor,
-            valor2: itemDto.valor2,
-            fechaModificacion: new Date(),
-            usuarioModificacion: usuario,
-            ipModificacion: ip,
-          });
-          await queryRunner.manager.save(itemExistente);
-          processedIds.add(idItem);
-        } else {
-          // INSERT
-          const nuevoItem = this.multitablaRepository.create({
-            nombre: itemDto.nombre,
-            valor: itemDto.valor,
-            valor2: itemDto.valor2,
-            idMultitabla: dto.id,
-            usuarioRegistro: usuario,
-            ipRegistro: ip,
-          });
-          const savedItem = await queryRunner.manager.save(nuevoItem);
-          nuevosItems.push(savedItem);
+          if (idItem && existingItemMap.has(idItem)) {
+            // UPDATE
+            const itemExistente: any = existingItemMap.get(idItem);
+            Object.assign(itemExistente, {
+              nombre: itemDto.nombre,
+              valor: itemDto.valor,
+              valor2: itemDto.valor2,
+              fechaModificacion: new Date(),
+              usuarioModificacion: usuario,
+              ipModificacion: ip,
+            });
+            await queryRunner.manager.save(itemExistente);
+            processedIds.add(idItem);
+          } else {
+            // INSERT
+            const nuevoItem = this.multitablaRepository.create({
+              nombre: itemDto.nombre,
+              valor: itemDto.valor,
+              valor2: itemDto.valor2,
+              idMultitabla: dto.id,
+              usuarioRegistro: usuario,
+              ipRegistro: ip,
+            });
+            const savedItem = await queryRunner.manager.save(nuevoItem);
+            nuevosItems.push(savedItem);
+          }
         }
       }
+
+      // 3. Eliminar los items que ya existían pero NO están en dto
+      const idsRecibidos = dto.items?.map(i => i.id).filter(Boolean) ?? [];
+      const idsEliminar = existingItems
+        .filter(item => !idsRecibidos.includes(item.id))
+        .map(item => item.id);
+
+      if (idsEliminar.length > 0) {
+        for (const id of idsEliminar) {
+          await queryRunner.manager.update(Multitabla, id, {
+            activo: false,
+            eliminado: true,
+            usuarioEliminacion: usuario,
+            ipEliminacion: ip,
+            fechaEliminacion: new Date(),
+          });
+        }
+      }
+
+
+
+
+      await queryRunner.commitTransaction();
+
+      return new StatusResponseDto(true, 200, 'Cabecera e items actualizados correctamente', updatedCabecera);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      console.error('Error en update multitabla:', error);
+      return new StatusResponseDto(false, 500, 'Error al actualizar registro', error);
+    } finally {
+      await queryRunner.release();
     }
+  }
 
-    // 3. Eliminar los items que ya existían pero NO están en dto
-    const idsRecibidos = dto.items?.map(i => i.id).filter(Boolean) ?? [];
-    const idsEliminar = existingItems
-      .filter(item => !idsRecibidos.includes(item.id))
-      .map(item => item.id);
+  async eliminar(id: number, usuarioEliminacion: string, ipEliminacion?: string): Promise<StatusResponseDto<null>> {
+    try {
+      const found = await this.multitablaRepository.findOne({ where: { id , activo: true,
+          eliminado: false,} });
+      if (!found) {
+        return new StatusResponseDto(false, 404, 'Registro no encontrado', null);
+      }
 
-    if (idsEliminar.length > 0) {
-      await queryRunner.manager.update(Multitabla, idsEliminar, {
-        activo: false,
+      await this.multitablaRepository.update(id, {
         eliminado: true,
-        usuarioEliminacion: usuario,
-        ipEliminacion: ip,
+        activo: false,
+        usuarioEliminacion,
+        ipEliminacion,
         fechaEliminacion: new Date(),
       });
+
+      return new StatusResponseDto(true, 200, 'Registro eliminado (soft delete)', null);
+    } catch (error) {
+      console.error('Error en update multitabla:', error);
+      return new StatusResponseDto(false, 500, 'Error al eliminar registro', error);
     }
-
-
-    await queryRunner.commitTransaction();
-
-    return new StatusResponseDto(true, 200, 'Cabecera e items actualizados correctamente', updatedCabecera);
-  } catch (error) {
-    await queryRunner.rollbackTransaction();
-    return new StatusResponseDto(false, 500, 'Error al actualizar registro', error);
-  } finally {
-    await queryRunner.release();
   }
-}
 
-  // async eliminar(id: number, usuarioEliminacion: string, ipEliminacion?: string): Promise<StatusResponseDto<null>> {
-  //   try {
-  //     const found = await this.multitablaRepository.findOne({ where: { id } });
-  //     if (!found) {
-  //       return new StatusResponseDto(false, 404, 'Registro no encontrado', null);
-  //     }
+ async deleteMany(ids: number[], usuario: string, ip: string): Promise<StatusResponseDto<any>> {
+    try {
+      const acciones = await this.multitablaRepository.findBy({ id: In(ids) });
 
-  //     await this.multitablaRepository.update(id, {
-  //       eliminado: true,
-  //       activo: false,
-  //       usuarioEliminacion,
-  //       ipEliminacion,
-  //       fechaEliminacion: new Date(),
-  //     });
+      if (!acciones.length) {
+        return new StatusResponseDto(false, 404, 'No se encontraron acciones para eliminar', null);
+      }
 
-  //     return new StatusResponseDto(true, 200, 'Registro eliminado (soft delete)', null);
-  //   } catch (error) {
-  //     return new StatusResponseDto(false, 500, 'Error al eliminar registro', error);
-  //   }
-  // }
+      // Actualizar campos de auditoría antes de eliminar
+      const auditadas = acciones.map((accion) => {
+        accion.usuarioEliminacion = usuario;
+        accion.ipEliminacion = ip;
+        accion.fechaEliminacion = new Date();
+        return accion;
+      });
 
-  // async habilitar(id: number, activo: boolean): Promise<StatusResponseDto<null>> {
-  //   try {
-  //     const found = await this.multitablaRepository.findOne({ where: { id } });
-  //     if (!found) {
-  //       return new StatusResponseDto(false, 404, 'Registro no encontrado', null);
-  //     }
+      // Primero guardamos los cambios de auditoría
+      await this.multitablaRepository.save(auditadas);
 
-  //     await this.multitablaRepository.update(id, { activo });
-  //     return new StatusResponseDto(true, 200, `Registro ${activo ? 'habilitado' : 'deshabilitado'}`, null);
-  //   } catch (error) {
-  //     return new StatusResponseDto(false, 500, 'Error al actualizar estado', error);
-  //   }
-  // }
+      // Luego eliminamos
+      await this.multitablaRepository.remove(auditadas);
+
+      return new StatusResponseDto(true, 200, 'Acciones eliminadas', ids);
+    } catch (error) {
+      return new StatusResponseDto(false, 500, 'Error al eliminar múltiples acciones', error);
+    }
+  }
 }

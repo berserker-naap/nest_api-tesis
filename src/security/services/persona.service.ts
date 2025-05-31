@@ -25,9 +25,9 @@ export class PersonaService {
     try {
       const persona = await this.personaRepository.findOne({ where: { id } });
       if (!persona) {
-        return new StatusResponseDto(false, 404, 'Opción no encontrada', null);
+        return new StatusResponseDto(false, 404, 'Persona no encontrada', null);
       }
-      return new StatusResponseDto(true, 200, 'Opción encontrada', persona);
+      return new StatusResponseDto(true, 200, 'Persona encontrada', persona);
     } catch (error) {
       return new StatusResponseDto(false, 500, 'Error al obtener opción', error);
     }
