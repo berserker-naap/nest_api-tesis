@@ -3,6 +3,7 @@ import { AuthModule } from './auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { SecurityModule } from './security/security.module';
+import { BusinessparamModule } from './businessparam/businessparam.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SecurityModule } from './security/security.module';
     }),
     AuthModule,
     SecurityModule,
+    BusinessparamModule
   ],
 
   controllers: [],

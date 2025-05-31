@@ -9,9 +9,6 @@ import { RolService } from './services/rol.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Permiso } from './entities/permiso.entity';
 import { Rol } from './entities/rol.entity';
-import { Multitabla } from './entities/multitabla.entity';
-import { MultitablaController } from './controllers/multitabla.controller';
-import { MultitablaService } from './services/multitabla.service';
 import { AuthModule } from 'src/auth/auth.module';
 import { Usuario } from './entities/usuario.entity';
 import { Accion } from './entities/accion.entity';
@@ -37,7 +34,6 @@ import { PersonaController } from './controllers/persona.controller';
     TypeOrmModule.forFeature([
       Accion,
       Modulo,
-      Multitabla,
       Opcion,
       Permiso,
       Persona,
@@ -69,7 +65,6 @@ import { PersonaController } from './controllers/persona.controller';
     AccionController,
     ModuloController,
     OpcionController,
-    MultitablaController, 
     PermisoController, 
     RolController,
     UsuarioController,
@@ -79,7 +74,6 @@ import { PersonaController } from './controllers/persona.controller';
     AccionService,
     ModuloService,
     OpcionService,
-    MultitablaService, 
     PermisoService, 
     RolService,
     UsuarioService,

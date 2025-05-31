@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Get, ParseIntPipe, Param } from '@nestjs/common';
-import { AsignarUsuarioRolesDto, CreateUpdateUsuarioDto, CreateUsuarioDto, CreateUsuarioWithPersonaDto } from '../dto/usuario.dto';
+import { AsignarUsuarioRolesDto, CreateUsuarioDto } from '../dto/usuario.dto';
 import { UsuarioService } from '../services/usuario.service';
 import { Auth, GetClientIp, GetUsuario } from 'src/auth/decorators';
 import { Usuario } from '../entities/usuario.entity';
