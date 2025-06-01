@@ -26,3 +26,18 @@ export class AsignarUsuarioRolesDto {
   @IsArray()
   roles: number[];
 }
+
+export class UsuarioResponseDto {
+  id: number;
+  login: string;
+  persona?: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  } | null; // ← Se aclara que puede ser null si no hay persona
+
+  roles: {
+    id: number;
+    nombre: string;
+  }[];
+}

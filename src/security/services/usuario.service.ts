@@ -1,4 +1,4 @@
-import { AsignarUsuarioRolesDto, CreateUsuarioDto } from './../dto/usuario.dto';
+import { AsignarUsuarioRolesDto, CreateUsuarioDto, UsuarioResponseDto } from './../dto/usuario.dto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Usuario } from '../entities/usuario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -25,18 +25,39 @@ export class UsuarioService {
 
 
 
-  async findAll(): Promise<StatusResponseDto<any>> {
+  async findAll(): Promise<StatusResponseDto<UsuarioResponseDto[]>> {
     try {
       const usuarios = await this.usuarioRepository.find({
         relations: ['persona', 'roles', 'roles.rol'],
       });
-      return new StatusResponseDto(true, 200, 'Acciones obtenidas', usuarios);
+
+      const usuariosDto: UsuarioResponseDto[] = usuarios.map((usuario) => ({
+        id: usuario.id,
+        login: usuario.login,
+        persona: usuario.persona
+          ? {
+            id: usuario.persona.id,
+            nombre: usuario.persona.nombre,
+            apellido: usuario.persona.apellido,
+          }
+          : null,
+        roles: (usuario.roles || [])
+          .filter((ur) => ur.rol?.activo && !ur.rol?.eliminado)
+          .map((ur) => ({
+            id: ur.rol.id,
+            nombre: ur.rol.nombre,
+          })),
+      }));
+
+
+      return new StatusResponseDto(true, 200, 'Usuarios obtenidos', usuariosDto);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al obtener acciones', error);
+      console.error('Error al obtener usuarios:', error);
+      return new StatusResponseDto(false, 500, 'Error al obtener usuarios', error);
     }
   }
 
-  async create(dto: CreateUsuarioDto, usuarioRegistro: string, ip: string): Promise<StatusResponseDto<any>> {
+  async create(dto: CreateUsuarioDto, usuarioRegistro: string, ip: string): Promise<StatusResponseDto<UsuarioResponseDto>> {
     try {
       let persona;
 
@@ -69,11 +90,40 @@ export class UsuarioService {
         });
       }
 
-      return new StatusResponseDto(true, 201, 'Usuario registrado', saved);
+      // Volver a cargar el usuario con relaciones actualizadas
+      const usuarioCompleto = await this.usuarioRepository.findOne({
+        where: { id: saved.id },
+        relations: ['persona', 'roles', 'roles.rol'],
+      });
+      if (!usuarioCompleto) {
+        throw new NotFoundException('Error al obtener el usuario creado');
+      }
+
+      const usuarioDto: UsuarioResponseDto = {
+        id: usuarioCompleto.id,
+        login: usuarioCompleto.login,
+        persona: usuarioCompleto.persona
+          ? {
+            id: usuarioCompleto.persona.id,
+            nombre: usuarioCompleto.persona.nombre,
+            apellido: usuarioCompleto.persona.apellido,
+          }
+          : null,
+        roles: (usuarioCompleto.roles || [])
+          .filter((ur) => ur.rol?.activo && !ur.rol?.eliminado)
+          .map((ur) => ({
+            id: ur.rol.id,
+            nombre: ur.rol.nombre,
+          })),
+      };
+
+      return new StatusResponseDto(true, 201, 'Usuario registrado', usuarioDto);
     } catch (error) {
+      console.error('Error al crear usuario:', error);
       return new StatusResponseDto(false, 500, 'Error al crear acción', error);
     }
   }
+
 
   async asignarRoles(idUsuario: number, dto: AsignarUsuarioRolesDto, usuarioUpdate: string, ip: string): Promise<StatusResponseDto<any>> {
     try {
