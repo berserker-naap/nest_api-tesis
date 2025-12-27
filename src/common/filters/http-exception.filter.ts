@@ -8,7 +8,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { StatusResponseDto } from '../dto/response.dto';
+import { StatusResponse } from '../dto/response.dto';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -28,7 +28,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = exception.message || 'Error HTTP';
     }
 
-    const result = new StatusResponseDto(false, status, message , null);
+    const result = new StatusResponse(false, status, message , null);
     response.status(status).json(result);
   }
 }

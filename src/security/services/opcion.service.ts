@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { StatusResponseDto } from 'src/common/dto/response.dto';
+import { StatusResponse } from 'src/common/dto/response.dto';
 import { In, Repository } from 'typeorm';
 import { Opcion } from '../entities/opcion.entity';
 import { CreateUpdateOpcionDto } from '../dto/opcion.dto';
@@ -15,14 +15,14 @@ export class OpcionService {
     private readonly opcionRepository: Repository<Opcion>,
   ) { }
 
-  async findAll(): Promise<StatusResponseDto<any>> {
+  async findAll(): Promise<StatusResponse<any>> {
     try {
       const opciones = await this.opcionRepository.find({
         relations: ['modulo'],
       });
-      return new StatusResponseDto(true, 200, 'Opciones obtenidas', opciones);
+      return new StatusResponse(true, 200, 'Opciones obtenidas', opciones);
     } catch (error) {
-      return new StatusResponseDto(
+      return new StatusResponse(
         false,
         500,
         'Error al obtener opciones',
@@ -31,18 +31,18 @@ export class OpcionService {
     }
   }
 
-  async findOne(id: number): Promise<StatusResponseDto<any>> {
+  async findOne(id: number): Promise<StatusResponse<any>> {
     try {
       const opcion = await this.opcionRepository.findOne({
         where: { id },
         relations: ['modulo'],
       });
       if (!opcion) {
-        return new StatusResponseDto(false, 404, 'Opción no encontrada', null);
+        return new StatusResponse(false, 404, 'Opción no encontrada', null);
       }
-      return new StatusResponseDto(true, 200, 'Opción encontrada', opcion);
+      return new StatusResponse(true, 200, 'Opción encontrada', opcion);
     } catch (error) {
-      return new StatusResponseDto(
+      return new StatusResponse(
         false,
         500,
         'Error al obtener opción',
@@ -54,12 +54,12 @@ export class OpcionService {
     dto: CreateUpdateOpcionDto,
     usuario: string,
     ip: string
-  ): Promise<StatusResponseDto<any>> {
+  ): Promise<StatusResponse<any>> {
     try {
       const modulo = await this.moduloRepository.findOne({ where: { id: dto.idModulo } });
 
       if (!modulo) {
-        return new StatusResponseDto(false, 404, 'Módulo no encontrado', null);
+        return new StatusResponse(false, 404, 'Módulo no encontrado', null);
       }
 
       const opcion = this.opcionRepository.create({
@@ -71,9 +71,9 @@ export class OpcionService {
 
       const saved = await this.opcionRepository.save(opcion);
 
-      return new StatusResponseDto(true, 201, 'Opción creada', saved);
+      return new StatusResponse(true, 201, 'Opción creada', saved);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al crear opción', error);
+      return new StatusResponse(false, 500, 'Error al crear opción', error);
     }
   }
 
@@ -82,7 +82,7 @@ export class OpcionService {
     dto: CreateUpdateOpcionDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponseDto<any>> {
+  ): Promise<StatusResponse<any>> {
     try {
       const opcion = await this.opcionRepository.findOne({
         where: { id },
@@ -90,13 +90,13 @@ export class OpcionService {
       });
 
       if (!opcion) {
-        return new StatusResponseDto(false, 404, 'Opción no encontrada', null);
+        return new StatusResponse(false, 404, 'Opción no encontrada', null);
       }
 
       const modulo = await this.moduloRepository.findOne({ where: { id: dto.idModulo } });
 
       if (!modulo) {
-        return new StatusResponseDto(false, 404, 'Módulo no encontrado', null);
+        return new StatusResponse(false, 404, 'Módulo no encontrado', null);
       }
 
       const actualizado = this.opcionRepository.create({
@@ -110,23 +110,23 @@ export class OpcionService {
 
       const saved = await this.opcionRepository.save(actualizado);
 
-      return new StatusResponseDto(true, 200, 'Opción actualizada', saved);
+      return new StatusResponse(true, 200, 'Opción actualizada', saved);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al actualizar opción', error);
+      return new StatusResponse(false, 500, 'Error al actualizar opción', error);
     }
   }
   async delete(
     id: number,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponseDto<any>> {
+  ): Promise<StatusResponse<any>> {
     try {
       const opcion = await this.opcionRepository.findOne({
         where: { id },
         relations: ['modulo'],
       });
       if (!opcion) {
-        return new StatusResponseDto(false, 404, 'Opción no encontrada', null);
+        return new StatusResponse(false, 404, 'Opción no encontrada', null);
       }
 
       opcion.usuarioEliminacion = usuario;
@@ -136,9 +136,9 @@ export class OpcionService {
       await this.opcionRepository.save(opcion);
       await this.opcionRepository.remove(opcion);
 
-      return new StatusResponseDto(true, 200, 'Opción eliminada', opcion);
+      return new StatusResponse(true, 200, 'Opción eliminada', opcion);
     } catch (error) {
-      return new StatusResponseDto(
+      return new StatusResponse(
         false,
         500,
         'Error al eliminar opción',
@@ -151,12 +151,12 @@ export class OpcionService {
     ids: number[],
     usuario: string,
     ip: string,
-  ): Promise<StatusResponseDto<any>> {
+  ): Promise<StatusResponse<any>> {
     try {
       const opciones = await this.opcionRepository.findBy({ id: In(ids) });
 
       if (!opciones.length) {
-        return new StatusResponseDto(
+        return new StatusResponse(
           false,
           404,
           'No se encontraron opciones para eliminar',
@@ -174,9 +174,9 @@ export class OpcionService {
       await this.opcionRepository.save(auditadas);
       await this.opcionRepository.remove(auditadas);
 
-      return new StatusResponseDto(true, 200, 'Opciones eliminadas', ids);
+      return new StatusResponse(true, 200, 'Opciones eliminadas', ids);
     } catch (error) {
-      return new StatusResponseDto(
+      return new StatusResponse(
         false,
         500,
         'Error al eliminar múltiples opciones',

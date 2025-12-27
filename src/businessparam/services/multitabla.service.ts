@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { StatusResponseDto } from 'src/common/dto/response.dto';
+import { StatusResponse } from 'src/common/dto/response.dto';
 import { DataSource, Repository, IsNull, In } from 'typeorm';
 import { Multitabla } from '../entities/multitabla.entity';
 import { CreateUpdateMultitablaDto } from '../dto/multitabla.dto';
@@ -14,7 +14,7 @@ export class MultitablaService {
   ) { }
 
 
-  async findAll(): Promise<StatusResponseDto<any>> {
+  async findAll(): Promise<StatusResponse<any>> {
     try {
       const cabeceras = await this.multitablaRepository.find({
         where: {
@@ -24,13 +24,13 @@ export class MultitablaService {
         order: { nombre: 'ASC' }, // opcional: ordenar por nombre
       });
 
-      return new StatusResponseDto(true, 200, 'Cabeceras obtenidas', cabeceras);
+      return new StatusResponse(true, 200, 'Cabeceras obtenidas', cabeceras);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al obtener cabeceras', error);
+      return new StatusResponse(false, 500, 'Error al obtener cabeceras', error);
     }
   }
 
-  async findOne(id: number): Promise<StatusResponseDto<any>> {
+  async findOne(id: number): Promise<StatusResponse<any>> {
     try {
       // 1. Obtener cabecera
       const cabecera = await this.multitablaRepository.findOne({
@@ -41,7 +41,7 @@ export class MultitablaService {
       });
 
       if (!cabecera || cabecera.idMultitabla !== null) {
-        return new StatusResponseDto(false, 404, 'Cabecera no encontrada', null);
+        return new StatusResponse(false, 404, 'Cabecera no encontrada', null);
       }
 
       // 2. Obtener sus items
@@ -67,13 +67,13 @@ export class MultitablaService {
         })),
       };
 
-      return new StatusResponseDto(true, 200, 'Cabecera encontrada', result);
+      return new StatusResponse(true, 200, 'Cabecera encontrada', result);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al obtener cabecera', error);
+      return new StatusResponse(false, 500, 'Error al obtener cabecera', error);
     }
   }
 
-  async create(dto: CreateUpdateMultitablaDto, usuario: string, ip: string): Promise<StatusResponseDto<any>> {
+  async create(dto: CreateUpdateMultitablaDto, usuario: string, ip: string): Promise<StatusResponse<any>> {
     const resultados: Multitabla[] = [];
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -110,16 +110,16 @@ export class MultitablaService {
       }
 
       await queryRunner.commitTransaction();
-      return new StatusResponseDto(true, 201, 'Registro creado exitosamente', savedCabecera);
+      return new StatusResponse(true, 201, 'Registro creado exitosamente', savedCabecera);
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      return new StatusResponseDto(false, 500, 'Error al crear registro', error);
+      return new StatusResponse(false, 500, 'Error al crear registro', error);
     } finally {
       await queryRunner.release();
     }
   }
 
-  async update(dto: CreateUpdateMultitablaDto, usuario: string, ip: string): Promise<StatusResponseDto<any>> {
+  async update(dto: CreateUpdateMultitablaDto, usuario: string, ip: string): Promise<StatusResponse<any>> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -128,7 +128,7 @@ export class MultitablaService {
       const cabecera = await this.multitablaRepository.findOne({ where: { id: dto.id } });
 
       if (!cabecera || cabecera.idMultitabla !== null) {
-        return new StatusResponseDto(false, 404, 'Cabecera no encontrada', null);
+        return new StatusResponse(false, 404, 'Cabecera no encontrada', null);
       }
       // Verificar si la cabecera cambió y actualizar
       cabecera.nombre = dto.nombre;
@@ -213,22 +213,22 @@ export class MultitablaService {
 
       await queryRunner.commitTransaction();
 
-      return new StatusResponseDto(true, 200, 'Cabecera e items actualizados correctamente', updatedCabecera);
+      return new StatusResponse(true, 200, 'Cabecera e items actualizados correctamente', updatedCabecera);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       console.error('Error en update multitabla:', error);
-      return new StatusResponseDto(false, 500, 'Error al actualizar registro', error);
+      return new StatusResponse(false, 500, 'Error al actualizar registro', error);
     } finally {
       await queryRunner.release();
     }
   }
 
-  async eliminar(id: number, usuarioEliminacion: string, ipEliminacion?: string): Promise<StatusResponseDto<null>> {
+  async eliminar(id: number, usuarioEliminacion: string, ipEliminacion?: string): Promise<StatusResponse<null>> {
     try {
       const found = await this.multitablaRepository.findOne({ where: { id , activo: true,
           eliminado: false,} });
       if (!found) {
-        return new StatusResponseDto(false, 404, 'Registro no encontrado', null);
+        return new StatusResponse(false, 404, 'Registro no encontrado', null);
       }
 
       await this.multitablaRepository.update(id, {
@@ -239,19 +239,19 @@ export class MultitablaService {
         fechaEliminacion: new Date(),
       });
 
-      return new StatusResponseDto(true, 200, 'Registro eliminado (soft delete)', null);
+      return new StatusResponse(true, 200, 'Registro eliminado (soft delete)', null);
     } catch (error) {
       console.error('Error en update multitabla:', error);
-      return new StatusResponseDto(false, 500, 'Error al eliminar registro', error);
+      return new StatusResponse(false, 500, 'Error al eliminar registro', error);
     }
   }
 
- async deleteMany(ids: number[], usuario: string, ip: string): Promise<StatusResponseDto<any>> {
+ async deleteMany(ids: number[], usuario: string, ip: string): Promise<StatusResponse<any>> {
     try {
       const acciones = await this.multitablaRepository.findBy({ id: In(ids) });
 
       if (!acciones.length) {
-        return new StatusResponseDto(false, 404, 'No se encontraron acciones para eliminar', null);
+        return new StatusResponse(false, 404, 'No se encontraron acciones para eliminar', null);
       }
 
       // Actualizar campos de auditoría antes de eliminar
@@ -268,9 +268,9 @@ export class MultitablaService {
       // Luego eliminamos
       await this.multitablaRepository.remove(auditadas);
 
-      return new StatusResponseDto(true, 200, 'Acciones eliminadas', ids);
+      return new StatusResponse(true, 200, 'Acciones eliminadas', ids);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al eliminar múltiples acciones', error);
+      return new StatusResponse(false, 500, 'Error al eliminar múltiples acciones', error);
     }
   }
 }

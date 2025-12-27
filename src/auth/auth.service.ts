@@ -13,8 +13,8 @@ import * as bcrypt from 'bcrypt';
 
 import { JwtPayload } from './interfaces';
 import { Usuario } from 'src/security/entities/usuario.entity';
-import { RegisterUsuarioDto, LoginDto } from './dto/auth.dto';
-import { StatusResponseDto } from 'src/common/dto/response.dto';
+import { RegisterUsuarioRequestDto, LoginRequestDto } from './dto/auth.dto';
+import { StatusResponse } from 'src/common/dto/response.dto';
 import { Permiso } from 'src/security/entities/permiso.entity';
 import { UsuarioRol } from 'src/security/entities/usuario-rol.entity';
 
@@ -31,10 +31,10 @@ export class AuthService {
   ) { }
 
   async create(
-    registerUsuarioDto: RegisterUsuarioDto,
-  ): Promise<StatusResponseDto<any>> {
+    RegisterUsuarioRequestDto: RegisterUsuarioRequestDto,
+  ): Promise<StatusResponse<any>> {
     try {
-      const { password: passwordDto, ...usuarioData } = registerUsuarioDto;
+      const { password: passwordDto, ...usuarioData } = RegisterUsuarioRequestDto;
 
       const entity = this.usuarioRepository.create({
         ...usuarioData,
@@ -47,7 +47,7 @@ export class AuthService {
 
       delete (usuario as any).password;
 
-      return new StatusResponseDto(true, 201, 'Registro creado exitosamente', {
+      return new StatusResponse(true, 201, 'Registro creado exitosamente', {
         ...usuario,
         token: this.getJwtToken({ id: usuario.id, login: usuario.login }),
       });
@@ -60,13 +60,13 @@ export class AuthService {
           ? error.message || error.getResponse()?.['message']
           : 'Error al registrar usuario';
 
-      return new StatusResponseDto(false, statusCode, message, null);
+      return new StatusResponse(false, statusCode, message, null);
     }
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginRequestDto: LoginRequestDto) {
     try {
-      const { login, password } = loginDto;
+      const { login, password } = loginRequestDto;
 
       const usuario = await this.usuarioRepository.findOne({
         where: { login },
@@ -75,7 +75,7 @@ export class AuthService {
       });
 
       if (!usuario || !bcrypt.compareSync(password, usuario.password)) {
-        throw new UnauthorizedException('Credenciales no válidas');
+         return new StatusResponse(false, 401, 'Credenciales no válidas', null);
       }
 
       const roles = usuario.roles.map((r) => r.rol.nombre);
@@ -84,7 +84,7 @@ export class AuthService {
 
       const permisos = await this.getPermisosUnificadosPorUsuario(usuario.id);
 
-      return new StatusResponseDto(true, 200, 'Login exitoso', {
+      return new StatusResponse(true, 200, 'Login exitoso', {
         ...usuarioPlano,
         roles,
         permisos,
@@ -96,7 +96,7 @@ export class AuthService {
       const message = error instanceof HttpException
         ? error.message || error.getResponse()?.['message']
         : 'Error al iniciar sesión';
-      return new StatusResponseDto(false, statusCode, message, null);
+      return new StatusResponse(false, statusCode, message, null);
     }
   }
 
@@ -113,7 +113,7 @@ export class AuthService {
     const roles = usuario.roles.map((r) => r.rol.nombre);
     const permisos = await this.getPermisosUnificadosPorUsuario(usuario.id);
 
-    return new StatusResponseDto(true, 200, 'Actualización de sesión exitosa', {
+    return new StatusResponse(true, 200, 'Actualización de sesión exitosa', {
       id: usuario.id,
       login: usuario.login,
       roles,

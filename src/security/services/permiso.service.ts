@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { StatusResponseDto } from 'src/common/dto/response.dto';
+import { StatusResponse } from 'src/common/dto/response.dto';
 import { Repository } from 'typeorm';
 import { CreatePermisoDto, PermisoBulkDto } from '../dto/permiso.dto';
 import { Permiso } from '../entities/permiso.entity';
@@ -18,7 +18,7 @@ export class PermisoService {
     private readonly permisoRepository: Repository<Permiso>,
   ) { }
 
-  async getPermisosPorRol(idRol: number): Promise<StatusResponseDto<any>> {
+  async getPermisosPorRol(idRol: number): Promise<StatusResponse<any>> {
     try {
       // 1. Obtener todas las acciones
       const acciones = await this.accionRepository.find();
@@ -59,9 +59,9 @@ export class PermisoService {
         })),
       }));
 
-      return new StatusResponseDto(true, 200, 'Permisos cargados', data);
+      return new StatusResponse(true, 200, 'Permisos cargados', data);
     } catch (error) {
-      return new StatusResponseDto(
+      return new StatusResponse(
         false,
         500,
         'Error al cargar permisos',
@@ -70,7 +70,7 @@ export class PermisoService {
     }
   }
 
-  async actualizarPermisos(dto: PermisoBulkDto[], usuario: string, ip: string): Promise<StatusResponseDto<any>> {
+  async actualizarPermisos(dto: PermisoBulkDto[], usuario: string, ip: string): Promise<StatusResponse<any>> {
     try {
       for (const item of dto) {
         const existente = await this.permisoRepository.findOne({
@@ -113,21 +113,21 @@ export class PermisoService {
         }
       }
 
-      return new StatusResponseDto(true, 200, 'Permisos actualizados');
+      return new StatusResponse(true, 200, 'Permisos actualizados');
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al actualizar permisos', error);
+      return new StatusResponse(false, 500, 'Error al actualizar permisos', error);
     }
   }
 
 
-  async findAll(): Promise<StatusResponseDto<any>> {
+  async findAll(): Promise<StatusResponse<any>> {
     try {
       const permisos = await this.permisoRepository.find({
         relations: ['rol', 'opcion', 'opcion.modulo', 'accion'],
       });
-      return new StatusResponseDto(true, 200, 'Permisos obtenidos', permisos);
+      return new StatusResponse(true, 200, 'Permisos obtenidos', permisos);
     } catch (error) {
-      return new StatusResponseDto(
+      return new StatusResponse(
         false,
         500,
         'Error al obtener permisos',
@@ -140,7 +140,7 @@ export class PermisoService {
     dto: CreatePermisoDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponseDto<any>> {
+  ): Promise<StatusResponse<any>> {
     try {
       const permiso = this.permisoRepository.create({
         rol: { id: dto.idRol },
@@ -150,9 +150,9 @@ export class PermisoService {
         ipRegistro: ip,
       });
       const saved = await this.permisoRepository.save(permiso);
-      return new StatusResponseDto(true, 201, 'Permiso creado', saved);
+      return new StatusResponse(true, 201, 'Permiso creado', saved);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al crear permiso', error);
+      return new StatusResponse(false, 500, 'Error al crear permiso', error);
     }
   }
 }

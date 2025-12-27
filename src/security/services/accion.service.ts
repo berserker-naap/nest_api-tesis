@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { StatusResponseDto } from "src/common/dto/response.dto";
+import { StatusResponse } from "src/common/dto/response.dto";
 import { In, Repository } from "typeorm";
 import { Accion } from "../entities/accion.entity";
 import { CreateUpdateAccionDto } from "../dto/accion.dto";
@@ -12,28 +12,28 @@ export class AccionService {
     private readonly accionRepository: Repository<Accion>
   ) { }
 
-  async findAll(): Promise<StatusResponseDto<any>> {
+  async findAll(): Promise<StatusResponse<any>> {
     try {
       const acciones = await this.accionRepository.find();
-      return new StatusResponseDto(true, 200, 'Acciones obtenidas', acciones);
+      return new StatusResponse(true, 200, 'Acciones obtenidas', acciones);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al obtener acciones', error);
+      return new StatusResponse(false, 500, 'Error al obtener acciones', error);
     }
   }
 
-  async findOne(id: number): Promise<StatusResponseDto<any>> {
+  async findOne(id: number): Promise<StatusResponse<any>> {
     try {
       const accion = await this.accionRepository.findOne({ where: { id } });
       if (!accion) {
-        return new StatusResponseDto(false, 404, 'Opción no encontrada', null);
+        return new StatusResponse(false, 404, 'Opción no encontrada', null);
       }
-      return new StatusResponseDto(true, 200, 'Opción encontrada', accion);
+      return new StatusResponse(true, 200, 'Opción encontrada', accion);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al obtener opción', error);
+      return new StatusResponse(false, 500, 'Error al obtener opción', error);
     }
   }
 
-  async create(dto: CreateUpdateAccionDto, usuario: string, ip: string): Promise<StatusResponseDto<any>> {
+  async create(dto: CreateUpdateAccionDto, usuario: string, ip: string): Promise<StatusResponse<any>> {
     try {
       const accion = this.accionRepository.create({
         ...dto,
@@ -41,18 +41,18 @@ export class AccionService {
         ipRegistro: ip,
       });
       const saved = await this.accionRepository.save(accion);
-      return new StatusResponseDto(true, 201, 'Acción creada', saved);
+      return new StatusResponse(true, 201, 'Acción creada', saved);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al crear acción', error);
+      return new StatusResponse(false, 500, 'Error al crear acción', error);
     }
   }
 
 
-  async update(id: number, dto: CreateUpdateAccionDto, usuario: string, ip: string): Promise<StatusResponseDto<any>> {
+  async update(id: number, dto: CreateUpdateAccionDto, usuario: string, ip: string): Promise<StatusResponse<any>> {
     try {
       const accion = await this.accionRepository.findOne({ where: { id } });
       if (!accion) {
-        return new StatusResponseDto(false, 404, 'Acción no encontrada', null);
+        return new StatusResponse(false, 404, 'Acción no encontrada', null);
       }
       // En servicio
       const accionPlano = {
@@ -65,17 +65,17 @@ export class AccionService {
       await this.accionRepository.update(id, accionPlano);
 
       const updated = await this.accionRepository.findOne({ where: { id } });
-      return new StatusResponseDto(true, 200, 'Acción actualizada', updated);
+      return new StatusResponse(true, 200, 'Acción actualizada', updated);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al actualizar acción', error);
+      return new StatusResponse(false, 500, 'Error al actualizar acción', error);
     }
   }
 
-  async delete(id: number, usuario: string, ip: string): Promise<StatusResponseDto<any>> {
+  async delete(id: number, usuario: string, ip: string): Promise<StatusResponse<any>> {
     try {
       const accion = await this.accionRepository.findOne({ where: { id } });
       if (!accion) {
-        return new StatusResponseDto(false, 404, 'Acción no encontrada', null);
+        return new StatusResponse(false, 404, 'Acción no encontrada', null);
       }
 
       accion.usuarioEliminacion = usuario;
@@ -85,18 +85,18 @@ export class AccionService {
       await this.accionRepository.save(accion);
       await this.accionRepository.remove(accion);
 
-      return new StatusResponseDto(true, 200, 'Acción eliminada', accion);
+      return new StatusResponse(true, 200, 'Acción eliminada', accion);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al eliminar acción', error);
+      return new StatusResponse(false, 500, 'Error al eliminar acción', error);
     }
   }
 
-  async deleteMany(ids: number[], usuario: string, ip: string): Promise<StatusResponseDto<any>> {
+  async deleteMany(ids: number[], usuario: string, ip: string): Promise<StatusResponse<any>> {
     try {
       const acciones = await this.accionRepository.findBy({ id: In(ids) });
 
       if (!acciones.length) {
-        return new StatusResponseDto(false, 404, 'No se encontraron acciones para eliminar', null);
+        return new StatusResponse(false, 404, 'No se encontraron acciones para eliminar', null);
       }
 
       // Actualizar campos de auditoría antes de eliminar
@@ -113,9 +113,9 @@ export class AccionService {
       // Luego eliminamos
       await this.accionRepository.remove(auditadas);
 
-      return new StatusResponseDto(true, 200, 'Acciones eliminadas', ids);
+      return new StatusResponse(true, 200, 'Acciones eliminadas', ids);
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al eliminar múltiples acciones', error);
+      return new StatusResponse(false, 500, 'Error al eliminar múltiples acciones', error);
     }
   }
 

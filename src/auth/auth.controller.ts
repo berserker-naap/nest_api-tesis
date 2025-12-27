@@ -4,18 +4,15 @@ import { AuthService } from './auth.service';
 import { Auth } from './decorators/auth.decorator';
 import { GetUsuario } from './decorators/get-usuario.decorator';
 import { Usuario } from 'src/security/entities/usuario.entity';
-import { RegisterUsuarioDto, LoginDto } from './dto/auth.dto';
+import { RegisterUsuarioRequestDto, LoginRequestDto } from './dto/auth.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-
-
-
   @Post('login')
-  loginUsuario(@Body() loginDto: LoginDto ) {
-    return this.authService.login( loginDto );
+  loginUsuario(@Body() loginRequestDto: LoginRequestDto ) {
+    return this.authService.login( loginRequestDto );
   }
 
   @Get('check-status')
@@ -27,8 +24,8 @@ export class AuthController {
   }
 
   // @Post('register')
-  // createUsuario(@Body() registerUsuarioDto: RegisterUsuarioDto ) {
-  //   return this.authService.create( registerUsuarioDto );
+  // createUsuario(@Body() RegisterUsuarioRequestDto: RegisterUsuarioRequestDto ) {
+  //   return this.authService.create( RegisterUsuarioRequestDto );
   // }
 
 }

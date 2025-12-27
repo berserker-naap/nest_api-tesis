@@ -1,5 +1,5 @@
 // src/common/dto/response.dto.ts
-export class StatusResponseDto<T> {
+export class StatusResponse<T> {
     ok: boolean;
     statusCode: number;
     message: string | string[];

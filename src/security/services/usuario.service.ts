@@ -3,7 +3,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Usuario } from '../entities/usuario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { StatusResponseDto } from 'src/common/dto/response.dto';
+import { StatusResponse } from 'src/common/dto/response.dto';
 import { Persona } from '../entities/persona.entity';
 import { UsuarioRol } from '../entities/usuario-rol.entity';
 import { Rol } from '../entities/rol.entity';
@@ -25,7 +25,7 @@ export class UsuarioService {
 
 
 
-  async findAll(): Promise<StatusResponseDto<UsuarioResponseDto[]>> {
+  async findAll(): Promise<StatusResponse<UsuarioResponseDto[]>> {
     try {
       const usuarios = await this.usuarioRepository.find({
         relations: ['persona', 'roles', 'roles.rol'],
@@ -50,14 +50,14 @@ export class UsuarioService {
       }));
 
 
-      return new StatusResponseDto(true, 200, 'Usuarios obtenidos', usuariosDto);
+      return new StatusResponse(true, 200, 'Usuarios obtenidos', usuariosDto);
     } catch (error) {
       console.error('Error al obtener usuarios:', error);
-      return new StatusResponseDto(false, 500, 'Error al obtener usuarios', error);
+      return new StatusResponse(false, 500, 'Error al obtener usuarios', error);
     }
   }
 
-  async create(dto: CreateUsuarioDto, usuarioRegistro: string, ip: string): Promise<StatusResponseDto<UsuarioResponseDto>> {
+  async create(dto: CreateUsuarioDto, usuarioRegistro: string, ip: string): Promise<StatusResponse<UsuarioResponseDto>> {
     try {
       let persona;
 
@@ -117,15 +117,15 @@ export class UsuarioService {
           })),
       };
 
-      return new StatusResponseDto(true, 201, 'Usuario registrado', usuarioDto);
+      return new StatusResponse(true, 201, 'Usuario registrado', usuarioDto);
     } catch (error) {
       console.error('Error al crear usuario:', error);
-      return new StatusResponseDto(false, 500, 'Error al crear acción', error);
+      return new StatusResponse(false, 500, 'Error al crear acción', error);
     }
   }
 
 
-  async asignarRoles(idUsuario: number, dto: AsignarUsuarioRolesDto, usuarioUpdate: string, ip: string): Promise<StatusResponseDto<any>> {
+  async asignarRoles(idUsuario: number, dto: AsignarUsuarioRolesDto, usuarioUpdate: string, ip: string): Promise<StatusResponse<any>> {
     try {
       const usuario = await this.usuarioRepository.findOneBy({ id: idUsuario });
       if (!usuario) throw new NotFoundException('Usuario no encontrado');
@@ -146,19 +146,19 @@ export class UsuarioService {
           });
       }
 
-      return new StatusResponseDto(true, 200, 'Roles asignados correctamente');
+      return new StatusResponse(true, 200, 'Roles asignados correctamente');
     } catch (error) {
-      return new StatusResponseDto(false, 500, 'Error al crear acción', error);
+      return new StatusResponse(false, 500, 'Error al crear acción', error);
     }
   }
 
 
   // Activar o Desactivar un Usuario (actualizando la propiedad `activo`)
-  async activate(id: number, activo: boolean, usuarioUpdate: string, ip: string): Promise<StatusResponseDto<any>> {
+  async activate(id: number, activo: boolean, usuarioUpdate: string, ip: string): Promise<StatusResponse<any>> {
     try {
       const usuario = await this.usuarioRepository.findOne({ where: { id } });
       if (!usuario) {
-        return new StatusResponseDto(false, 404, 'Usuario no encontrado', null);
+        return new StatusResponse(false, 404, 'Usuario no encontrado', null);
       }
 
       // Actualizamos la propiedad `activo`
@@ -170,9 +170,9 @@ export class UsuarioService {
         fechaModificacion: new Date(),
       });
 
-      return new StatusResponseDto(true, 200, `Usuario ${activo ? 'activado' : 'desactivado'}`, usuario);
+      return new StatusResponse(true, 200, `Usuario ${activo ? 'activado' : 'desactivado'}`, usuario);
     } catch (error) {
-      return new StatusResponseDto(
+      return new StatusResponse(
         false, 500, 'Error al actualizar el estado del usuario', error);
     }
   }
