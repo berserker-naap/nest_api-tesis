@@ -1,5 +1,6 @@
 import { Audit } from 'src/common/entity/audit';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 
 @Entity('PERSONA')
 export class Persona extends Audit{
@@ -12,12 +13,13 @@ export class Persona extends Audit{
   @Column({ type: 'nvarchar', length: 100, nullable: true })
   apellido: string;
 
-  @Column({ nullable: true })
-  idTipoDocumentoIdentidad: number;
+  @ManyToOne(() => Multitabla)
+  @JoinColumn({ name: 'idTipoDocumentoIdentidad' })
+  tipoDocumento: Multitabla;
 
   @Column({ type: 'nvarchar', length: 50, nullable: true })
   documentoIdentidad: string;
 
   @Column({ type: 'date', nullable: true })
-  fechaNacimiento: Date;
+  fechaNacimiento: Date  | null;
 }

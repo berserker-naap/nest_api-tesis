@@ -27,6 +27,7 @@ import { UsuarioService } from './services/usuario.service';
 import { UsuarioController } from './controllers/usuario.controller';
 import { PersonaService } from './services/persona.service';
 import { PersonaController } from './controllers/persona.controller';
+import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { PersonaController } from './controllers/persona.controller';
       Modulo,
       Opcion,
       Permiso,
+      Multitabla,
       Persona,
       Rol,
       UsuarioRol,
