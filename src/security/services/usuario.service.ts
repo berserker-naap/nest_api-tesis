@@ -28,6 +28,10 @@ export class UsuarioService {
   async findAll(): Promise<StatusResponse<UsuarioResponseDto[]>> {
     try {
       const usuarios = await this.usuarioRepository.find({
+        where: {
+          activo: true,
+          eliminado: false
+        },
         relations: ['persona', 'roles', 'roles.rol'],
       });
 
