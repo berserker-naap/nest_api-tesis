@@ -13,20 +13,25 @@ export class MultitablaService {
     private readonly dataSource: DataSource,
   ) { }
 
-
   async findAll(): Promise<StatusResponse<any>> {
     try {
       const cabeceras = await this.multitablaRepository.find({
         where: {
-          idMultitabla: IsNull(), activo: true,
+          idMultitabla: IsNull(),
+          activo: true,
           eliminado: false,
         },
         order: { nombre: 'ASC' }, // opcional: ordenar por nombre
       });
 
-      return new StatusResponse(true, 200, 'Cabeceras obtenidas', cabeceras);
+      return new StatusResponse(true, 200, 'Multitablas obtenidas', cabeceras);
     } catch (error) {
-      return new StatusResponse(false, 500, 'Error al obtener cabeceras', error);
+      return new StatusResponse(
+        false,
+        500,
+        'Error al obtener multitablas',
+        error,
+      );
     }
   }
 
@@ -35,7 +40,8 @@ export class MultitablaService {
       // 1. Obtener cabecera
       const cabecera = await this.multitablaRepository.findOne({
         where: {
-          id, activo: true,
+          id,
+          activo: true,
           eliminado: false,
         },
       });
@@ -47,7 +53,8 @@ export class MultitablaService {
       // 2. Obtener sus items
       const items = await this.multitablaRepository.find({
         where: {
-          idMultitabla: id, activo: true,
+          idMultitabla: id,
+          activo: true,
           eliminado: false,
         },
         order: { nombre: 'ASC' },
@@ -67,13 +74,17 @@ export class MultitablaService {
         })),
       };
 
-      return new StatusResponse(true, 200, 'Cabecera encontrada', result);
+      return new StatusResponse(true, 200, 'Multitabla encontrada', result);
     } catch (error) {
-      return new StatusResponse(false, 500, 'Error al obtener cabecera', error);
+      return new StatusResponse(false, 500, 'Error al obtener multitabla', error);
     }
   }
 
-  async create(dto: CreateUpdateMultitablaDto, usuario: string, ip: string): Promise<StatusResponse<any>> {
+  async create(
+    dto: CreateUpdateMultitablaDto,
+    usuario: string,
+    ip: string,
+  ): Promise<StatusResponse<any>> {
     const resultados: Multitabla[] = [];
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -110,22 +121,33 @@ export class MultitablaService {
       }
 
       await queryRunner.commitTransaction();
-      return new StatusResponse(true, 201, 'Registro creado exitosamente', savedCabecera);
+      return new StatusResponse(
+        true,
+        201,
+        'Multitabla creada exitosamente',
+        savedCabecera,
+      );
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      return new StatusResponse(false, 500, 'Error al crear registro', error);
+      return new StatusResponse(false, 500, 'Error al crear multitabla', error);
     } finally {
       await queryRunner.release();
     }
   }
 
-  async update(dto: CreateUpdateMultitablaDto, usuario: string, ip: string): Promise<StatusResponse<any>> {
+  async update(
+    dto: CreateUpdateMultitablaDto,
+    usuario: string,
+    ip: string,
+  ): Promise<StatusResponse<any>> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const cabecera = await this.multitablaRepository.findOne({ where: { id: dto.id } });
+      const cabecera = await this.multitablaRepository.findOne({
+        where: { id: dto.id },
+      });
 
       if (!cabecera || cabecera.idMultitabla !== null) {
         return new StatusResponse(false, 404, 'Cabecera no encontrada', null);
@@ -147,11 +169,11 @@ export class MultitablaService {
 
       // 1. Obtener los items actuales desde la BD
       const existingItems = await this.multitablaRepository.find({
-        where: { idMultitabla: dto.id }
+        where: { idMultitabla: dto.id },
       });
 
       const existingItemMap = new Map<number, Multitabla>();
-      existingItems.forEach(item => existingItemMap.set(item.id, item));
+      existingItems.forEach((item) => existingItemMap.set(item.id, item));
 
       const processedIds = new Set<number>();
       const nuevosItems: Multitabla[] = [];
@@ -191,10 +213,10 @@ export class MultitablaService {
       }
 
       // 3. Eliminar los items que ya existían pero NO están en dto
-      const idsRecibidos = dto.items?.map(i => i.id).filter(Boolean) ?? [];
+      const idsRecibidos = dto.items?.map((i) => i.id).filter(Boolean) ?? [];
       const idsEliminar = existingItems
-        .filter(item => !idsRecibidos.includes(item.id))
-        .map(item => item.id);
+        .filter((item) => !idsRecibidos.includes(item.id))
+        .map((item) => item.id);
 
       if (idsEliminar.length > 0) {
         for (const id of idsEliminar) {
@@ -208,69 +230,101 @@ export class MultitablaService {
         }
       }
 
-
-
-
       await queryRunner.commitTransaction();
 
-      return new StatusResponse(true, 200, 'Cabecera e items actualizados correctamente', updatedCabecera);
+      return new StatusResponse(
+        true,
+        200,
+        'Multitabla actualizada correctamente',
+        updatedCabecera,
+      );
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      console.error('Error en update multitabla:', error);
-      return new StatusResponse(false, 500, 'Error al actualizar registro', error);
+      return new StatusResponse(
+        false,
+        500,
+        'Error al actualizar multitabla',
+        error,
+      );
     } finally {
       await queryRunner.release();
     }
   }
 
-  async eliminar(id: number, usuarioEliminacion: string, ipEliminacion?: string): Promise<StatusResponse<null>> {
+  async delete(
+    id: number,
+    usuarioEliminacion: string,
+    ipEliminacion: string,
+  ): Promise<StatusResponse<null>> {
     try {
-      const found = await this.multitablaRepository.findOne({ where: { id , activo: true,
-          eliminado: false,} });
-      if (!found) {
-        return new StatusResponse(false, 404, 'Registro no encontrado', null);
+      const multitabla = await this.multitablaRepository.findOne({
+        where: { id, activo: true, eliminado: false },
+      });
+      if (!multitabla) {
+        return new StatusResponse(false, 404, 'Multitabla no encontrada', null);
       }
 
-      await this.multitablaRepository.update(id, {
-        eliminado: true,
-        activo: false,
-        usuarioEliminacion,
-        ipEliminacion,
-        fechaEliminacion: new Date(),
-      });
+      multitabla.usuarioEliminacion =   usuarioEliminacion;
+      multitabla.ipEliminacion = ipEliminacion;
+      multitabla.activo = false;
+      multitabla.eliminado = true;
+      multitabla.fechaEliminacion = new Date();
 
-      return new StatusResponse(true, 200, 'Registro eliminado (soft delete)', null);
+      await this.multitablaRepository.save(multitabla);
+
+      return new StatusResponse(true, 200, 'Multitabla eliminada', null);
     } catch (error) {
-      console.error('Error en update multitabla:', error);
-      return new StatusResponse(false, 500, 'Error al eliminar registro', error);
+      return new StatusResponse(
+        false,
+        500,
+        'Error al eliminar multitabla',
+        error,
+      );
     }
   }
 
- async deleteMany(ids: number[], usuario: string, ip: string): Promise<StatusResponse<any>> {
+  async deleteMany(
+    ids: number[],
+    usuario: string,
+    ip: string,
+  ): Promise<StatusResponse<any>> {
     try {
-      const acciones = await this.multitablaRepository.findBy({ id: In(ids) });
+      const multitablas = await this.multitablaRepository.findBy({
+        id: In(ids),
+        activo: true,
+        eliminado: false,
+      });
 
-      if (!acciones.length) {
-        return new StatusResponse(false, 404, 'No se encontraron acciones para eliminar', null);
+      if (!multitablas.length) {
+        return new StatusResponse(
+          false,
+          404,
+          'No se encontraron multitablas para eliminar',
+          null,
+        );
       }
 
       // Actualizar campos de auditoría antes de eliminar
-      const auditadas = acciones.map((accion) => {
-        accion.usuarioEliminacion = usuario;
-        accion.ipEliminacion = ip;
-        accion.fechaEliminacion = new Date();
-        return accion;
+      const auditadas = multitablas.map((multitabla) => {
+        multitabla.usuarioEliminacion = usuario;
+        multitabla.ipEliminacion = ip;
+        multitabla.activo = false;
+        multitabla.eliminado = true;
+        multitabla.fechaEliminacion = new Date();
+        return multitabla;
       });
 
       // Primero guardamos los cambios de auditoría
       await this.multitablaRepository.save(auditadas);
 
-      // Luego eliminamos
-      await this.multitablaRepository.remove(auditadas);
-
-      return new StatusResponse(true, 200, 'Acciones eliminadas', ids);
+      return new StatusResponse(true, 200, 'Multitablas eliminadas', null);
     } catch (error) {
-      return new StatusResponse(false, 500, 'Error al eliminar múltiples acciones', error);
+      return new StatusResponse(
+        false,
+        500,
+        'Error al eliminar múltiples multitablas',
+        error,
+      );
     }
   }
 }

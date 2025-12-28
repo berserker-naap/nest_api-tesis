@@ -77,7 +77,7 @@ export class PersonaService {
         personaConTipoDoc,
       );
     } catch (error) {
-      return new StatusResponse(false, 500, 'Error al obtener opción', error);
+      return new StatusResponse(false, 500, 'Error al obtener persona', error);
     }
   }
 
@@ -203,8 +203,8 @@ export class PersonaService {
 
   async delete(
     id: number,
-    usuario: string,
-    ip: string,
+    usuarioEliminacion: string,
+    ipEliminacion: string,
   ): Promise<StatusResponse<any>> {
     try {
       const persona = await this.personaRepository.findOne({
@@ -214,8 +214,8 @@ export class PersonaService {
         return new StatusResponse(false, 404, 'Persona no encontrada', null);
       }
 
-      persona.usuarioEliminacion = usuario;
-      persona.ipEliminacion = ip;
+      persona.usuarioEliminacion = usuarioEliminacion;
+      persona.ipEliminacion = ipEliminacion;
       persona.activo = false;
       persona.eliminado = true;
       persona.fechaEliminacion = new Date();
@@ -230,11 +230,15 @@ export class PersonaService {
 
   async deleteMany(
     ids: number[],
-    usuario: string,
-    ip: string,
+    usuarioEliminacion: string,
+    ipEliminacion: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const personas = await this.personaRepository.findBy({ id: In(ids) });
+      const personas = await this.personaRepository.findBy({
+        id: In(ids),
+        activo: true,
+        eliminado: false,
+      });
 
       if (!personas.length) {
         return new StatusResponse(
@@ -247,8 +251,8 @@ export class PersonaService {
 
       // Actualizar campos de auditoría antes de eliminar
       const auditadas = personas.map((persona) => {
-        persona.usuarioEliminacion = usuario;
-        persona.ipEliminacion = ip;
+        persona.usuarioEliminacion = usuarioEliminacion;
+        persona.ipEliminacion = ipEliminacion;
         persona.activo = false;
         persona.eliminado = true;
         persona.fechaEliminacion = new Date();
@@ -258,7 +262,7 @@ export class PersonaService {
       // Guaardamos los cambios de auditoría
       await this.personaRepository.save(auditadas);
 
-      return new StatusResponse(true, 200, 'Personas eliminadas', ids);
+      return new StatusResponse(true, 200, 'Personas eliminadas', null);
     } catch (error) {
       return new StatusResponse(
         false,
