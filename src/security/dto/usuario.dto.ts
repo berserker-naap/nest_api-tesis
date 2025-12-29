@@ -33,7 +33,7 @@ export class UsuarioResponseDto {
   persona?: {
     id: number;
     nombre: string;
-    apellido: string;
+    apellido: string | null;
   } | null; // ← Se aclara que puede ser null si no hay persona
 
   roles: {

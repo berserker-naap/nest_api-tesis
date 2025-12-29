@@ -13,8 +13,8 @@ export class Multitabla extends Audit {
   nombre: string;
 
   @Column({ type: 'nvarchar', length: 50, nullable: true })
-  valor: string;
+  valor: string | null;
 
   @Column({ type: 'nvarchar', length: 50, nullable: true })
-  valor2: string;
+  valor2: string | null;
 }

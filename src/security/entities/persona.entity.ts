@@ -11,14 +11,14 @@ export class Persona extends Audit{
   nombre: string;
 
   @Column({ type: 'nvarchar', length: 100, nullable: true })
-  apellido: string;
+  apellido: string | null;
 
   @ManyToOne(() => Multitabla)
   @JoinColumn({ name: 'idTipoDocumentoIdentidad' })
   tipoDocumento: Multitabla;
 
   @Column({ type: 'nvarchar', length: 50, nullable: true })
-  documentoIdentidad: string;
+  documentoIdentidad: string | null;
 
   @Column({ type: 'date', nullable: true })
   fechaNacimiento: Date  | null;

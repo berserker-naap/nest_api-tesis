@@ -16,7 +16,7 @@ export class Opcion extends Audit {
     nombre: string;
 
     @Column({ type: 'nvarchar', length: 200, unique: true, nullable: true })
-    path: string;
+    path: string | null;
 
     @Column({ default: true })
     isVisibleNavegacion: boolean;

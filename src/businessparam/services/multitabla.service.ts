@@ -57,20 +57,20 @@ export class MultitablaService {
           activo: true,
           eliminado: false,
         },
-        order: { nombre: 'ASC' },
+        order: { id: 'ASC' },
       });
 
       // 3. Armar DTO como salida
       const result: CreateUpdateMultitablaDto = {
         id: cabecera.id,
         nombre: cabecera.nombre,
-        valor: cabecera.valor,
-        valor2: cabecera.valor2,
+        valor: cabecera.valor ?? null,
+        valor2: cabecera.valor2 ?? null,
         items: items.map((item) => ({
           id: item.id, // <-- incluir
           nombre: item.nombre,
-          valor: item.valor,
-          valor2: item.valor2,
+          valor: item.valor ?? null,
+          valor2: item.valor2 ?? null,
         })),
       };
 
@@ -93,11 +93,14 @@ export class MultitablaService {
 
     try {
       // 1. Insertar la cabecera (sin idMultitabla)
+      const fechaRegistro = new Date();
+
       const cabecera = this.multitablaRepository.create({
         nombre: dto.nombre,
         valor: dto.valor,
         valor2: dto.valor2,
         idMultitabla: undefined,
+        fechaRegistro: fechaRegistro,
         usuarioRegistro: usuario,
         ipRegistro: ip,
       });
@@ -113,6 +116,7 @@ export class MultitablaService {
             valor2: item.valor2,
             idMultitabla: savedCabecera.id,
             usuarioRegistro: usuario,
+            fechaRegistro: fechaRegistro,
             ipRegistro: ip,
           });
           const savedDetalle = await queryRunner.manager.save(detalle);
@@ -146,22 +150,17 @@ export class MultitablaService {
 
     try {
       const cabecera = await this.multitablaRepository.findOne({
-        where: { id: dto.id },
+        where: { id: dto.id, activo: true, eliminado: false },
       });
 
       if (!cabecera || cabecera.idMultitabla !== null) {
         return new StatusResponse(false, 404, 'Cabecera no encontrada', null);
       }
-      // Verificar si la cabecera cambió y actualizar
-      cabecera.nombre = dto.nombre;
-      if (dto.valor !== undefined) {
-        cabecera.valor = dto.valor;
-      }
-
-      if (dto.valor2 !== undefined) {
-        cabecera.valor2 = dto.valor2;
-      }
-      cabecera.fechaModificacion = new Date();
+      const fechaModificacion = new Date(); 
+      cabecera.nombre = dto.nombre?? null;
+      cabecera.valor = dto.valor ?? null;
+      cabecera.valor2 = dto.valor2 ?? null;
+      cabecera.fechaModificacion = fechaModificacion;
       cabecera.usuarioModificacion = usuario;
       cabecera.ipModificacion = ip;
 
@@ -169,7 +168,7 @@ export class MultitablaService {
 
       // 1. Obtener los items actuales desde la BD
       const existingItems = await this.multitablaRepository.find({
-        where: { idMultitabla: dto.id },
+        where: { idMultitabla: dto.id, activo: true, eliminado: false },
       });
 
       const existingItemMap = new Map<number, Multitabla>();
@@ -190,7 +189,7 @@ export class MultitablaService {
               nombre: itemDto.nombre,
               valor: itemDto.valor,
               valor2: itemDto.valor2,
-              fechaModificacion: new Date(),
+              fechaModificacion: fechaModificacion,
               usuarioModificacion: usuario,
               ipModificacion: ip,
             });
@@ -203,6 +202,7 @@ export class MultitablaService {
               valor: itemDto.valor,
               valor2: itemDto.valor2,
               idMultitabla: dto.id,
+              fechaRegistro: fechaModificacion,
               usuarioRegistro: usuario,
               ipRegistro: ip,
             });
@@ -225,7 +225,7 @@ export class MultitablaService {
             eliminado: true,
             usuarioEliminacion: usuario,
             ipEliminacion: ip,
-            fechaEliminacion: new Date(),
+            fechaEliminacion: fechaModificacion,
           });
         }
       }
@@ -257,6 +257,7 @@ export class MultitablaService {
     ipEliminacion: string,
   ): Promise<StatusResponse<null>> {
     try {
+      // Buscar la cabecera
       const multitabla = await this.multitablaRepository.findOne({
         where: { id, activo: true, eliminado: false },
       });
@@ -264,13 +265,33 @@ export class MultitablaService {
         return new StatusResponse(false, 404, 'Multitabla no encontrada', null);
       }
 
-      multitabla.usuarioEliminacion =   usuarioEliminacion;
+      // Buscar los items relacionados
+      const items = await this.multitablaRepository.find({
+        where: { idMultitabla: id, activo: true, eliminado: false },
+      });
+      
+      const fechaEliminacion = new Date();
+
+      // Marcar cabecera como eliminada
+      multitabla.usuarioEliminacion = usuarioEliminacion;
       multitabla.ipEliminacion = ipEliminacion;
       multitabla.activo = false;
       multitabla.eliminado = true;
-      multitabla.fechaEliminacion = new Date();
+      multitabla.fechaEliminacion = fechaEliminacion
 
-      await this.multitablaRepository.save(multitabla);
+      // Marcar items como eliminados
+
+      const itemsAuditados = items.map((item) => {
+        item.usuarioEliminacion = usuarioEliminacion;
+        item.ipEliminacion = ipEliminacion;
+        item.activo = false;
+        item.eliminado = true;
+        item.fechaEliminacion = fechaEliminacion;
+        return item;
+      });
+
+      // Guardar cambios
+      await this.multitablaRepository.save([multitabla, ...itemsAuditados]);
 
       return new StatusResponse(true, 200, 'Multitabla eliminada', null);
     } catch (error) {
@@ -289,6 +310,7 @@ export class MultitablaService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
+      // Buscar cabeceras
       const multitablas = await this.multitablaRepository.findBy({
         id: In(ids),
         activo: true,
@@ -304,18 +326,35 @@ export class MultitablaService {
         );
       }
 
-      // Actualizar campos de auditoría antes de eliminar
-      const auditadas = multitablas.map((multitabla) => {
+      // Buscar items relacionados
+      const items = await this.multitablaRepository.find({
+        where: { idMultitabla: In(ids), activo: true, eliminado: false },
+      });
+
+      const fechaEliminacion = new Date();
+
+      // Actualizar campos de auditoría antes de eliminar (cabeceras)
+      const cabecerasAuditadas = multitablas.map((multitabla) => {
         multitabla.usuarioEliminacion = usuario;
         multitabla.ipEliminacion = ip;
         multitabla.activo = false;
         multitabla.eliminado = true;
-        multitabla.fechaEliminacion = new Date();
+        multitabla.fechaEliminacion = fechaEliminacion;
         return multitabla;
       });
 
-      // Primero guardamos los cambios de auditoría
-      await this.multitablaRepository.save(auditadas);
+      // Actualizar campos de auditoría antes de eliminar (items)
+      const itemsAuditados = items.map((item) => {
+        item.usuarioEliminacion = usuario;
+        item.ipEliminacion = ip;
+        item.activo = false;
+        item.eliminado = true;
+        item.fechaEliminacion = fechaEliminacion;
+        return item;
+      });
+
+      // Guardar todos los cambios
+      await this.multitablaRepository.save([...cabecerasAuditadas, ...itemsAuditados]);
 
       return new StatusResponse(true, 200, 'Multitablas eliminadas', null);
     } catch (error) {

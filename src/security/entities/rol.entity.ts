@@ -10,6 +10,6 @@ export class Rol extends Audit {
   nombre: string;
 
   @Column({ type: 'nvarchar', length: 255, nullable: true })
-  descripcion: string;
+  descripcion: string | null;
 
 }

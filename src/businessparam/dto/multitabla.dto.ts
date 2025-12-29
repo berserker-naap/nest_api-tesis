@@ -12,11 +12,11 @@ export class MultitablaItemDto {
 
   @IsOptional()
   @IsString()
-  valor?: string;
+  valor?: string | null;
 
   @IsOptional()
   @IsString()
-  valor2?: string;
+  valor2?: string | null;
 }
 
 export class CreateUpdateMultitablaDto {
@@ -30,12 +30,11 @@ export class CreateUpdateMultitablaDto {
 
   @IsOptional()
   @IsString()
-  valor?: string;
+  valor?: string | null;
 
   @IsOptional()
   @IsString()
-  valor2?: string;
-
+  valor2?: string | null;
   @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => MultitablaItemDto)
