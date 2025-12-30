@@ -8,5 +8,5 @@ export class CreateUpdateRolDto {
   @IsOptional()
   @IsString()
   @Length(0, 255)
-  descripcion?: string;
+  descripcion?: string | null;
 }
