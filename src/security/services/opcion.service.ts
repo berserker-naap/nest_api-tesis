@@ -19,6 +19,7 @@ export class OpcionService {
     try {
       const opciones = await this.opcionRepository.find({
         relations: ['modulo'],
+        where: { activo: true, eliminado: false },
       });
       return new StatusResponse(true, 200, 'Opciones obtenidas', opciones);
     } catch (error) {
@@ -34,7 +35,7 @@ export class OpcionService {
   async findOne(id: number): Promise<StatusResponse<any>> {
     try {
       const opcion = await this.opcionRepository.findOne({
-        where: { id },
+        where: { id, activo: true, eliminado: false },
         relations: ['modulo'],
       });
       if (!opcion) {
@@ -56,7 +57,7 @@ export class OpcionService {
     ip: string
   ): Promise<StatusResponse<any>> {
     try {
-      const modulo = await this.moduloRepository.findOne({ where: { id: dto.idModulo } });
+      const modulo = await this.moduloRepository.findOne({ where: { id: dto.idModulo, activo: true, eliminado: false } });
 
       if (!modulo) {
         return new StatusResponse(false, 404, 'Módulo no encontrado', null);
@@ -85,7 +86,7 @@ export class OpcionService {
   ): Promise<StatusResponse<any>> {
     try {
       const opcion = await this.opcionRepository.findOne({
-        where: { id },
+        where: { id, activo: true, eliminado: false },
         relations: ['modulo'],
       });
 
@@ -93,7 +94,7 @@ export class OpcionService {
         return new StatusResponse(false, 404, 'Opción no encontrada', null);
       }
 
-      const modulo = await this.moduloRepository.findOne({ where: { id: dto.idModulo } });
+      const modulo = await this.moduloRepository.findOne({ where: { id: dto.idModulo, activo: true, eliminado: false } });
 
       if (!modulo) {
         return new StatusResponse(false, 404, 'Módulo no encontrado', null);
@@ -122,7 +123,7 @@ export class OpcionService {
   ): Promise<StatusResponse<any>> {
     try {
       const opcion = await this.opcionRepository.findOne({
-        where: { id },
+        where: { id, activo: true, eliminado: false },
         relations: ['modulo'],
       });
       if (!opcion) {
@@ -131,12 +132,13 @@ export class OpcionService {
 
       opcion.usuarioEliminacion = usuario;
       opcion.ipEliminacion = ip;
+      opcion.activo = false;
+      opcion.eliminado = true;
       opcion.fechaEliminacion = new Date();
 
       await this.opcionRepository.save(opcion);
-      await this.opcionRepository.remove(opcion);
 
-      return new StatusResponse(true, 200, 'Opción eliminada', opcion);
+      return new StatusResponse(true, 200, 'Opción eliminada', null);
     } catch (error) {
       return new StatusResponse(
         false,
@@ -153,7 +155,7 @@ export class OpcionService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const opciones = await this.opcionRepository.findBy({ id: In(ids) });
+      const opciones = await this.opcionRepository.findBy({ id: In(ids), activo: true, eliminado: false });
 
       if (!opciones.length) {
         return new StatusResponse(
@@ -167,14 +169,15 @@ export class OpcionService {
       const auditadas = opciones.map((opcion) => {
         opcion.usuarioEliminacion = usuario;
         opcion.ipEliminacion = ip;
+        opcion.activo = false;
+        opcion.eliminado = true;
         opcion.fechaEliminacion = new Date();
         return opcion;
       });
 
       await this.opcionRepository.save(auditadas);
-      await this.opcionRepository.remove(auditadas);
 
-      return new StatusResponse(true, 200, 'Opciones eliminadas', ids);
+      return new StatusResponse(true, 200, 'Opciones eliminadas', null);
     } catch (error) {
       return new StatusResponse(
         false,
