@@ -30,9 +30,9 @@ export class ModuloService {
     try {
       const modulo = await this.moduloRepository.findOne({ where: { id, activo: true, eliminado: false } });
       if (!modulo) {
-        return new StatusResponse(false, 404, 'Modulo no encontrada', null);
+        return new StatusResponse(false, 404, 'Modulo no encontrado', null);
       }
-      return new StatusResponse(true, 200, 'Modulo encontrada', modulo);
+      return new StatusResponse(true, 200, 'Modulo encontrado', modulo);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al obtener modulo', error);
     }
@@ -50,7 +50,7 @@ export class ModuloService {
         ipRegistro: ip,
       });
       const saved = await this.moduloRepository.save(modulo);
-      return new StatusResponse(true, 201, 'Modulo creada', saved);
+      return new StatusResponse(true, 201, 'Modulo creado', saved);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al crear modulo', error);
     }
@@ -63,9 +63,9 @@ export class ModuloService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const modulo = await this.moduloRepository.findOne({ where: { id } });
+      const modulo = await this.moduloRepository.findOne({ where: { id, activo: true, eliminado: false } });
       if (!modulo) {
-        return new StatusResponse(false, 404, 'Modulo no encontrada', null);
+        return new StatusResponse(false, 404, 'Modulo no encontrado', null);
       }
       // En servicio
       const moduloPlano = {
@@ -105,9 +105,8 @@ export class ModuloService {
       modulo.fechaEliminacion = new Date();
 
       await this.moduloRepository.save(modulo);
-      await this.moduloRepository.remove(modulo);
 
-      return new StatusResponse(true, 200, 'Modulo eliminada', modulo);
+      return new StatusResponse(true, 200, 'Modulo eliminado', null);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al eliminar modulo', error);
     }
@@ -141,10 +140,7 @@ export class ModuloService {
       // Primero guardamos los cambios de auditoría
       await this.moduloRepository.save(auditadas);
 
-      // Luego eliminamos
-      await this.moduloRepository.remove(auditadas);
-
-      return new StatusResponse(true, 200, 'Modulos eliminados', ids);
+      return new StatusResponse(true, 200, 'Modulos eliminados', null);
     } catch (error) {
       return new StatusResponse(
         false,

@@ -11,7 +11,7 @@ export class Modulo extends Audit {
   nombre: string;
 
   @Column({ type: 'nvarchar', length: 200 })
-  icono: string; // si usas íconos en la UI
+  icono: string;
 
   @OneToMany(() => Opcion, (opcion) => opcion.modulo)
   opciones: Opcion[];
