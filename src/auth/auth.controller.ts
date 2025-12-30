@@ -23,9 +23,9 @@ export class AuthController {
     return this.authService.checkAuthStatus( user );
   }
 
-  // @Post('register')
-  // createUsuario(@Body() RegisterUsuarioRequestDto: RegisterUsuarioRequestDto ) {
-  //   return this.authService.create( RegisterUsuarioRequestDto );
-  // }
+  @Post('register')
+  createUsuario(@Body() registerUsuarioRequestDto: RegisterUsuarioRequestDto ) {
+    return this.authService.create( registerUsuarioRequestDto );
+  }
 
 }

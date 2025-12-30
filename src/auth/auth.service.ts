@@ -31,10 +31,10 @@ export class AuthService {
   ) { }
 
   async create(
-    RegisterUsuarioRequestDto: RegisterUsuarioRequestDto,
+    registerUsuarioRequestDto: RegisterUsuarioRequestDto,
   ): Promise<StatusResponse<any>> {
     try {
-      const { password: passwordDto, ...usuarioData } = RegisterUsuarioRequestDto;
+      const { password: passwordDto, ...usuarioData } = registerUsuarioRequestDto;
 
       const entity = this.usuarioRepository.create({
         ...usuarioData,

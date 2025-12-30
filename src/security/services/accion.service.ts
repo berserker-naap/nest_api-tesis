@@ -103,6 +103,8 @@ export class AccionService {
       const auditadas = acciones.map((accion) => {
         accion.usuarioEliminacion = usuario;
         accion.ipEliminacion = ip;
+        accion.activo = false;
+        accion.eliminado = true;
         accion.fechaEliminacion = new Date();
         return accion;
       });
@@ -110,10 +112,7 @@ export class AccionService {
       // Primero guardamos los cambios de auditoría
       await this.accionRepository.save(auditadas);
 
-      // Luego eliminamos
-      await this.accionRepository.remove(auditadas);
-
-      return new StatusResponse(true, 200, 'Acciones eliminadas', ids);
+      return new StatusResponse(true, 200, 'Acciones eliminadas', null);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al eliminar múltiples acciones', error);
     }
