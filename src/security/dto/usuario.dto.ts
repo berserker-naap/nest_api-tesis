@@ -1,43 +1,50 @@
 import { Type } from 'class-transformer';
-import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested, MinLength } from 'class-validator';
 import { CreateUpdatePersonaDto } from './persona.dto';
 
 
-export class CreateUsuarioDto {
-  @IsString() @IsNotEmpty()
-  login: string;
+export class PersonaResponseDto {
+  @IsNotEmpty()
+  id: number;
 
-  @IsString() @IsNotEmpty()
-  password: string;
+  @IsString()
+  @IsNotEmpty()
+  nombre: string;
 
   @IsOptional()
-  idPersona?: number;
+  @IsString()
+  apellido?: string | null;
+}
+
+export class RolResponseDto {
+  @IsNotEmpty()
+  id: number;
+
+  @IsString()
+  @IsNotEmpty()
+  nombre: string;
+}
+
+export class CreateUpdateUsuarioDto {
+  @IsOptional()
+  id?: number;
+
+  @IsOptional()
+  @IsString()
+  login?: string;
+
+  @IsOptional()
+  @IsString()
+  password?: string | null;
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => CreateUpdatePersonaDto)
-  persona?: CreateUpdatePersonaDto;
+  @Type(() => PersonaResponseDto)
+  persona?: PersonaResponseDto | null;
 
+  @IsOptional()
   @IsArray()
-  roles: number[];
-}
-
-export class AsignarUsuarioRolesDto {
-  @IsArray()
-  roles: number[];
-}
-
-export class UsuarioResponseDto {
-  id: number;
-  login: string;
-  persona?: {
-    id: number;
-    nombre: string;
-    apellido: string | null;
-  } | null; // ← Se aclara que puede ser null si no hay persona
-
-  roles: {
-    id: number;
-    nombre: string;
-  }[];
+  @ValidateNested({ each: true })
+  @Type(() => RolResponseDto)
+  roles?: RolResponseDto[];
 }

@@ -28,7 +28,6 @@ import { UsuarioController } from './controllers/usuario.controller';
 import { PersonaService } from './services/persona.service';
 import { PersonaController } from './controllers/persona.controller';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
-import { OpcionAccion } from './entities/opcion-accion.entity';
 
 @Module({
   imports: [
@@ -37,7 +36,6 @@ import { OpcionAccion } from './entities/opcion-accion.entity';
       Accion,
       Modulo,
       Opcion,
-      OpcionAccion,
       Permiso,
       Multitabla,
       Persona,

@@ -1,5 +1,5 @@
-import { Controller, Post, Body, Get, ParseIntPipe, Param } from '@nestjs/common';
-import { AsignarUsuarioRolesDto, CreateUsuarioDto } from '../dto/usuario.dto';
+import { Controller, Post, Body, Get, ParseIntPipe, Param, Patch } from '@nestjs/common';
+import { CreateUpdateUsuarioDto } from '../dto/usuario.dto';
 import { UsuarioService } from '../services/usuario.service';
 import { Auth, GetClientIp, GetUsuario } from 'src/auth/decorators';
 import { Usuario } from '../entities/usuario.entity';
@@ -17,17 +17,22 @@ export class UsuarioController {
 
   @Post()
   @Auth()
-  async create(@Body() dto: CreateUsuarioDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+  async create(@Body() dto: CreateUpdateUsuarioDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
     return this.usuarioService.create(dto,user.login, ip);
   }
+    @Patch(':id')
+    @Auth()
+    update(@Param('id') id: number,@Body() dto: CreateUpdateUsuarioDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+      return this.usuarioService.update(id,dto, user.login, ip);
+    }
 
-  @Post(':id/roles')
-  @Auth()
-  async asignarRoles(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AsignarUsuarioRolesDto,
-    @GetUsuario() user: Usuario,  @GetClientIp() ip: string
-  ) {
-    return this.usuarioService.asignarRoles(id, dto,user.login, ip);
-  }
+  // @Post(':id/roles')
+  // @Auth()
+  // async asignarRoles(
+  //   @Param('id', ParseIntPipe) id: number,
+  //   @Body() dto: AsignarUsuarioRolesDto,
+  //   @GetUsuario() user: Usuario,  @GetClientIp() ip: string
+  // ) {
+  //   return this.usuarioService.asignarRoles(id, dto,user.login, ip);
+  // }
 }

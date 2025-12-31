@@ -16,7 +16,7 @@ export class Usuario extends Audit {
 
   @ManyToOne(() => Persona)
   @JoinColumn({ name: 'idPersona' })
-  persona: Persona;
+  persona: Persona | null;
 
   @OneToMany(() => UsuarioRol, (usuarioRol) => usuarioRol.usuario)
   roles: UsuarioRol[];
