@@ -10,11 +10,16 @@ export class AccionService {
   constructor(
     @InjectRepository(Accion)
     private readonly accionRepository: Repository<Accion>,
-  ) {}
+  ) { }
 
   async findAll(): Promise<StatusResponse<any>> {
     try {
-      const acciones = await this.accionRepository.find();
+      const acciones = await this.accionRepository.find({
+        where: {
+          activo: true,
+          eliminado: false,
+        },
+      });
       return new StatusResponse(true, 200, 'Acciones obtenidas', acciones);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al obtener acciones', error);
@@ -23,7 +28,7 @@ export class AccionService {
 
   async findOne(id: number): Promise<StatusResponse<any>> {
     try {
-      const accion = await this.accionRepository.findOne({ where: { id } });
+      const accion = await this.accionRepository.findOne({ where: { id, activo: true, eliminado: false } });
       if (!accion) {
         return new StatusResponse(false, 404, 'Accion no encontrada', null);
       }
@@ -58,21 +63,16 @@ export class AccionService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const accion = await this.accionRepository.findOne({ where: { id } });
+      const accion = await this.accionRepository.findOne({ where: { id, activo: true, eliminado: false } });
       if (!accion) {
         return new StatusResponse(false, 404, 'Acción no encontrada', null);
       }
-      // En servicio
-      const accionPlano = {
-        ...dto,
-        usuarioModificacion: usuario,
-        ipModificacion: ip,
-        fechaModificacion: new Date(),
-      };
+      accion.nombre = dto.nombre;
+      accion.usuarioModificacion = usuario;
+      accion.ipModificacion = ip;
+      accion.fechaModificacion = new Date();
 
-      await this.accionRepository.update(id, accionPlano);
-
-      const updated = await this.accionRepository.findOne({ where: { id } });
+      const updated = await this.accionRepository.save(accion);
       return new StatusResponse(true, 200, 'Acción actualizada', updated);
     } catch (error) {
       return new StatusResponse(
@@ -90,7 +90,7 @@ export class AccionService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const accion = await this.accionRepository.findOne({ where: { id } });
+      const accion = await this.accionRepository.findOne({ where: { id, activo: true, eliminado: false } });
       if (!accion) {
         return new StatusResponse(false, 404, 'Acción no encontrada', null);
       }
@@ -115,7 +115,7 @@ export class AccionService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const acciones = await this.accionRepository.findBy({ id: In(ids) });
+      const acciones = await this.accionRepository.findBy({ id: In(ids), activo: true, eliminado: false });
 
       if (!acciones.length) {
         return new StatusResponse(

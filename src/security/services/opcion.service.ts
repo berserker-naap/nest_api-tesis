@@ -64,7 +64,9 @@ export class OpcionService {
       }
 
       const opcion = this.opcionRepository.create({
-        ...dto,
+        nombre: dto.nombre,
+        isVisibleNavegacion: dto.isVisibleNavegacion,
+        path: dto.path,
         modulo,
         usuarioRegistro: usuario,
         ipRegistro: ip,
@@ -85,6 +87,11 @@ export class OpcionService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
+      const modulo = await this.moduloRepository.findOne({ where: { id: dto.idModulo, activo: true, eliminado: false } });
+      if (!modulo) {
+        return new StatusResponse(false, 404, 'Módulo no encontrado', null);
+      }
+
       const opcion = await this.opcionRepository.findOne({
         where: { id, activo: true, eliminado: false },
         relations: ['modulo'],
@@ -94,22 +101,16 @@ export class OpcionService {
         return new StatusResponse(false, 404, 'Opción no encontrada', null);
       }
 
-      const modulo = await this.moduloRepository.findOne({ where: { id: dto.idModulo, activo: true, eliminado: false } });
 
-      if (!modulo) {
-        return new StatusResponse(false, 404, 'Módulo no encontrado', null);
-      }
+      opcion.nombre = dto.nombre;
+      opcion.isVisibleNavegacion = dto.isVisibleNavegacion || false;
+      opcion.path = dto.path;
+      opcion.modulo = modulo;
+      opcion.usuarioModificacion = usuario;
+      opcion.ipModificacion = ip;
+      opcion.fechaModificacion = new Date();
 
-      const actualizado = this.opcionRepository.create({
-        ...opcion,
-        ...dto,
-        modulo,
-        usuarioModificacion: usuario,
-        ipModificacion: ip,
-        fechaModificacion: new Date(),
-      });
-
-      const saved = await this.opcionRepository.save(actualizado);
+      const saved = await this.opcionRepository.save(opcion);
 
       return new StatusResponse(true, 200, 'Opción actualizada', saved);
     } catch (error) {

@@ -67,17 +67,13 @@ export class ModuloService {
       if (!modulo) {
         return new StatusResponse(false, 404, 'Modulo no encontrado', null);
       }
-      // En servicio
-      const moduloPlano = {
-        ...dto,
-        usuarioModificacion: usuario,
-        ipModificacion: ip,
-        fechaModificacion: new Date(),
-      };
+      modulo.nombre = dto.nombre;
+      modulo.icono = dto.icono;
+      modulo.usuarioModificacion = usuario;
+      modulo.ipModificacion = ip;
+      modulo.fechaModificacion = new Date();
 
-      await this.moduloRepository.update(id, moduloPlano);
-
-      const updated = await this.moduloRepository.findOne({ where: { id } });
+      const updated = await this.moduloRepository.save(modulo);
       return new StatusResponse(true, 200, 'Modulo actualizado', updated);
     } catch (error) {
       return new StatusResponse(
