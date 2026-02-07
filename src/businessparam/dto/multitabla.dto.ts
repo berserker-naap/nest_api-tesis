@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsOptional, IsInt, IsNotEmpty, IsString, ValidateNested } from "class-validator";
+import { IsOptional, IsInt, IsNotEmpty, IsString, ValidateNested, ValidateIf } from "class-validator";
 
 export class MultitablaItemDto {
   @IsOptional() 
@@ -10,9 +10,11 @@ export class MultitablaItemDto {
   @IsString()
   nombre!: string;
 
+  @ValidateIf((o) => o.valor !== null)
   @IsString()
   valor!: string | null;
 
+  @ValidateIf((o) => o.valor2 !== null)
   @IsString()
   valor2!: string | null;
 }
@@ -26,14 +28,15 @@ export class CreateUpdateMultitablaDto {
   @IsString()
   nombre!: string;
 
+  @ValidateIf((o) => o.valor !== null)
   @IsString()
   valor!: string | null;
 
+  @ValidateIf((o) => o.valor2 !== null)
   @IsString()
   valor2!: string | null;
 
-  @IsOptional() // items es opcional, puede no enviarse
   @ValidateNested({ each: true })
   @Type(() => MultitablaItemDto)
-  items?: MultitablaItemDto[] | null;
+  items!: MultitablaItemDto[] | null;
 }
