@@ -6,7 +6,7 @@ export class Multitabla extends Audit {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({nullable: true })
+  @Column({ type: 'int', nullable: true })
   idMultitabla!: number | null;
 
   @Column({ type: 'nvarchar', length: 100 })
