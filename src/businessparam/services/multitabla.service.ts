@@ -21,7 +21,7 @@ export class MultitablaService {
           activo: true,
           eliminado: false,
         },
-        order: { nombre: 'ASC' }, // opcional: ordenar por nombre
+        order: { nombre: 'ASC' },
       });
 
       return new StatusResponse(true, 200, 'Multitablas obtenidas', cabeceras);
@@ -41,12 +41,13 @@ export class MultitablaService {
       const cabecera = await this.multitablaRepository.findOne({
         where: {
           id,
+          idMultitabla: IsNull(),
           activo: true,
           eliminado: false,
         },
       });
 
-      if (!cabecera || cabecera.idMultitabla !== null) {
+      if (!cabecera) {
         return new StatusResponse(false, 404, 'Cabecera no encontrada', null);
       }
 
@@ -67,7 +68,7 @@ export class MultitablaService {
         valor: cabecera.valor ?? null,
         valor2: cabecera.valor2 ?? null,
         items: items.map((item) => ({
-          id: item.id, // <-- incluir
+          id: item.id,
           nombre: item.nombre,
           valor: item.valor ?? null,
           valor2: item.valor2 ?? null,
@@ -85,6 +86,9 @@ export class MultitablaService {
     usuario: string,
     ip: string,
   ): Promise<StatusResponse<any>> {
+
+    const fechaRegistro = new Date();
+
     const resultados: Multitabla[] = [];
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -93,13 +97,11 @@ export class MultitablaService {
 
     try {
       // 1. Insertar la cabecera (sin idMultitabla)
-      const fechaRegistro = new Date();
-
       const cabecera = this.multitablaRepository.create({
         nombre: dto.nombre,
-        valor: dto.valor,
-        valor2: dto.valor2,
-        idMultitabla: undefined,
+        valor: dto.valor ?? null,
+        valor2: dto.valor2 ?? null,
+        idMultitabla: null,
         fechaRegistro: fechaRegistro,
         usuarioRegistro: usuario,
         ipRegistro: ip,
@@ -111,10 +113,10 @@ export class MultitablaService {
       if (dto.items?.length) {
         for (const item of dto.items) {
           const detalle = this.multitablaRepository.create({
-            nombre: item.nombre,
-            valor: item.valor,
-            valor2: item.valor2,
             idMultitabla: savedCabecera.id,
+            nombre: item.nombre,
+            valor: item.valor ?? null,
+            valor2: item.valor2 ?? null,
             usuarioRegistro: usuario,
             fechaRegistro: fechaRegistro,
             ipRegistro: ip,
@@ -144,20 +146,28 @@ export class MultitablaService {
     usuario: string,
     ip: string,
   ): Promise<StatusResponse<any>> {
+
+    const fechaModificacion = new Date(); 
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
       const cabecera = await this.multitablaRepository.findOne({
-        where: { id: dto.id, activo: true, eliminado: false },
+        where: { 
+          id: dto.id,
+          idMultitabla: IsNull(), 
+          activo: true, 
+          eliminado: false, 
+          },
       });
 
-      if (!cabecera || cabecera.idMultitabla !== null) {
+      if (!cabecera) {
         return new StatusResponse(false, 404, 'Cabecera no encontrada', null);
       }
-      const fechaModificacion = new Date(); 
-      cabecera.nombre = dto.nombre?? null;
+   
+      cabecera.nombre = dto.nombre;
       cabecera.valor = dto.valor ?? null;
       cabecera.valor2 = dto.valor2 ?? null;
       cabecera.fechaModificacion = fechaModificacion;
@@ -167,66 +177,57 @@ export class MultitablaService {
       const updatedCabecera = await queryRunner.manager.save(cabecera);
 
       // 1. Obtener los items actuales desde la BD
-      const existingItems = await this.multitablaRepository.find({
+      const items = await this.multitablaRepository.find({
         where: { idMultitabla: dto.id, activo: true, eliminado: false },
       });
 
-      const existingItemMap = new Map<number, Multitabla>();
-      existingItems.forEach((item) => existingItemMap.set(item.id, item));
-
-      const processedIds = new Set<number>();
-      const nuevosItems: Multitabla[] = [];
+      const itemsMap = new Map<number, Multitabla>();
+      items.forEach((item) => itemsMap.set(item.id, item));
 
       // 2. Procesar todos los items del dto
       if (dto.items?.length) {
         for (const itemDto of dto.items) {
           const idItem = itemDto.id;
 
-          if (idItem && existingItemMap.has(idItem)) {
-            // UPDATE
-            const itemExistente: any = existingItemMap.get(idItem);
+          if (idItem && itemsMap.has(idItem)) {
+            // UPDATE: actualizar y remover del Map
+            const itemExistente: any = itemsMap.get(idItem);
             Object.assign(itemExistente, {
               nombre: itemDto.nombre,
-              valor: itemDto.valor,
-              valor2: itemDto.valor2,
+              valor: itemDto.valor ?? null,
+              valor2: itemDto.valor2 ?? null,
               fechaModificacion: fechaModificacion,
               usuarioModificacion: usuario,
               ipModificacion: ip,
             });
             await queryRunner.manager.save(itemExistente);
-            processedIds.add(idItem);
+            itemsMap.delete(idItem); // Remover porque ya fue procesado
+
           } else {
-            // INSERT
+            // INSERT: crear nuevo item
             const nuevoItem = this.multitablaRepository.create({
               nombre: itemDto.nombre,
-              valor: itemDto.valor,
-              valor2: itemDto.valor2,
+              valor: itemDto.valor ?? null,
+              valor2: itemDto.valor2 ?? null,
               idMultitabla: dto.id,
               fechaRegistro: fechaModificacion,
               usuarioRegistro: usuario,
               ipRegistro: ip,
             });
-            const savedItem = await queryRunner.manager.save(nuevoItem);
-            nuevosItems.push(savedItem);
+            await queryRunner.manager.save(nuevoItem);
           }
         }
       }
 
-      // 3. Eliminar los items que ya existían pero NO están en dto
-      const idsRecibidos = dto.items?.map((i) => i.id).filter(Boolean) ?? [];
-      const idsEliminar = existingItems
-        .filter((item) => !idsRecibidos.includes(item.id))
-        .map((item) => item.id);
-
-      if (idsEliminar.length > 0) {
-        for (const id of idsEliminar) {
-          await queryRunner.manager.update(Multitabla, id, {
-            activo: false,
-            eliminado: true,
-            usuarioEliminacion: usuario,
-            ipEliminacion: ip,
-            fechaEliminacion: fechaModificacion,
-          });
+      // 3. Eliminar items que quedaron en el Map (no vinieron en el DTO = el frontend los eliminó)
+      if (itemsMap.size > 0) {
+        for (const [idItem, item] of itemsMap) {
+          item.activo = false;
+          item.eliminado = true;
+          item.usuarioEliminacion = usuario;
+          item.ipEliminacion = ip;
+          item.fechaEliminacion = fechaModificacion;
+          await queryRunner.manager.save(item);
         }
       }
 
@@ -255,11 +256,13 @@ export class MultitablaService {
     id: number,
     usuarioEliminacion: string,
     ipEliminacion: string,
-  ): Promise<StatusResponse<null>> {
+  ): Promise<StatusResponse<any>> {
     try {
+      const fechaEliminacion = new Date();
+
       // Buscar la cabecera
       const multitabla = await this.multitablaRepository.findOne({
-        where: { id, activo: true, eliminado: false },
+        where: { id, activo: true, eliminado: false , idMultitabla: IsNull() },
       });
       if (!multitabla) {
         return new StatusResponse(false, 404, 'Multitabla no encontrada', null);
@@ -270,14 +273,13 @@ export class MultitablaService {
         where: { idMultitabla: id, activo: true, eliminado: false },
       });
       
-      const fechaEliminacion = new Date();
-
+  
       // Marcar cabecera como eliminada
       multitabla.usuarioEliminacion = usuarioEliminacion;
       multitabla.ipEliminacion = ipEliminacion;
       multitabla.activo = false;
       multitabla.eliminado = true;
-      multitabla.fechaEliminacion = fechaEliminacion
+      multitabla.fechaEliminacion = fechaEliminacion;
 
       // Marcar items como eliminados
 
@@ -295,12 +297,7 @@ export class MultitablaService {
 
       return new StatusResponse(true, 200, 'Multitabla eliminada', null);
     } catch (error) {
-      return new StatusResponse(
-        false,
-        500,
-        'Error al eliminar multitabla',
-        error,
-      );
+      return new StatusResponse(false, 500, 'Error al obtener multitabla', error);
     }
   }
 
@@ -313,6 +310,7 @@ export class MultitablaService {
       // Buscar cabeceras
       const multitablas = await this.multitablaRepository.findBy({
         id: In(ids),
+        idMultitabla: IsNull(),
         activo: true,
         eliminado: false,
       });

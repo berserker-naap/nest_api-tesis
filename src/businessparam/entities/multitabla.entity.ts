@@ -4,17 +4,17 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 @Entity('MULTITABLA')
 export class Multitabla extends Audit {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({nullable: true })
-  idMultitabla: number;
+  idMultitabla!: number | null;
 
   @Column({ type: 'nvarchar', length: 100 })
-  nombre: string;
+  nombre!: string;
 
   @Column({ type: 'nvarchar', length: 50, nullable: true })
-  valor: string | null;
+  valor!: string | null;
 
   @Column({ type: 'nvarchar', length: 50, nullable: true })
-  valor2: string | null;
+  valor2!: string | null;
 }
