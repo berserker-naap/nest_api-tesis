@@ -62,7 +62,7 @@ export class MultitablaService {
       });
 
       // 3. Armar DTO como salida
-      const result: CreateUpdateMultitablaDto = {
+      const result: any = {
         id: cabecera.id,
         nombre: cabecera.nombre,
         valor: cabecera.valor ?? null,
@@ -142,6 +142,7 @@ export class MultitablaService {
   }
 
   async update(
+    id: number,
     dto: CreateUpdateMultitablaDto,
     usuario: string,
     ip: string,
@@ -156,7 +157,7 @@ export class MultitablaService {
     try {
       const cabecera = await this.multitablaRepository.findOne({
         where: { 
-          id: dto.id,
+          id: id,
           idMultitabla: IsNull(), 
           activo: true, 
           eliminado: false, 
@@ -178,7 +179,7 @@ export class MultitablaService {
 
       // 1. Obtener los items actuales desde la BD
       const items = await this.multitablaRepository.find({
-        where: { idMultitabla: dto.id, activo: true, eliminado: false },
+        where: { idMultitabla: id, activo: true, eliminado: false },
       });
 
       const itemsMap = new Map<number, Multitabla>();
@@ -209,7 +210,7 @@ export class MultitablaService {
               nombre: itemDto.nombre,
               valor: itemDto.valor ?? null,
               valor2: itemDto.valor2 ?? null,
-              idMultitabla: dto.id,
+              idMultitabla: id,
               fechaRegistro: fechaModificacion,
               usuarioRegistro: usuario,
               ipRegistro: ip,

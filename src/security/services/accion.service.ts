@@ -44,9 +44,11 @@ export class AccionService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
+      const fechaRegistro = new Date();
       const accion = this.accionRepository.create({
         ...dto,
         usuarioRegistro: usuario,
+        fechaRegistro,
         ipRegistro: ip,
       });
       const saved = await this.accionRepository.save(accion);
@@ -63,6 +65,8 @@ export class AccionService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
+     const fechaModificacion = new Date(); 
+
       const accion = await this.accionRepository.findOne({ where: { id, activo: true, eliminado: false } });
       if (!accion) {
         return new StatusResponse(false, 404, 'Acción no encontrada', null);
@@ -70,7 +74,7 @@ export class AccionService {
       accion.nombre = dto.nombre;
       accion.usuarioModificacion = usuario;
       accion.ipModificacion = ip;
-      accion.fechaModificacion = new Date();
+      accion.fechaModificacion = fechaModificacion;
 
       const updated = await this.accionRepository.save(accion);
       return new StatusResponse(true, 200, 'Acción actualizada', updated);
@@ -90,6 +94,8 @@ export class AccionService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
+      const fechaEliminacion = new Date();
+
       const accion = await this.accionRepository.findOne({ where: { id, activo: true, eliminado: false } });
       if (!accion) {
         return new StatusResponse(false, 404, 'Acción no encontrada', null);
@@ -99,7 +105,7 @@ export class AccionService {
       accion.ipEliminacion = ip;
       accion.activo = false;
       accion.eliminado = true;
-      accion.fechaEliminacion = new Date();
+      accion.fechaEliminacion = fechaEliminacion;
 
       await this.accionRepository.save(accion);
 
@@ -115,6 +121,8 @@ export class AccionService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
+      const fechaEliminacion = new Date();
+
       const acciones = await this.accionRepository.findBy({ id: In(ids), activo: true, eliminado: false });
 
       if (!acciones.length) {
@@ -132,7 +140,7 @@ export class AccionService {
         accion.ipEliminacion = ip;
         accion.activo = false;
         accion.eliminado = true;
-        accion.fechaEliminacion = new Date();
+        accion.fechaEliminacion = fechaEliminacion;
         return accion;
       });
 

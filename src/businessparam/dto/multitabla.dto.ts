@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
-import { IsOptional, IsInt, IsNotEmpty, IsString, ValidateNested, ValidateIf } from "class-validator";
+import { IsOptional, IsInt, IsNotEmpty, IsString, ValidateNested } from "class-validator";
+import { IsNullable } from "src/common/decorators/is-nullable.decorator";
 
 export class MultitablaItemDto {
   @IsOptional() 
@@ -10,33 +11,30 @@ export class MultitablaItemDto {
   @IsString()
   nombre!: string;
 
-  @ValidateIf((o) => o.valor !== null)
+  @IsNullable()
   @IsString()
   valor!: string | null;
 
-  @ValidateIf((o) => o.valor2 !== null)
+  @IsNullable()
   @IsString()
   valor2!: string | null;
 }
 
 export class CreateUpdateMultitablaDto {
-  @IsOptional() // solo requerido para update, no para create
-  @IsInt()
-  id?: number;
 
   @IsNotEmpty()
   @IsString()
   nombre!: string;
 
-  @ValidateIf((o) => o.valor !== null)
+  @IsNullable()
   @IsString()
   valor!: string | null;
 
-  @ValidateIf((o) => o.valor2 !== null)
+  @IsNullable()
   @IsString()
   valor2!: string | null;
 
   @ValidateNested({ each: true })
   @Type(() => MultitablaItemDto)
-  items!: MultitablaItemDto[] | null;
+  items!: MultitablaItemDto[] | [];
 }
