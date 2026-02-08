@@ -46,8 +46,7 @@ export class MultitablaController {
     @GetUsuario() user: Usuario,
     @GetClientIp() ip: string,
   ) {
-    dto.id = +id; // aseguramos que la cabecera tenga el ID de la URL
-    return this.multitablaService.update(dto, user.login, ip);
+    return this.multitablaService.update(+id, dto, user.login, ip);
   }
 
   @Delete(':id')
