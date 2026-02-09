@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { In, Repository } from 'typeorm';
 import { Rol } from '../entities/rol.entity';
-import { CreateUpdateRolDto } from '../dto/rol.dto';
+import { CreateRolDto, UpdateRolDto, RolResponseDto } from '../dto/rol.dto';
 
 @Injectable()
 export class RolService {
@@ -12,19 +12,24 @@ export class RolService {
     private readonly rolRepository: Repository<Rol>,
   ) {}
 
-  async findAll(): Promise<StatusResponse<any>> {
+  async findAll(): Promise<StatusResponse<RolResponseDto[] | any>> {
     try {
       const roles = await this.rolRepository.find({
         where: { activo: true, eliminado: false },
         select: ['id', 'nombre', 'descripcion'],
       });
-      return new StatusResponse(true, 200, 'Roles obtenidos', roles);
+      const rolesDto: RolResponseDto[] = roles.map((rol) => ({
+        id: rol.id,
+        nombre: rol.nombre,
+        descripcion: rol.descripcion ?? null,
+      }));
+      return new StatusResponse(true, 200, 'Roles obtenidos', rolesDto);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al obtener roles', error);
     }
   }
 
-  async findOne(id: number): Promise<StatusResponse<any>> {
+  async findOne(id: number): Promise<StatusResponse<RolResponseDto | any>> {
     try {
       const rol = await this.rolRepository.findOne({
         where: { id, activo: true, eliminado: false },
@@ -33,17 +38,22 @@ export class RolService {
       if (!rol) {
         return new StatusResponse(false, 404, 'Rol no encontrado', null);
       }
-      return new StatusResponse(true, 200, 'Rol encontrado', rol);
+      const rolDto: RolResponseDto = {
+        id: rol.id,
+        nombre: rol.nombre,
+        descripcion: rol.descripcion ?? null,
+      };
+      return new StatusResponse(true, 200, 'Rol encontrado', rolDto);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al obtener rol', error);
     }
   }
 
   async create(
-    dto: CreateUpdateRolDto,
+    dto: CreateRolDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<RolResponseDto | any>> {
     try {
       const fechaRegistro = new Date();
       const rol = this.rolRepository.create({
@@ -53,7 +63,12 @@ export class RolService {
         fechaRegistro,
       });
       const saved = await this.rolRepository.save(rol);
-      return new StatusResponse(true, 201, 'Rol creado', saved);
+      const rolDto: RolResponseDto = {
+        id: saved.id,
+        nombre: saved.nombre,
+        descripcion: saved.descripcion ?? null,
+      };
+      return new StatusResponse(true, 201, 'Rol creado', rolDto);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al crear rol', error);
     }
@@ -61,10 +76,10 @@ export class RolService {
 
   async update(
     id: number,
-    dto: CreateUpdateRolDto,
+    dto: UpdateRolDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<RolResponseDto | any>> {
     try {
       const rol = await this.rolRepository.findOne({
         where: { id, activo: true, eliminado: false },
@@ -72,17 +87,20 @@ export class RolService {
       if (!rol) {
         return new StatusResponse(false, 404, 'Rol no encontrado', null);
       }
-      // En servicio
-      const rolPlano = {
-        ...dto,
-        usuarioModificacion: usuario,
-        ipModificacion: ip,
-        fechaModificacion: new Date(),
+      rol.nombre = dto.nombre;
+      rol.descripcion = dto.descripcion ?? null;
+      rol.usuarioModificacion = usuario;
+      rol.ipModificacion = ip;
+      rol.fechaModificacion = new Date();
+
+      const updated = await this.rolRepository.save(rol);
+      const rolDto: RolResponseDto = {
+        id: updated.id,
+        nombre: updated.nombre,
+        descripcion: updated.descripcion ?? null,
       };
 
-      const updated = await this.rolRepository.save(rolPlano);
-
-      return new StatusResponse(true, 200, 'Rol actualizado', updated);
+      return new StatusResponse(true, 200, 'Rol actualizado', rolDto);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al actualizar rol', error);
     }

@@ -6,18 +6,18 @@ import { Modulo } from './modulo.entity';
 export class Opcion extends Audit {
 
     @PrimaryGeneratedColumn()
-    id: number;
+    id!: number;
 
     @ManyToOne(() => Modulo, (modulo) => modulo.opciones)
     @JoinColumn({ name: 'idModulo' })
-    modulo: Modulo;
+    modulo!: Modulo;
 
     @Column({ type: 'nvarchar', length: 200 })
-    nombre: string;
+    nombre!: string;
 
     @Column({ type: 'nvarchar', length: 200, unique: true, nullable: true })
-    path: string | null;
+    path!: string | null;
 
     @Column({ default: true })
-    isVisibleNavegacion: boolean;
+    isVisibleNavegacion!: boolean;
 }

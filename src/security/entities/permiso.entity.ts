@@ -7,18 +7,18 @@ import { Rol } from './rol.entity';
 @Entity('PERMISO')
 export class Permiso extends Audit {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @ManyToOne(() => Rol)
   @JoinColumn({ name: 'idRol' })
-  rol: Rol;
+  rol!: Rol;
 
   @ManyToOne(() => Opcion)
   @JoinColumn({ name: 'idOpcion' })
-  opcion: Opcion;
+  opcion!: Opcion;
 
   @ManyToOne(() => Accion)
   @JoinColumn({ name: 'idAccion' })
-  accion: Accion;
+  accion!: Accion;
 
 }

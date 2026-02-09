@@ -1,18 +1,81 @@
-import { IsString, IsNotEmpty, IsOptional } from "class-validator";
+import { IsString, IsNotEmpty, IsInt, IsDate } from 'class-validator';
+import { IsNullable } from 'src/common/decorators/is-nullable.decorator';
 
-export class CreateUpdatePersonaDto {
-  @IsString() @IsNotEmpty()
-  nombre: string;
+export class CreatePersonaDto {
+  @IsString()
+  @IsNotEmpty()
+  nombre!: string;
 
-  @IsOptional()
-  apellido?: string;
+  @IsNullable()
+  @IsString()
+  apellido!: string | null;
 
-  @IsOptional()
-  idTipoDocumentoIdentidad?: number;
+  @IsInt()
+  idTipoDocumentoIdentidad!: number;
 
-  @IsOptional()
-  documentoIdentidad?: string;
+  @IsNullable()
+  @IsString()
+  documentoIdentidad!: string | null;
 
-  @IsOptional()
-  fechaNacimiento?: Date;
+  @IsNullable()
+  @IsDate()
+  fechaNacimiento!: Date | null;
+}
+
+export class UpdatePersonaDto {
+  @IsString()
+  @IsNotEmpty()
+  nombre!: string;
+
+  @IsNullable()
+  @IsString()
+  apellido!: string | null;
+
+  @IsInt()
+  idTipoDocumentoIdentidad!: number;
+
+  @IsNullable()
+  @IsString()
+  documentoIdentidad!: string | null;
+
+  @IsNullable()
+  @IsDate()
+  fechaNacimiento!: Date | null;
+}
+
+export class TipoDocumentoResponseDto {
+  @IsInt()
+  id!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  nombre!: string;
+
+  @IsNullable()
+  @IsString()
+  valor!: string | null;
+}
+
+export class PersonaResponseDto {
+  @IsInt()
+  id!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  nombre!: string;
+
+  @IsNullable()
+  @IsString()
+  apellido!: string | null;
+
+  @IsNullable()
+  @IsString()
+  documentoIdentidad!: string | null;
+
+  @IsNullable()
+  @IsDate()
+  fechaNacimiento!: Date | null;
+
+  @IsNullable()
+  tipoDocumento!: TipoDocumentoResponseDto | null;
 }

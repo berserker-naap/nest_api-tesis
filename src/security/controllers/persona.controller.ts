@@ -10,7 +10,7 @@ import {
 import { Auth, GetUsuario } from 'src/auth/decorators';
 import { Usuario } from '../entities/usuario.entity';
 import { PersonaService } from '../services/persona.service';
-import { CreateUpdatePersonaDto } from '../dto/persona.dto';
+import { CreatePersonaDto, UpdatePersonaDto } from '../dto/persona.dto';
 import { GetClientIp } from 'src/auth/decorators/get-client-ip.decorator';
 
 @Controller('persona')
@@ -32,7 +32,7 @@ export class PersonaController {
   @Post()
   @Auth()
   create(
-    @Body() dto: CreateUpdatePersonaDto,
+    @Body() dto: CreatePersonaDto,
     @GetUsuario() user: Usuario,
     @GetClientIp() ip: string,
   ) {
@@ -43,7 +43,7 @@ export class PersonaController {
   @Auth()
   update(
     @Param('id') id: number,
-    @Body() dto: CreateUpdatePersonaDto,
+    @Body() dto: UpdatePersonaDto,
     @GetUsuario() user: Usuario,
     @GetClientIp() ip: string,
   ) {

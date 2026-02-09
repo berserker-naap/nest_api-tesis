@@ -4,7 +4,12 @@ import { StatusResponse } from 'src/common/dto/response.dto';
 import { In, Repository } from 'typeorm';
 import { Persona } from '../entities/persona.entity';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
-import { CreateUpdatePersonaDto } from '../dto/persona.dto';
+import {
+  CreatePersonaDto,
+  UpdatePersonaDto,
+  PersonaResponseDto,
+  TipoDocumentoResponseDto,
+} from '../dto/persona.dto';
 
 @Injectable()
 export class PersonaService {
@@ -15,7 +20,7 @@ export class PersonaService {
     private readonly multitablaRepository: Repository<Multitabla>,
   ) {}
 
-  async findAll(): Promise<StatusResponse<any>> {
+  async findAll(): Promise<StatusResponse<PersonaResponseDto[] | any>> {
     try {
       const personas = await this.personaRepository.find({
         where: {
@@ -25,14 +30,17 @@ export class PersonaService {
         relations: ['tipoDocumento'],
       });
 
-      // Solo exponer valor y nombre de tipoDocumento
-      const personasConTipoDoc = personas.map((p) => ({
-        ...p,
+      const personasDto: PersonaResponseDto[] = personas.map((p) => ({
+        id: p.id,
+        nombre: p.nombre,
+        apellido: p.apellido ?? null,
+        documentoIdentidad: p.documentoIdentidad ?? null,
+        fechaNacimiento: p.fechaNacimiento ?? null,
         tipoDocumento: p.tipoDocumento
           ? {
-              idTipoDocumentoIdentidad: p.tipoDocumento.id,
+              id: p.tipoDocumento.id,
               nombre: p.tipoDocumento.nombre,
-              valor: p.tipoDocumento.valor,
+              valor: p.tipoDocumento.valor ?? null,
             }
           : null,
       }));
@@ -41,14 +49,14 @@ export class PersonaService {
         true,
         200,
         'Personas obtenidas',
-        personasConTipoDoc,
+        personasDto,
       );
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al obtener personas', error);
     }
   }
 
-  async findOne(id: number): Promise<StatusResponse<any>> {
+  async findOne(id: number): Promise<StatusResponse<PersonaResponseDto | any>> {
     try {
       const persona = await this.personaRepository.findOne({
         where: { id, activo: true, eliminado: false },
@@ -58,14 +66,17 @@ export class PersonaService {
         return new StatusResponse(false, 404, 'Persona no encontrada', null);
       }
 
-      // Solo exponer valor y nombre de tipoDocumento
-      const personaConTipoDoc = {
-        ...persona,
+      const personaDto: PersonaResponseDto = {
+        id: persona.id,
+        nombre: persona.nombre,
+        apellido: persona.apellido ?? null,
+        documentoIdentidad: persona.documentoIdentidad ?? null,
+        fechaNacimiento: persona.fechaNacimiento ?? null,
         tipoDocumento: persona.tipoDocumento
           ? {
-              idTipoDocumentoIdentidad: persona.tipoDocumento.id,
+              id: persona.tipoDocumento.id,
               nombre: persona.tipoDocumento.nombre,
-              valor: persona.tipoDocumento.valor,
+              valor: persona.tipoDocumento.valor ?? null,
             }
           : null,
       };
@@ -74,7 +85,7 @@ export class PersonaService {
         true,
         200,
         'Persona encontrada',
-        personaConTipoDoc,
+        personaDto,
       );
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al obtener persona', error);
@@ -82,10 +93,10 @@ export class PersonaService {
   }
 
   async create(
-    dto: CreateUpdatePersonaDto,
+    dto: CreatePersonaDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<PersonaResponseDto | any>> {
     try {
       // Buscar el tipo de documento usando el repositorio de Multitabla
       const tipoDocumento = await this.multitablaRepository.findOne({
@@ -105,26 +116,30 @@ export class PersonaService {
       }
 
       const persona = this.personaRepository.create({
-        ...dto,
+        nombre: dto.nombre,
+        apellido: dto.apellido ?? null,
+        documentoIdentidad: dto.documentoIdentidad ?? null,
+        fechaNacimiento: dto.fechaNacimiento ?? null,
         usuarioRegistro: usuario,
         tipoDocumento: tipoDocumento,
         ipRegistro: ip,
       });
       const saved = await this.personaRepository.save(persona);
 
-      // Estructura de respuesta igual que findAll
-      const personaConTipoDoc = {
-        ...saved,
-        tipoDocumento: saved.tipoDocumento
-          ? {
-              idTipoDocumentoIdentidad: saved.tipoDocumento.id,
-              nombre: saved.tipoDocumento.nombre,
-              valor: saved.tipoDocumento.valor,
-            }
-          : null,
+      const personaDto: PersonaResponseDto = {
+        id: saved.id,
+        nombre: saved.nombre,
+        apellido: saved.apellido ?? null,
+        documentoIdentidad: saved.documentoIdentidad ?? null,
+        fechaNacimiento: saved.fechaNacimiento ?? null,
+        tipoDocumento: {
+          id: tipoDocumento.id,
+          nombre: tipoDocumento.nombre,
+          valor: tipoDocumento.valor,
+        },
       };
 
-      return new StatusResponse(true, 201, 'Persona creada', personaConTipoDoc);
+      return new StatusResponse(true, 201, 'Persona creada', personaDto);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al crear persona', error);
     }
@@ -132,10 +147,10 @@ export class PersonaService {
 
   async update(
     id: number,
-    dto: CreateUpdatePersonaDto,
+    dto: UpdatePersonaDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<PersonaResponseDto | any>> {
     try {
       const persona = await this.personaRepository.findOne({
         where: { id, activo: true, eliminado: false },
@@ -163,8 +178,8 @@ export class PersonaService {
 
       // Actualizar los campos
       persona.nombre = dto.nombre ?? '';
-      persona.apellido = dto.apellido ?? '';
-      persona.documentoIdentidad = dto.documentoIdentidad ?? '';
+      persona.apellido = dto.apellido ?? null;
+      persona.documentoIdentidad = dto.documentoIdentidad ?? null;
       persona.fechaNacimiento = dto.fechaNacimiento ?? null;
       persona.tipoDocumento = tipoDocumento;
       persona.usuarioModificacion = usuario;
@@ -173,23 +188,24 @@ export class PersonaService {
 
       const updated = await this.personaRepository.save(persona);
 
-      // Solo exponer valor y nombre de tipoDocumento
-      const personaConTipoDoc = {
-        ...updated,
-        tipoDocumento: updated.tipoDocumento
-          ? {
-              idTipoDocumentoIdentidad: updated.tipoDocumento.id,
-              nombre: updated.tipoDocumento.nombre,
-              valor: updated.tipoDocumento.valor,
-            }
-          : null,
+      const personaDto: PersonaResponseDto = {
+        id: updated.id,
+        nombre: updated.nombre,
+        apellido: updated.apellido ?? null,
+        documentoIdentidad: updated.documentoIdentidad ?? null,
+        fechaNacimiento: updated.fechaNacimiento ?? null,
+        tipoDocumento: {
+          id: tipoDocumento.id,
+          nombre: tipoDocumento.nombre,
+          valor: tipoDocumento.valor,
+        },
       };
 
       return new StatusResponse(
         true,
         200,
         'Persona actualizada',
-        personaConTipoDoc,
+        personaDto,
       );
     } catch (error) {
       return new StatusResponse(

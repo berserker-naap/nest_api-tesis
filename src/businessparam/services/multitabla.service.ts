@@ -3,7 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { DataSource, Repository, IsNull, In } from 'typeorm';
 import { Multitabla } from '../entities/multitabla.entity';
-import { CreateUpdateMultitablaDto } from '../dto/multitabla.dto';
+import {
+  CreateMultitablaDto,
+  UpdateMultitablaDto,
+  MultitablaResponseDto,
+  MultitablaItemResponseDto,
+} from '../dto/multitabla.dto';
 
 @Injectable()
 export class MultitablaService {
@@ -13,9 +18,10 @@ export class MultitablaService {
     private readonly dataSource: DataSource,
   ) { }
 
-  async findAll(): Promise<StatusResponse<any>> {
+  async findAll(): Promise<StatusResponse<MultitablaResponseDto[] | any>> {
     try {
       const cabeceras = await this.multitablaRepository.find({
+        select: { id: true, nombre: true, valor: true, valor2: true },
         where: {
           idMultitabla: IsNull(),
           activo: true,
@@ -23,8 +29,15 @@ export class MultitablaService {
         },
         order: { nombre: 'ASC' },
       });
+      const cabecerasDto: MultitablaResponseDto[] = cabeceras.map((cabecera) => ({
+        id: cabecera.id,
+        nombre: cabecera.nombre,
+        valor: cabecera.valor ?? null,
+        valor2: cabecera.valor2 ?? null,
+        items: [], // Inicializamos vacío, al listado no le interesa mostrar el resto
+      }));
 
-      return new StatusResponse(true, 200, 'Multitablas obtenidas', cabeceras);
+      return new StatusResponse(true, 200, 'Multitablas obtenidas', cabecerasDto);
     } catch (error) {
       return new StatusResponse(
         false,
@@ -35,10 +48,11 @@ export class MultitablaService {
     }
   }
 
-  async findOne(id: number): Promise<StatusResponse<any>> {
+  async findOne(id: number): Promise<StatusResponse<MultitablaResponseDto | any>> {
     try {
       // 1. Obtener cabecera
       const cabecera = await this.multitablaRepository.findOne({
+        select: { id: true, nombre: true, valor: true, valor2: true },
         where: {
           id,
           idMultitabla: IsNull(),
@@ -62,7 +76,7 @@ export class MultitablaService {
       });
 
       // 3. Armar DTO como salida
-      const result: any = {
+      const result: MultitablaResponseDto = {
         id: cabecera.id,
         nombre: cabecera.nombre,
         valor: cabecera.valor ?? null,
@@ -82,16 +96,15 @@ export class MultitablaService {
   }
 
   async create(
-    dto: CreateUpdateMultitablaDto,
+    dto: CreateMultitablaDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<MultitablaResponseDto | any>> {
 
     const fechaRegistro = new Date();
+    const savedItems: Multitabla[] = [];
 
-    const resultados: Multitabla[] = [];
     const queryRunner = this.dataSource.createQueryRunner();
-
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
@@ -106,8 +119,8 @@ export class MultitablaService {
         usuarioRegistro: usuario,
         ipRegistro: ip,
       });
+
       const savedCabecera = await queryRunner.manager.save(cabecera);
-      resultados.push(savedCabecera);
 
       // 2. Insertar sus items con idMultitabla = cabecera.id
       if (dto.items?.length) {
@@ -121,17 +134,32 @@ export class MultitablaService {
             fechaRegistro: fechaRegistro,
             ipRegistro: ip,
           });
+
           const savedDetalle = await queryRunner.manager.save(detalle);
-          resultados.push(savedDetalle);
+          savedItems.push(savedDetalle);
         }
       }
 
       await queryRunner.commitTransaction();
+
+      const response: MultitablaResponseDto = {
+        id: savedCabecera.id,
+        nombre: savedCabecera.nombre,
+        valor: savedCabecera.valor ?? null,
+        valor2: savedCabecera.valor2 ?? null,
+        items: savedItems.map((item) => ({
+          id: item.id,
+          nombre: item.nombre,
+          valor: item.valor ?? null,
+          valor2: item.valor2 ?? null,
+        })),
+      };
+
       return new StatusResponse(
         true,
         201,
         'Multitabla creada exitosamente',
-        savedCabecera,
+        response,
       );
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -143,12 +171,13 @@ export class MultitablaService {
 
   async update(
     id: number,
-    dto: CreateUpdateMultitablaDto,
+    dto: UpdateMultitablaDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<MultitablaResponseDto | any>> {
 
     const fechaModificacion = new Date(); 
+    const updatedItems: Multitabla[] = [];
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -177,6 +206,7 @@ export class MultitablaService {
 
       const updatedCabecera = await queryRunner.manager.save(cabecera);
 
+
       // 1. Obtener los items actuales desde la BD
       const items = await this.multitablaRepository.find({
         where: { idMultitabla: id, activo: true, eliminado: false },
@@ -192,7 +222,7 @@ export class MultitablaService {
 
           if (idItem && itemsMap.has(idItem)) {
             // UPDATE: actualizar y remover del Map
-            const itemExistente: any = itemsMap.get(idItem);
+            const itemExistente: Multitabla = itemsMap.get(idItem)!;
             Object.assign(itemExistente, {
               nombre: itemDto.nombre,
               valor: itemDto.valor ?? null,
@@ -201,7 +231,8 @@ export class MultitablaService {
               usuarioModificacion: usuario,
               ipModificacion: ip,
             });
-            await queryRunner.manager.save(itemExistente);
+            const updatedItem = await queryRunner.manager.save(itemExistente);
+            updatedItems.push(updatedItem);
             itemsMap.delete(idItem); // Remover porque ya fue procesado
 
           } else {
@@ -215,7 +246,8 @@ export class MultitablaService {
               usuarioRegistro: usuario,
               ipRegistro: ip,
             });
-            await queryRunner.manager.save(nuevoItem);
+            const savedItem = await queryRunner.manager.save(nuevoItem);
+            updatedItems.push(savedItem);
           }
         }
       }
@@ -234,11 +266,28 @@ export class MultitablaService {
 
       await queryRunner.commitTransaction();
 
+      const itemsResponse: MultitablaItemResponseDto[] = updatedItems.map(
+        (item) => ({
+          id: item.id,
+          nombre: item.nombre,
+          valor: item.valor ?? null,
+          valor2: item.valor2 ?? null,
+        }),
+      );
+
+      const response: MultitablaResponseDto = {
+        id: updatedCabecera.id,
+        nombre: updatedCabecera.nombre,
+        valor: updatedCabecera.valor ?? null,
+        valor2: updatedCabecera.valor2 ?? null,
+        items: itemsResponse,
+      };
+
       return new StatusResponse(
         true,
         200,
         'Multitabla actualizada correctamente',
-        updatedCabecera,
+        response,
       );
     } catch (error) {
       await queryRunner.rollbackTransaction();

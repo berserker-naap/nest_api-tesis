@@ -3,7 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { In, Repository } from 'typeorm';
 import { Opcion } from '../entities/opcion.entity';
-import { CreateUpdateOpcionDto } from '../dto/opcion.dto';
+import {
+  CreateOpcionDto,
+  UpdateOpcionDto,
+  OpcionResponseDto,
+} from '../dto/opcion.dto';
 import { Modulo } from '../entities/modulo.entity';
 
 @Injectable()
@@ -15,13 +19,23 @@ export class OpcionService {
     private readonly opcionRepository: Repository<Opcion>,
   ) { }
 
-  async findAll(): Promise<StatusResponse<any>> {
+  async findAll(): Promise<StatusResponse<OpcionResponseDto[] | any>> {
     try {
       const opciones = await this.opcionRepository.find({
         relations: ['modulo'],
         where: { activo: true, eliminado: false },
       });
-      return new StatusResponse(true, 200, 'Opciones obtenidas', opciones);
+      const opcionesDto: OpcionResponseDto[] = opciones.map((opcion) => ({
+        id: opcion.id,
+        nombre: opcion.nombre,
+        path: opcion.path ?? null,
+        isVisibleNavegacion: opcion.isVisibleNavegacion,
+        modulo: {
+          id: opcion.modulo.id,
+          nombre: opcion.modulo.nombre,
+        },
+      }));
+      return new StatusResponse(true, 200, 'Opciones obtenidas', opcionesDto);
     } catch (error) {
       return new StatusResponse(
         false,
@@ -32,7 +46,7 @@ export class OpcionService {
     }
   }
 
-  async findOne(id: number): Promise<StatusResponse<any>> {
+  async findOne(id: number): Promise<StatusResponse<OpcionResponseDto | any>> {
     try {
       const opcion = await this.opcionRepository.findOne({
         where: { id, activo: true, eliminado: false },
@@ -41,7 +55,17 @@ export class OpcionService {
       if (!opcion) {
         return new StatusResponse(false, 404, 'Opción no encontrada', null);
       }
-      return new StatusResponse(true, 200, 'Opción encontrada', opcion);
+      const opcionDto: OpcionResponseDto = {
+        id: opcion.id,
+        nombre: opcion.nombre,
+        path: opcion.path ?? null,
+        isVisibleNavegacion: opcion.isVisibleNavegacion,
+        modulo: {
+          id: opcion.modulo.id,
+          nombre: opcion.modulo.nombre,
+        },
+      };
+      return new StatusResponse(true, 200, 'Opción encontrada', opcionDto);
     } catch (error) {
       return new StatusResponse(
         false,
@@ -52,10 +76,10 @@ export class OpcionService {
     }
   }
   async create(
-    dto: CreateUpdateOpcionDto,
+    dto: CreateOpcionDto,
     usuario: string,
     ip: string
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<OpcionResponseDto | any>> {
     try {
       const modulo = await this.moduloRepository.findOne({ where: { id: dto.idModulo, activo: true, eliminado: false } });
 
@@ -73,8 +97,18 @@ export class OpcionService {
       });
 
       const saved = await this.opcionRepository.save(opcion);
+      const opcionDto: OpcionResponseDto = {
+        id: saved.id,
+        nombre: saved.nombre,
+        path: saved.path ?? null,
+        isVisibleNavegacion: saved.isVisibleNavegacion,
+        modulo: {
+          id: modulo.id,
+          nombre: modulo.nombre,
+        },
+      };
 
-      return new StatusResponse(true, 201, 'Opción creada', saved);
+      return new StatusResponse(true, 201, 'Opción creada', opcionDto);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al crear opción', error);
     }
@@ -82,10 +116,10 @@ export class OpcionService {
 
   async update(
     id: number,
-    dto: CreateUpdateOpcionDto,
+    dto: UpdateOpcionDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<OpcionResponseDto | any>> {
     try {
       const modulo = await this.moduloRepository.findOne({ where: { id: dto.idModulo, activo: true, eliminado: false } });
       if (!modulo) {
@@ -111,8 +145,18 @@ export class OpcionService {
       opcion.fechaModificacion = new Date();
 
       const saved = await this.opcionRepository.save(opcion);
+      const opcionDto: OpcionResponseDto = {
+        id: saved.id,
+        nombre: saved.nombre,
+        path: saved.path ?? null,
+        isVisibleNavegacion: saved.isVisibleNavegacion,
+        modulo: {
+          id: modulo.id,
+          nombre: modulo.nombre,
+        },
+      };
 
-      return new StatusResponse(true, 200, 'Opción actualizada', saved);
+      return new StatusResponse(true, 200, 'Opción actualizada', opcionDto);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al actualizar opción', error);
     }

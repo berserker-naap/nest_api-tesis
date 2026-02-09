@@ -4,12 +4,12 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 @Entity('ROL')
 export class Rol extends Audit {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'nvarchar', length: 100, unique: true })
-  nombre: string;
+  nombre!: string;
 
   @Column({ type: 'nvarchar', length: 255, nullable: true })
-  descripcion: string | null;
+  descripcion!: string | null;
 
 }

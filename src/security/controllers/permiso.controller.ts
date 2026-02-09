@@ -9,17 +9,6 @@ import { Usuario } from '../entities/usuario.entity';
 export class PermisoController {
   constructor(private readonly permisoService: PermisoService) { }
 
-  // @Get()
-  // @Auth()
-  // findAll() {
-  //   return this.permisoService.findAll();
-  // }
-
-  // @Post()
-  // @Auth()
-  // create(@Body() dto: CreatePermisoDto,  @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
-  //   return this.permisoService.create(dto, user.login, ip);
-  // }
 
   @Get('rol/:idRol')
   @Auth()

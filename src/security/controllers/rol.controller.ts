@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/commo
 import { Auth, GetUsuario } from 'src/auth/decorators';
 import { Usuario } from '../entities/usuario.entity';
 import { RolService } from '../services/rol.service';
-import { CreateUpdateRolDto } from '../dto/rol.dto';
+import { CreateRolDto, UpdateRolDto } from '../dto/rol.dto';
 import { GetClientIp } from 'src/auth/decorators/get-client-ip.decorator';
 
 @Controller('rol')
@@ -23,13 +23,13 @@ export class RolController {
 
   @Post()
   @Auth()
-  create(@Body() dto: CreateUpdateRolDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+  create(@Body() dto: CreateRolDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
     return this.opcionService.create(dto, user.login, ip);
   }
 
   @Patch(':id')
   @Auth()
-  update(@Param('id') id: number,@Body() dto: CreateUpdateRolDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+  update(@Param('id') id: number,@Body() dto: UpdateRolDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
     return this.opcionService.update(id,dto, user.login, ip);
   }
 

@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/commo
 import { Auth, GetUsuario } from 'src/auth/decorators';
 import { Usuario } from '../entities/usuario.entity';
 import { OpcionService } from '../services/opcion.service';
-import { CreateUpdateOpcionDto } from '../dto/opcion.dto';
+import { CreateOpcionDto, UpdateOpcionDto } from '../dto/opcion.dto';
 import { GetClientIp } from 'src/auth/decorators/get-client-ip.decorator';
 
 @Controller('opcion')
@@ -23,13 +23,13 @@ export class OpcionController {
 
   @Post()
   @Auth()
-  create(@Body() dto: CreateUpdateOpcionDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+  create(@Body() dto: CreateOpcionDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
     return this.opcionService.create(dto, user.login, ip);
   }
 
   @Patch(':id')
   @Auth()
-  update(@Param('id') id: number,@Body() dto: CreateUpdateOpcionDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
+  update(@Param('id') id: number,@Body() dto: UpdateOpcionDto, @GetUsuario() user: Usuario,  @GetClientIp() ip: string) {
     return this.opcionService.update(id,dto, user.login, ip);
   }
 

@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { Repository } from 'typeorm';
-import { PermisoBulkDto } from '../dto/permiso.dto';
+import {
+  PermisoBulkDto,
+  PermisoModuloResponseDto,
+} from '../dto/permiso.dto';
 import { Permiso } from '../entities/permiso.entity';
 import { Accion } from '../entities/accion.entity';
 import { Modulo } from '../entities/modulo.entity';
@@ -18,19 +21,21 @@ export class PermisoService {
     private readonly permisoRepository: Repository<Permiso>,
   ) {}
 
-  async getPermisosPorRol(idRol: number): Promise<StatusResponse<any>> {
+  async getPermisosPorRol(idRol: number): Promise<StatusResponse<PermisoModuloResponseDto[] | any>> {
     try {
-      // 1. Obtener todas las acciones
+      // 1. Obtener todas las acciones activas
       const acciones = await this.accionRepository.find({
         where: { activo: true, eliminado: false },
+        select: { id: true, nombre: true },
       });
 
-      // 2. Obtener todos los módulos y sus opciones
+      // 2. Obtener todos los módulos activos y sus opciones
       //* NOTA: eN TypeORM no puedes filtrar directamente las relaciones hijas (opciones) usando where en el mismo find del repositorio de módulos. El where solo aplica a la entidad principal (módulo), no a las entidades relacionadas (opciones).
       const modulos = await this.moduloRepository.find({
         relations: ['opciones'],
         order: { nombre: 'ASC' },
         where: { activo: true, eliminado: false },
+        select: { id: true, nombre: true, opciones: { id: true, nombre: true } },
       });
 
       // 3. Obtener permisos actuales del rol (solo ids necesarios)
@@ -50,7 +55,7 @@ export class PermisoService {
       );
 
       // 4. Estructura de retorno (filtrando opciones activas y no eliminadas)
-      const data = modulos.map((modulo) => ({
+      const data: PermisoModuloResponseDto[] = modulos.map((modulo) => ({
         id: modulo.id,
         nombre: modulo.nombre,
         opciones: (modulo.opciones || [])
@@ -61,7 +66,7 @@ export class PermisoService {
             acciones: acciones.map((accion) => ({
               id: accion.id,
               nombre: accion.nombre,
-              asignado: permisosSet.has(`${opcion.id}-${accion.id}`),
+              isAsignado: permisosSet.has(`${opcion.id}-${accion.id}`),
             })),
           })),
       }));
@@ -87,7 +92,7 @@ export class PermisoService {
           },
         });
 
-        if (item.asignado) {
+        if (item.isAsignado) {
           if (!existentePermiso) {
             // crear nuevo
             const nuevo = this.permisoRepository.create({
@@ -101,6 +106,7 @@ export class PermisoService {
             });
             await this.permisoRepository.save(nuevo);
           } else if (!existentePermiso.activo || existentePermiso.eliminado) {
+            // reactivar
             existentePermiso.activo = true;
             existentePermiso.eliminado = false;
             existentePermiso.usuarioModificacion = usuario;
@@ -119,7 +125,7 @@ export class PermisoService {
         }
       }
 
-      return new StatusResponse(true, 200, 'Permisos actualizados');
+      return new StatusResponse(true, 200, 'Permisos actualizados', null);
     } catch (error) {
       return new StatusResponse(
         false,
@@ -129,35 +135,4 @@ export class PermisoService {
       );
     }
   }
-
-  // async findAll(): Promise<StatusResponse<any>> {
-  //   try {
-  //     const permisos = await this.permisoRepository.find({
-  //       relations: ['rol', 'opcion', 'opcion.modulo', 'accion'],
-  //     });
-  //     return new StatusResponse(true, 200, 'Permisos obtenidos', permisos);
-  //   } catch (error) {
-  //     return new StatusResponse(false, 500, 'Error al obtener permisos', error);
-  //   }
-  // }
-
-  // async create(
-  //   dto: CreatePermisoDto,
-  //   usuario: string,
-  //   ip: string,
-  // ): Promise<StatusResponse<any>> {
-  //   try {
-  //     const permiso = this.permisoRepository.create({
-  //       rol: { id: dto.idRol },
-  //       opcion: { id: dto.idOpcion },
-  //       accion: { id: dto.idAccion },
-  //       usuarioRegistro: usuario,
-  //       ipRegistro: ip,
-  //     });
-  //     const saved = await this.permisoRepository.save(permiso);
-  //     return new StatusResponse(true, 201, 'Permiso creado', saved);
-  //   } catch (error) {
-  //     return new StatusResponse(false, 500, 'Error al crear permiso', error);
-  //   }
-  // }
 }

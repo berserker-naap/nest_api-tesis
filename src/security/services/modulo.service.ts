@@ -3,7 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { In, Repository } from 'typeorm';
 import { Modulo } from '../entities/modulo.entity';
-import { CreateUpdateModuloDto } from '../dto/modulo.dto';
+import {
+  CreateModuloDto,
+  UpdateModuloDto,
+  ModuloResponseDto,
+} from '../dto/modulo.dto';
 
 @Injectable()
 export class ModuloService {
@@ -12,23 +16,27 @@ export class ModuloService {
     private readonly moduloRepository: Repository<Modulo>,
   ) { }
 
-  async findAll(): Promise<StatusResponse<any>> {
+  async findAll(): Promise<StatusResponse<ModuloResponseDto[] | any>> {
     try {
-      const modulos = await this.moduloRepository.find({
+      const modulos = (await this.moduloRepository.find({
+        select: { id: true, nombre: true, icono: true },
         where: {
           activo: true,
           eliminado: false,
         },
-      });
+      })) as ModuloResponseDto[];
       return new StatusResponse(true, 200, 'Modulos obtenidos', modulos);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al obtener modulos', error);
     }
   }
 
-  async findOne(id: number): Promise<StatusResponse<any>> {
+  async findOne(id: number): Promise<StatusResponse<ModuloResponseDto | any>> {
     try {
-      const modulo = await this.moduloRepository.findOne({ where: { id, activo: true, eliminado: false } });
+      const modulo = (await this.moduloRepository.findOne({
+        select: { id: true, nombre: true, icono: true },
+        where: { id, activo: true, eliminado: false },
+      })) as ModuloResponseDto;
       if (!modulo) {
         return new StatusResponse(false, 404, 'Modulo no encontrado', null);
       }
@@ -39,18 +47,24 @@ export class ModuloService {
   }
 
   async create(
-    dto: CreateUpdateModuloDto,
+    dto: CreateModuloDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<ModuloResponseDto | any>> {
     try {
       const modulo = this.moduloRepository.create({
         ...dto,
         usuarioRegistro: usuario,
+        fechaRegistro: new Date(),
         ipRegistro: ip,
       });
       const saved = await this.moduloRepository.save(modulo);
-      return new StatusResponse(true, 201, 'Modulo creado', saved);
+      const moduloDto: ModuloResponseDto = {
+        id: saved.id,
+        nombre: saved.nombre,
+        icono: saved.icono,
+      };
+      return new StatusResponse(true, 201, 'Modulo creado', moduloDto);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al crear modulo', error);
     }
@@ -58,12 +72,14 @@ export class ModuloService {
 
   async update(
     id: number,
-    dto: CreateUpdateModuloDto,
+    dto: UpdateModuloDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<ModuloResponseDto | any>> {
     try {
-      const modulo = await this.moduloRepository.findOne({ where: { id, activo: true, eliminado: false } });
+      const modulo = await this.moduloRepository.findOne({
+        where: { id, activo: true, eliminado: false },
+      });
       if (!modulo) {
         return new StatusResponse(false, 404, 'Modulo no encontrado', null);
       }
@@ -74,7 +90,12 @@ export class ModuloService {
       modulo.fechaModificacion = new Date();
 
       const updated = await this.moduloRepository.save(modulo);
-      return new StatusResponse(true, 200, 'Modulo actualizado', updated);
+      const moduloDto: ModuloResponseDto = {
+        id: updated.id,
+        nombre: updated.nombre,
+        icono: updated.icono,
+      };
+      return new StatusResponse(true, 200, 'Modulo actualizado', moduloDto);
     } catch (error) {
       return new StatusResponse(
         false,
@@ -91,13 +112,17 @@ export class ModuloService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const modulo = await this.moduloRepository.findOne({ where: { id } });
+      const modulo = await this.moduloRepository.findOne({
+        where: { id, activo: true, eliminado: false },
+      });
       if (!modulo) {
         return new StatusResponse(false, 404, 'Modulo no encontrada', null);
       }
 
       modulo.usuarioEliminacion = usuario;
       modulo.ipEliminacion = ip;
+      modulo.activo = false;
+      modulo.eliminado = true;
       modulo.fechaEliminacion = new Date();
 
       await this.moduloRepository.save(modulo);
@@ -114,7 +139,11 @@ export class ModuloService {
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const modulos = await this.moduloRepository.findBy({ id: In(ids) });
+      const modulos = await this.moduloRepository.findBy({
+        id: In(ids),
+        activo: true,
+        eliminado: false,
+      });
 
       if (!modulos.length) {
         return new StatusResponse(
@@ -129,6 +158,8 @@ export class ModuloService {
       const auditadas = modulos.map((modulo) => {
         modulo.usuarioEliminacion = usuario;
         modulo.ipEliminacion = ip;
+        modulo.activo = false;
+        modulo.eliminado = true;
         modulo.fechaEliminacion = new Date();
         return modulo;
       });

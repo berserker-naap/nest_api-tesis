@@ -11,7 +11,7 @@ import {
 import { MultitablaService } from '../services/multitabla.service';
 import { Auth, GetUsuario, GetClientIp } from 'src/auth/decorators';
 import { Usuario } from 'src/security/entities/usuario.entity';
-import { CreateUpdateMultitablaDto } from '../dto/multitabla.dto';
+import { CreateMultitablaDto, UpdateMultitablaDto } from '../dto/multitabla.dto';
 
 @Controller('multitabla')
 export class MultitablaController {
@@ -31,7 +31,7 @@ export class MultitablaController {
   @Post()
   @Auth()
   create(
-    @Body() dto: CreateUpdateMultitablaDto,
+    @Body() dto: CreateMultitablaDto,
     @GetUsuario() user: Usuario,
     @GetClientIp() ip: string,
   ) {
@@ -42,7 +42,7 @@ export class MultitablaController {
   @Auth()
   async update(
     @Param('id') id: number,
-    @Body() dto: CreateUpdateMultitablaDto,
+    @Body() dto: UpdateMultitablaDto,
     @GetUsuario() user: Usuario,
     @GetClientIp() ip: string,
   ) {

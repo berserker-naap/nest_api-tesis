@@ -1,32 +1,56 @@
-// src/permisos/dto/create-update-permiso.dto.ts
-import { IsString, IsOptional, IsBoolean, IsNotEmpty, Length, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
 
-// export class CreatePermisoDto {
-//   @IsNotEmpty()
-//   @IsNumber()
-//   idRol: number;
+export class PermisoAccionResponseDto {
+  @IsNumber()
+  id!: number;
 
-//   @IsNotEmpty()
-//   @IsNumber()
-//   idOpcion: number;
+  @IsString()
+  @IsNotEmpty()
+  nombre!: string;
 
-//   @IsNotEmpty()
-//   @IsNumber()
-//   idAccion: number;
-// }
+  @IsBoolean()
+  isAsignado!: boolean;
+}
 
+export class PermisoOpcionResponseDto {
+  @IsNumber()
+  id!: number;
 
+  @IsString()
+  @IsNotEmpty()
+  nombre!: string;
+
+  @ValidateNested({ each: true })
+  @IsArray()
+  @Type(() => PermisoAccionResponseDto)
+  acciones!: PermisoAccionResponseDto[] | [];
+}
+
+export class PermisoModuloResponseDto {
+  @IsNumber()
+  id!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  nombre!: string;
+
+  @ValidateNested({ each: true })
+  @IsArray()
+  @Type(() => PermisoOpcionResponseDto)
+  opciones!: PermisoOpcionResponseDto[] | [];
+}
 
 export class PermisoBulkDto {
   @IsNumber()
-  idRol: number;
+  idRol!: number;
 
   @IsNumber()
-  idOpcion: number;
+  idOpcion!: number;
 
   @IsNumber()
-  idAccion: number;
+  idAccion!: number;
 
   @IsBoolean()
-  asignado: boolean;
+  isAsignado!: boolean;
 }

@@ -5,21 +5,21 @@ import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 @Entity('PERSONA')
 export class Persona extends Audit{
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'nvarchar', length: 100 })
-  nombre: string;
+  nombre!: string;
 
   @Column({ type: 'nvarchar', length: 100, nullable: true })
-  apellido: string | null;
+  apellido!: string | null;
 
   @ManyToOne(() => Multitabla)
   @JoinColumn({ name: 'idTipoDocumentoIdentidad' })
-  tipoDocumento: Multitabla;
+  tipoDocumento!: Multitabla;
 
   @Column({ type: 'nvarchar', length: 50, nullable: true })
-  documentoIdentidad: string | null;
+  documentoIdentidad!: string | null;
 
   @Column({ type: 'date', nullable: true })
-  fechaNacimiento: Date  | null;
+  fechaNacimiento!: Date  | null;
 }

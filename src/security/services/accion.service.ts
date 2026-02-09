@@ -3,32 +3,40 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { In, Repository } from 'typeorm';
 import { Accion } from '../entities/accion.entity';
-import { CreateUpdateAccionDto } from '../dto/accion.dto';
+import {
+  CreateAccionDto,
+  UpdateAccionDto,
+  AccionResponseDto,
+} from '../dto/accion.dto';
 
 @Injectable()
 export class AccionService {
   constructor(
     @InjectRepository(Accion)
     private readonly accionRepository: Repository<Accion>,
-  ) { }
+  ) {}
 
-  async findAll(): Promise<StatusResponse<any>> {
+  async findAll(): Promise<StatusResponse<AccionResponseDto[] | any>> {
     try {
-      const acciones = await this.accionRepository.find({
+      const acciones = (await this.accionRepository.find({
+        select: { id: true, nombre: true },
         where: {
           activo: true,
           eliminado: false,
         },
-      });
+      })) as AccionResponseDto[];
       return new StatusResponse(true, 200, 'Acciones obtenidas', acciones);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al obtener acciones', error);
     }
   }
 
-  async findOne(id: number): Promise<StatusResponse<any>> {
+  async findOne(id: number): Promise<StatusResponse<AccionResponseDto | any>> {
     try {
-      const accion = await this.accionRepository.findOne({ where: { id, activo: true, eliminado: false } });
+      const accion = (await this.accionRepository.findOne({
+        select: { id: true, nombre: true },
+        where: { id, activo: true, eliminado: false },
+      })) as AccionResponseDto;
       if (!accion) {
         return new StatusResponse(false, 404, 'Accion no encontrada', null);
       }
@@ -39,10 +47,10 @@ export class AccionService {
   }
 
   async create(
-    dto: CreateUpdateAccionDto,
+    dto: CreateAccionDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<AccionResponseDto | any>> {
     try {
       const fechaRegistro = new Date();
       const accion = this.accionRepository.create({
@@ -52,7 +60,11 @@ export class AccionService {
         ipRegistro: ip,
       });
       const saved = await this.accionRepository.save(accion);
-      return new StatusResponse(true, 201, 'Acción creada', saved);
+      const accionDto: AccionResponseDto = {
+        id: saved.id,
+        nombre: saved.nombre,
+      };
+      return new StatusResponse(true, 201, 'Acción creada', accionDto);
     } catch (error) {
       return new StatusResponse(false, 500, 'Error al crear acción', error);
     }
@@ -60,24 +72,34 @@ export class AccionService {
 
   async update(
     id: number,
-    dto: CreateUpdateAccionDto,
+    dto: UpdateAccionDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<AccionResponseDto | any>> {
     try {
-     const fechaModificacion = new Date(); 
+      const fechaModificacion = new Date();
 
-      const accion = await this.accionRepository.findOne({ where: { id, activo: true, eliminado: false } });
+      const accion = await this.accionRepository.findOne({
+        where: { id, activo: true, eliminado: false },
+      });
+
       if (!accion) {
         return new StatusResponse(false, 404, 'Acción no encontrada', null);
       }
+
       accion.nombre = dto.nombre;
       accion.usuarioModificacion = usuario;
       accion.ipModificacion = ip;
       accion.fechaModificacion = fechaModificacion;
 
       const updated = await this.accionRepository.save(accion);
-      return new StatusResponse(true, 200, 'Acción actualizada', updated);
+
+      const accionDto: AccionResponseDto = {
+        id: updated.id,
+        nombre: updated.nombre,
+      } as AccionResponseDto;
+
+      return new StatusResponse(true, 200, 'Acción actualizada', accionDto);
     } catch (error) {
       return new StatusResponse(
         false,
@@ -96,7 +118,9 @@ export class AccionService {
     try {
       const fechaEliminacion = new Date();
 
-      const accion = await this.accionRepository.findOne({ where: { id, activo: true, eliminado: false } });
+      const accion = await this.accionRepository.findOne({
+        where: { id, activo: true, eliminado: false },
+      });
       if (!accion) {
         return new StatusResponse(false, 404, 'Acción no encontrada', null);
       }
@@ -123,7 +147,11 @@ export class AccionService {
     try {
       const fechaEliminacion = new Date();
 
-      const acciones = await this.accionRepository.findBy({ id: In(ids), activo: true, eliminado: false });
+      const acciones = await this.accionRepository.findBy({
+        id: In(ids),
+        activo: true,
+        eliminado: false,
+      });
 
       if (!acciones.length) {
         return new StatusResponse(

@@ -5,14 +5,14 @@ import { Opcion } from './opcion.entity';
 @Entity('MODULO')
 export class Modulo extends Audit {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'nvarchar', length: 100 })
-  nombre: string;
+  nombre!: string;
 
   @Column({ type: 'nvarchar', length: 200 })
-  icono: string;
+  icono!: string;
 
   @OneToMany(() => Opcion, (opcion) => opcion.modulo)
-  opciones: Opcion[];
+  opciones!: Opcion[];
 }
