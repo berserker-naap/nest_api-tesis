@@ -1,4 +1,4 @@
-import { CreateUpdateUsuarioDto } from './../dto/usuario.dto';
+import { CreateUsuarioDto, UpdateUsuarioDto, UsuarioResponseDto } from '../dto/usuario.dto';
 import {
   BadRequestException,
   Injectable,
@@ -29,7 +29,7 @@ export class UsuarioService {
     private readonly dataSource: DataSource,
   ) { }
 
-  async findAll(): Promise<StatusResponse<CreateUpdateUsuarioDto[]>> {
+  async findAll(): Promise<StatusResponse<UsuarioResponseDto[] | any>> {
     try {
       const usuarios = await this.usuarioRepository.find({
         where: {
@@ -39,7 +39,7 @@ export class UsuarioService {
         relations: ['persona', 'roles', 'roles.rol'],
       });
 
-      const usuariosDto: CreateUpdateUsuarioDto[] = usuarios.map((usuario) => ({
+      const usuariosDto: UsuarioResponseDto[] = usuarios.map((usuario) => ({
         id: usuario.id,
         login: usuario.login,
         persona: usuario.persona
@@ -64,10 +64,10 @@ export class UsuarioService {
     }
   }
   async create(
-    dto: CreateUpdateUsuarioDto,
+    dto: CreateUsuarioDto,
     usuarioRegistro: string,
     ip: string,
-  ): Promise<StatusResponse<CreateUpdateUsuarioDto>> {
+  ): Promise<StatusResponse<UsuarioResponseDto | any>> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -124,10 +124,9 @@ export class UsuarioService {
         throw new NotFoundException('Error al obtener el usuario creado');
       }
 
-      const usuarioDto: CreateUpdateUsuarioDto = {
+      const usuarioDto: UsuarioResponseDto = {
         id: usuarioCompleto.id,
         login: usuarioCompleto.login,
-        password: null,
         persona: usuarioCompleto.persona
           ? {
             id: usuarioCompleto.persona.id,
@@ -154,7 +153,7 @@ export class UsuarioService {
   }
   async update(
     id: number,
-    dto: CreateUpdateUsuarioDto,
+    dto: UpdateUsuarioDto,
     usuarioModificacion: string,
     ip: string,
   ): Promise<StatusResponse<any>> {
@@ -278,54 +277,112 @@ export class UsuarioService {
     }
   }
 
-  // async asignarRoles(idUsuario: number, dto: AsignarUsuarioRolesDto, usuarioUpdate: string, ip: string): Promise<StatusResponse<any>> {
-  //   try {
-  //     const usuario = await this.usuarioRepository.findOneBy({ id: idUsuario });
-  //     if (!usuario) throw new NotFoundException('Usuario no encontrado');
+  async findOne(id: number): Promise<StatusResponse<UsuarioResponseDto | any>> {
+    try {
+      const usuario = await this.usuarioRepository.findOne({
+        where: { id, activo: true, eliminado: false },
+        relations: ['persona', 'roles', 'roles.rol'],
+      });
 
-  //     // Eliminar roles anteriores
-  //     await this.usuarioRolRepository.delete({ usuario: { id: idUsuario } });
+      if (!usuario) {
+        return new StatusResponse(false, 404, 'Usuario no encontrado', null);
+      }
 
-  //     // Asignar nuevos
-  //     const roles = await this.rolRepository.findBy({ id: In(dto.roles) });
-  //     for (const rol of roles) {
-  //       const rel = this.usuarioRolRepository.create({ usuario, rol });
-  //       await this.usuarioRolRepository.save(
-  //         {
-  //           ...rel,
-  //           usuarioModificacion: usuarioUpdate,
-  //           ipModificacion: ip,
-  //           fechaModificacion: new Date(),
-  //         });
-  //     }
+      const usuarioDto: UsuarioResponseDto = {
+        id: usuario.id,
+        login: usuario.login,
+        persona: usuario.persona
+          ? {
+              id: usuario.persona.id,
+              nombre: usuario.persona.nombre,
+              apellido: usuario.persona.apellido,
+            }
+          : null,
+        roles: (usuario.roles || [])
+          .filter((ur) => ur.rol?.activo && !ur.rol?.eliminado)
+          .map((ur) => ({
+            id: ur.rol.id,
+            nombre: ur.rol.nombre,
+          })),
+      };
 
-  //     return new StatusResponse(true, 200, 'Roles asignados correctamente');
-  //   } catch (error) {
-  //     return new StatusResponse(false, 500, 'Error al crear acción', error);
-  //   }
-  // }
+      return new StatusResponse(true, 200, 'Usuario encontrado', usuarioDto);
+    } catch (error) {
+      console.error('Error al obtener usuario:', error);
+      return new StatusResponse(false, 500, 'Error al obtener usuario', error);
+    }
+  }
 
-  // // Activar o Desactivar un Usuario (actualizando la propiedad `activo`)
-  // async activate(id: number, activo: boolean, usuarioUpdate: string, ip: string): Promise<StatusResponse<any>> {
-  //   try {
-  //     const usuario = await this.usuarioRepository.findOne({ where: { id } });
-  //     if (!usuario) {
-  //       return new StatusResponse(false, 404, 'Usuario no encontrado', null);
-  //     }
+  async delete(
+    id: number,
+    usuario: string,
+    ip: string,
+  ): Promise<StatusResponse<any>> {
+    try {
+      const usuarioExistente = await this.usuarioRepository.findOne({
+        where: { id, activo: true, eliminado: false },
+      });
 
-  //     // Actualizamos la propiedad `activo`
-  //     usuario.activo = activo;
-  //     await this.usuarioRepository.save({
-  //       usuario,
-  //       usuarioModificacion: usuarioUpdate,
-  //       ipModificacion: ip,
-  //       fechaModificacion: new Date(),
-  //     });
+      if (!usuarioExistente) {
+        return new StatusResponse(false, 404, 'Usuario no encontrado', null);
+      }
 
-  //     return new StatusResponse(true, 200, `Usuario ${activo ? 'activado' : 'desactivado'}`, usuario);
-  //   } catch (error) {
-  //     return new StatusResponse(
-  //       false, 500, 'Error al actualizar el estado del usuario', error);
-  //   }
-  // }
+      usuarioExistente.activo = false;
+      usuarioExistente.eliminado = true;
+      usuarioExistente.usuarioEliminacion = usuario;
+      usuarioExistente.ipEliminacion = ip;
+      usuarioExistente.fechaEliminacion = new Date();
+
+      await this.usuarioRepository.save(usuarioExistente);
+
+      return new StatusResponse(true, 200, 'Usuario eliminado', null);
+    } catch (error) {
+      console.error('Error al eliminar usuario:', error);
+      return new StatusResponse(false, 500, 'Error al eliminar usuario', error);
+    }
+  }
+
+  async deleteMany(
+    ids: number[],
+    usuario: string,
+    ip: string,
+  ): Promise<StatusResponse<any>> {
+    try {
+      const usuarios = await this.usuarioRepository.findBy({
+        id: In(ids),
+        activo: true,
+        eliminado: false,
+      });
+
+      if (!usuarios.length) {
+        return new StatusResponse(
+          false,
+          404,
+          'No se encontraron usuarios para eliminar',
+          null,
+        );
+      }
+
+      const auditados = usuarios.map((usuarioItem) => {
+        usuarioItem.activo = false;
+        usuarioItem.eliminado = true;
+        usuarioItem.usuarioEliminacion = usuario;
+        usuarioItem.ipEliminacion = ip;
+        usuarioItem.fechaEliminacion = new Date();
+        return usuarioItem;
+      });
+
+      await this.usuarioRepository.save(auditados);
+
+      return new StatusResponse(true, 200, 'Usuarios eliminados', null);
+    } catch (error) {
+      console.error('Error al eliminar múltiples usuarios:', error);
+      return new StatusResponse(
+        false,
+        500,
+        'Error al eliminar múltiples usuarios',
+        error,
+      );
+    }
+  }
 }

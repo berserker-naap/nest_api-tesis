@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { IsString, IsNotEmpty, IsInt, IsDate } from 'class-validator';
 import { IsNullable } from 'src/common/decorators/is-nullable.decorator';
 
@@ -18,6 +19,7 @@ export class CreatePersonaDto {
   documentoIdentidad!: string | null;
 
   @IsNullable()
+  @Type(() => Date)
   @IsDate()
   fechaNacimiento!: Date | null;
 }
@@ -39,6 +41,7 @@ export class UpdatePersonaDto {
   documentoIdentidad!: string | null;
 
   @IsNullable()
+  @Type(() => Date)
   @IsDate()
   fechaNacimiento!: Date | null;
 }
@@ -73,6 +76,7 @@ export class PersonaResponseDto {
   documentoIdentidad!: string | null;
 
   @IsNullable()
+  @Type(() => Date)
   @IsDate()
   fechaNacimiento!: Date | null;
 

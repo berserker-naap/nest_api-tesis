@@ -6,18 +6,18 @@ import { UsuarioRol } from './usuario-rol.entity';
 @Entity('USUARIO')
 export class Usuario extends Audit {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'nvarchar', length: 100, unique: true })
-  login: string;
+  login!: string;
 
   @Column({ type: 'nvarchar', length: 255, nullable: false })
   password!: string;
 
   @ManyToOne(() => Persona)
   @JoinColumn({ name: 'idPersona' })
-  persona: Persona | null;
+  persona!: Persona | null;
 
   @OneToMany(() => UsuarioRol, (usuarioRol) => usuarioRol.usuario)
-  roles: UsuarioRol[];
+  roles!: UsuarioRol[];
 }

@@ -6,14 +6,14 @@ import { Audit } from 'src/common/entity/audit';
 @Entity('USUARIO_ROL')
 export class UsuarioRol extends Audit {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @ManyToOne(() => Usuario)
   @JoinColumn({ name: 'idUsuario' })
-  usuario: Usuario;
+  usuario!: Usuario;
 
   @ManyToOne(() => Rol)
   @JoinColumn({ name: 'idRol' })
-  rol: Rol;
+  rol!: Rol;
 
 }

@@ -29,14 +29,22 @@ export class PermisoService {
         select: { id: true, nombre: true },
       });
 
-      // 2. Obtener todos los módulos activos y sus opciones
-      //* NOTA: eN TypeORM no puedes filtrar directamente las relaciones hijas (opciones) usando where en el mismo find del repositorio de módulos. El where solo aplica a la entidad principal (módulo), no a las entidades relacionadas (opciones).
-      const modulos = await this.moduloRepository.find({
-        relations: ['opciones'],
-        order: { nombre: 'ASC' },
-        where: { activo: true, eliminado: false },
-        select: { id: true, nombre: true, opciones: { id: true, nombre: true } },
-      });
+      // 2. Obtener todos los módulos activos y sus opciones usando QueryBuilder
+      const modulos = await this.moduloRepository
+        .createQueryBuilder('modulo')
+        .leftJoinAndSelect(
+          'modulo.opciones',
+          'opcion',
+          'opcion.activo = :opcionActivo AND opcion.eliminado = :opcionEliminado',
+          { opcionActivo: true, opcionEliminado: false }
+        )
+        .where('modulo.activo = :moduloActivo AND modulo.eliminado = :moduloEliminado', {
+          moduloActivo: true,
+          moduloEliminado: false,
+        })
+        .orderBy('modulo.nombre', 'ASC')
+        .addOrderBy('opcion.nombre', 'ASC')
+        .getMany();
 
       // 3. Obtener permisos actuales del rol (solo ids necesarios)
       const permisosRol = await this.permisoRepository.find({
@@ -48,18 +56,17 @@ export class PermisoService {
         relations: ['opcion', 'accion'],
         select: ['id', 'opcion', 'accion'],
       });
-
+      
       // Creamos un Set para búsquedas rápidas
       const permisosSet = new Set(
         permisosRol.map((p) => `${p.opcion.id}-${p.accion.id}`)
       );
 
-      // 4. Estructura de retorno (filtrando opciones activas y no eliminadas)
+      // 4. Estructura de retorno (las opciones ya están filtradas por activo/eliminado)
       const data: PermisoModuloResponseDto[] = modulos.map((modulo) => ({
         id: modulo.id,
         nombre: modulo.nombre,
         opciones: (modulo.opciones || [])
-          .filter(opcion => opcion.activo && !opcion.eliminado)
           .map((opcion) => ({
             id: opcion.id,
             nombre: opcion.nombre,
