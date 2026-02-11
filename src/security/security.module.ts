@@ -28,6 +28,11 @@ import { UsuarioController } from './controllers/usuario.controller';
 import { PersonaService } from './services/persona.service';
 import { PersonaController } from './controllers/persona.controller';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
+import { UsuarioCanal } from './entities/usuario-canal.entity';
+import { OtpVerificacion } from './entities/otp-verificacion.entity';
+import { ProfileWhatsappController } from './controllers/profile-whatsapp.controller';
+import { OtpVerificacionService } from './services/otp-verificacion.service';
+import { WhatsappLinkService } from './services/whatsapp-link.service';
 
 @Module({
   imports: [
@@ -41,7 +46,9 @@ import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
       Persona,
       Rol,
       UsuarioRol,
-      Usuario]),
+      Usuario,
+      UsuarioCanal,
+      OtpVerificacion]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -70,7 +77,8 @@ import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
     PermisoController, 
     RolController,
     UsuarioController,
-    PersonaController 
+    PersonaController,
+    ProfileWhatsappController,
   ],
   providers: [
     AccionService,
@@ -79,8 +87,11 @@ import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
     PermisoService, 
     RolService,
     UsuarioService,
-    PersonaService
+    PersonaService,
+    OtpVerificacionService,
+    WhatsappLinkService,
   ],
+  exports: [WhatsappLinkService],
 
 })
 export class SecurityModule { }

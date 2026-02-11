@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { SecurityModule } from './security/security.module';
 import { BusinessparamModule } from './businessparam/businessparam.module';
+import { FinanceModule } from './finance/finance.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -24,10 +26,13 @@ import { BusinessparamModule } from './businessparam/businessparam.module';
     }),
     AuthModule,
     SecurityModule,
-    BusinessparamModule
+    BusinessparamModule,
+    FinanceModule,
+    WhatsappModule
   ],
 
   controllers: [],
   providers: [],
 })
 export class AppModule {}
+
