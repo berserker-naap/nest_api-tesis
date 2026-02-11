@@ -1,19 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested, IsInt, MinLength } from 'class-validator';
-
-export class PersonaResponseDto {
-  @IsInt()
-  @IsNotEmpty()
-  id!: number;
-
-  @IsString()
-  @IsNotEmpty()
-  nombre!: string;
-
-  @IsOptional()
-  @IsString()
-  apellido?: string | null;
-}
+import { CreatePersonaDto, PersonaResponseDto } from './persona.dto';
 
 export class RolResponseDto {
   @IsInt()
@@ -37,8 +24,12 @@ export class CreateUsuarioDto {
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => PersonaResponseDto)
-  persona?: PersonaResponseDto | null;
+  @Type(() => CreatePersonaDto)
+  persona?: CreatePersonaDto | null;
+
+  @IsOptional()
+  @IsInt()
+  idPersona?: number | null;
 
   @IsOptional()
   @IsArray()
@@ -59,8 +50,12 @@ export class UpdateUsuarioDto {
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => PersonaResponseDto)
-  persona?: PersonaResponseDto | null;
+  @Type(() => CreatePersonaDto)
+  persona?: CreatePersonaDto | null;
+
+  @IsOptional()
+  @IsInt()
+  idPersona?: number | null;
 
   @IsOptional()
   @IsArray()
@@ -93,4 +88,18 @@ export class UsuarioResponseDto {
 export class CreateUpdateUsuarioDto extends UpdateUsuarioDto {
   @IsOptional()
   id?: number;
+}
+
+
+export class RolIdDto {
+  @IsInt()
+  @IsNotEmpty()
+  id!: number;
+}
+
+export class AsignarUsuarioRolesDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RolIdDto)
+  roles!: RolIdDto[];
 }

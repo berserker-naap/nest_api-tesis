@@ -1,4 +1,9 @@
-import { CreateUsuarioDto, UpdateUsuarioDto, UsuarioResponseDto } from '../dto/usuario.dto';
+import {
+  AsignarUsuarioRolesDto,
+  CreateUsuarioDto,
+  UpdateUsuarioDto,
+  UsuarioResponseDto,
+} from '../dto/usuario.dto';
 import {
   BadRequestException,
   Injectable,
@@ -11,6 +16,7 @@ import { StatusResponse } from 'src/common/dto/response.dto';
 import { Persona } from '../entities/persona.entity';
 import { UsuarioRol } from '../entities/usuario-rol.entity';
 import { Rol } from '../entities/rol.entity';
+import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 
 import * as bcrypt from 'bcrypt';
 @Injectable()
@@ -36,7 +42,7 @@ export class UsuarioService {
           activo: true,
           eliminado: false,
         },
-        relations: ['persona', 'roles', 'roles.rol'],
+        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       const usuariosDto: UsuarioResponseDto[] = usuarios.map((usuario) => ({
@@ -47,6 +53,15 @@ export class UsuarioService {
             id: usuario.persona.id,
             nombre: usuario.persona.nombre,
             apellido: usuario.persona.apellido,
+            documentoIdentidad: usuario.persona.documentoIdentidad,
+            fechaNacimiento: usuario.persona.fechaNacimiento,
+            tipoDocumento: usuario.persona.tipoDocumento
+              ? {
+                id: usuario.persona.tipoDocumento.id,
+                nombre: usuario.persona.tipoDocumento.nombre,
+                valor: usuario.persona.tipoDocumento.valor,
+              }
+              : null,
           }
           : null,
         roles: (usuario.roles || [])
@@ -73,20 +88,30 @@ export class UsuarioService {
     await queryRunner.startTransaction();
     try {
       let persona;
-      if (dto.persona?.id) {
+      if (dto.idPersona) {
         persona = await queryRunner.manager.findOne(Persona, {
-          where: { id: dto.persona.id },
+          where: { id: dto.idPersona },
         });
         if (!persona) throw new NotFoundException('Persona no encontrada');
       } else if (dto.persona) {
+        // Buscar tipo documento si se está creando una persona
+        const tipoDocumento = await queryRunner.manager.findOne(Multitabla, {
+          where: { id: dto.persona.idTipoDocumentoIdentidad },
+        });
+        if (!tipoDocumento)
+          throw new BadRequestException('Tipo de documento no encontrado');
+
         persona = queryRunner.manager.create(Persona, {
           ...dto.persona,
+          tipoDocumento,
           usuarioRegistro,
           ipRegistro: ip,
         });
         persona = await queryRunner.manager.save(Persona, persona);
       } else {
-        throw new BadRequestException('Debe enviar persona para el usuario');
+        throw new BadRequestException(
+          'Debe enviar idPersona o un objeto persona para crear el usuario',
+        );
       }
 
       const usuario = queryRunner.manager.create(Usuario, {
@@ -101,6 +126,8 @@ export class UsuarioService {
       const roleIds: number[] = dto.roles?.map((r) => r.id) ?? [];
       const roles = await this.rolRepository.findBy({
         id: In(roleIds),
+        activo: true,
+        eliminado: false,
       });
       const usuarioRoles = roles.map((rol) =>
         queryRunner.manager.create(UsuarioRol, {
@@ -115,7 +142,7 @@ export class UsuarioService {
       // Volver a cargar el usuario con relaciones actualizadas
       const usuarioCompleto = await queryRunner.manager.findOne(Usuario, {
         where: { id: saved.id },
-        relations: ['persona', 'roles', 'roles.rol'],
+        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       await queryRunner.commitTransaction();
@@ -132,6 +159,15 @@ export class UsuarioService {
             id: usuarioCompleto.persona.id,
             nombre: usuarioCompleto.persona.nombre,
             apellido: usuarioCompleto.persona.apellido,
+            documentoIdentidad: usuarioCompleto.persona.documentoIdentidad,
+            fechaNacimiento: usuarioCompleto.persona.fechaNacimiento,
+            tipoDocumento: usuarioCompleto.persona.tipoDocumento
+              ? {
+                id: usuarioCompleto.persona.tipoDocumento.id,
+                nombre: usuarioCompleto.persona.tipoDocumento.nombre,
+                valor: usuarioCompleto.persona.tipoDocumento.valor,
+              }
+              : null,
           }
           : null,
         roles: (usuarioCompleto.roles || [])
@@ -156,7 +192,7 @@ export class UsuarioService {
     dto: UpdateUsuarioDto,
     usuarioModificacion: string,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<UsuarioResponseDto | any>> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -165,7 +201,7 @@ export class UsuarioService {
       // 1. Obtener usuario existente
       const usuarioExistente = await queryRunner.manager.findOne(Usuario, {
         where: { id },
-        relations: ['persona', 'roles', 'roles.rol'],
+        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       if (!usuarioExistente) {
@@ -175,16 +211,23 @@ export class UsuarioService {
       // 2. Manejo de persona
       let persona = usuarioExistente.persona;
 
-      if (dto.persona?.id) {
+      if (dto.idPersona) {
         persona = await this.personaRepository.findOne({
-          where: { id: dto.persona.id, activo: true, eliminado: false },
+          where: { id: dto.idPersona, activo: true, eliminado: false },
         });
         if (!persona) {
           throw new NotFoundException('Persona no encontrada');
         }
-      } else if (dto.persona && !dto.persona.id) {
+      } else if (dto.persona) {
+        const tipoDocumento = await queryRunner.manager.findOne(Multitabla, {
+          where: { id: dto.persona.idTipoDocumentoIdentidad },
+        });
+        if (!tipoDocumento)
+          throw new BadRequestException('Tipo de documento no encontrado');
+
         persona = queryRunner.manager.create(Persona, {
           ...dto.persona,
+          tipoDocumento,
           usuarioRegistro: usuarioModificacion,
           ipRegistro: ip,
         });
@@ -196,10 +239,6 @@ export class UsuarioService {
       usuarioExistente.persona = persona;
       usuarioExistente.usuarioModificacion = usuarioModificacion;
       usuarioExistente.ipModificacion = ip;
-
-      if (dto.password) {
-        usuarioExistente.password = bcrypt.hashSync(dto.password, 10);
-      }
 
       await queryRunner.manager.save(Usuario, usuarioExistente);
 
@@ -214,6 +253,8 @@ export class UsuarioService {
         const roleIds: number[] = dto.roles.map((r) => r.id);
         const roles = await this.rolRepository.findBy({
           id: In(roleIds),
+          activo: true,
+          eliminado: false,
         });
 
         // 4.3 Crear nuevas relaciones
@@ -232,7 +273,7 @@ export class UsuarioService {
       // 5. Recargar usuario completo
       const usuarioCompleto = await queryRunner.manager.findOne(Usuario, {
         where: { id: usuarioExistente.id },
-        relations: ['persona', 'roles', 'roles.rol'],
+        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       await queryRunner.commitTransaction();
@@ -253,6 +294,15 @@ export class UsuarioService {
               id: usuarioCompleto.persona.id,
               nombre: usuarioCompleto.persona.nombre,
               apellido: usuarioCompleto.persona.apellido,
+              documentoIdentidad: usuarioCompleto.persona.documentoIdentidad,
+              fechaNacimiento: usuarioCompleto.persona.fechaNacimiento,
+              tipoDocumento: usuarioCompleto.persona.tipoDocumento
+                ? {
+                  id: usuarioCompleto.persona.tipoDocumento.id,
+                  nombre: usuarioCompleto.persona.tipoDocumento.nombre,
+                  valor: usuarioCompleto.persona.tipoDocumento.valor,
+                }
+                : null,
             }
             : null,
           roles: (usuarioCompleto.roles || [])
@@ -281,7 +331,7 @@ export class UsuarioService {
     try {
       const usuario = await this.usuarioRepository.findOne({
         where: { id, activo: true, eliminado: false },
-        relations: ['persona', 'roles', 'roles.rol'],
+        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       if (!usuario) {
@@ -293,10 +343,19 @@ export class UsuarioService {
         login: usuario.login,
         persona: usuario.persona
           ? {
-              id: usuario.persona.id,
-              nombre: usuario.persona.nombre,
-              apellido: usuario.persona.apellido,
-            }
+            id: usuario.persona.id,
+            nombre: usuario.persona.nombre,
+            apellido: usuario.persona.apellido,
+            documentoIdentidad: usuario.persona.documentoIdentidad,
+            fechaNacimiento: usuario.persona.fechaNacimiento,
+            tipoDocumento: usuario.persona.tipoDocumento
+              ? {
+                id: usuario.persona.tipoDocumento.id,
+                nombre: usuario.persona.tipoDocumento.nombre,
+                valor: usuario.persona.tipoDocumento.valor,
+              }
+              : null,
+          }
           : null,
         roles: (usuario.roles || [])
           .filter((ur) => ur.rol?.activo && !ur.rol?.eliminado)
@@ -385,4 +444,171 @@ export class UsuarioService {
       );
     }
   }
+
+  async updateRoles(
+    idUsuario: number,
+    dto: AsignarUsuarioRolesDto,
+    usuarioModificacion: string,
+    ip: string,
+  ): Promise<StatusResponse<UsuarioResponseDto | any>> {
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+
+      const usuario = await queryRunner.manager.findOne(Usuario, {
+        where: { id: idUsuario, activo: true, eliminado: false },
+        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
+      });
+
+      if (!usuario)
+        throw new NotFoundException('Usuario no encontrado');
+
+      const roleIds = (dto.roles ?? []).map(r => r.id);
+
+      if (!roleIds.length)
+        throw new BadRequestException('Debe asignar al menos un rol');
+
+      // Validar roles existentes
+      const roles = await queryRunner.manager.find(Rol, {
+        where: { id: In(roleIds), activo: true, eliminado: false },
+      });
+
+      if (roles.length !== roleIds.length) {
+        const found = new Set(roles.map(r => r.id));
+        const missing = roleIds.filter(id => !found.has(id));
+        throw new BadRequestException(
+          `Roles no encontrados o inactivos: ${missing.join(', ')}`
+        );
+      }
+
+      // 🔥 Estrategia replace (igual que tu update actual)
+      await queryRunner.manager.delete(UsuarioRol, {
+        usuario: { id: idUsuario },
+      });
+
+      const usuarioRoles = roles.map(rol =>
+        queryRunner.manager.create(UsuarioRol, {
+          usuario,
+          rol,
+          usuarioRegistro: usuarioModificacion,
+          ipRegistro: ip,
+        }),
+      );
+
+      await queryRunner.manager.save(UsuarioRol, usuarioRoles);
+
+      // Recargar usuario actualizado
+      const usuarioCompleto = await queryRunner.manager.findOne(Usuario, {
+        where: { id: idUsuario },
+        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
+      });
+
+      await queryRunner.commitTransaction();
+
+      if (!usuarioCompleto)
+        throw new NotFoundException('Error al obtener usuario actualizado');
+
+      // 🔥 MAPEO EXACTO A UsuarioResponseDto
+      const usuarioDto: UsuarioResponseDto = {
+        id: usuarioCompleto.id,
+        login: usuarioCompleto.login,
+        persona: usuarioCompleto.persona
+          ? {
+            id: usuarioCompleto.persona.id,
+            nombre: usuarioCompleto.persona.nombre,
+            apellido: usuarioCompleto.persona.apellido,
+            documentoIdentidad: usuarioCompleto.persona.documentoIdentidad,
+            fechaNacimiento: usuarioCompleto.persona.fechaNacimiento,
+            tipoDocumento: usuarioCompleto.persona.tipoDocumento
+              ? {
+                id: usuarioCompleto.persona.tipoDocumento.id,
+                nombre: usuarioCompleto.persona.tipoDocumento.nombre,
+                valor: usuarioCompleto.persona.tipoDocumento.valor,
+              }
+              : null,
+          }
+          : null,
+        roles: (usuarioCompleto.roles || [])
+          .filter(ur => ur.rol?.activo && !ur.rol?.eliminado)
+          .map(ur => ({
+            id: ur.rol.id,
+            nombre: ur.rol.nombre,
+          })),
+      };
+
+      return new StatusResponse(
+        true,
+        200,
+        'Roles actualizados correctamente',
+        usuarioDto,
+      );
+
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      console.error('Error al actualizar roles:', error);
+      return new StatusResponse(
+        false,
+        500,
+        'Error al actualizar roles',
+        error,
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async resetPassword(
+    id: number,
+    usuarioModificacion: string,
+    ip: string,
+  ): Promise<StatusResponse<any>> {
+
+    try {
+
+      const usuario = await this.usuarioRepository.findOne({
+        where: { id, activo: true, eliminado: false },
+      });
+
+      if (!usuario) {
+        return new StatusResponse(
+          false,
+          404,
+          'Usuario no encontrado',
+          null,
+        );
+      }
+
+      const defaultPassword = '123456';
+
+      usuario.password = bcrypt.hashSync(defaultPassword, 10);
+      usuario.usuarioModificacion = usuarioModificacion;
+      usuario.ipModificacion = ip;
+      usuario.fechaModificacion = new Date();
+
+      await this.usuarioRepository.save(usuario);
+
+      return new StatusResponse(
+        true,
+        200,
+        'Contraseña restablecida correctamente',
+        null,
+      );
+
+    } catch (error) {
+      console.error('Error al resetear contraseña:', error);
+      return new StatusResponse(
+        false,
+        500,
+        'Error al resetear contraseña',
+        error,
+      );
+    }
+  }
+
+
+
+
 }
