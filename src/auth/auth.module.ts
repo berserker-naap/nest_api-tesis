@@ -10,12 +10,22 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { Usuario } from 'src/security/entities/usuario.entity';
 import { Permiso } from 'src/security/entities/permiso.entity';
+import { Persona } from 'src/security/entities/persona.entity';
+import { Rol } from 'src/security/entities/rol.entity';
+import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 
 @Module({
 
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([Usuario,Permiso,UsuarioRol]),
+    TypeOrmModule.forFeature([
+      Usuario,
+      Permiso,
+      UsuarioRol,
+      Persona,
+      Rol,
+      Multitabla,
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
 
     JwtModule.registerAsync({

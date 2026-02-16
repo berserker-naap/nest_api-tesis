@@ -1,10 +1,21 @@
-import { IsString, IsEmail, MinLength, MaxLength, Matches, IsNotEmpty } from "class-validator";
+import { Type } from 'class-transformer';
+import {
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
 
 export class RegisterUsuarioRequestDto {
 
     @IsString()
-    login: string;
+    login!: string;
 
     @IsString()
     @MinLength(6)
@@ -13,14 +24,53 @@ export class RegisterUsuarioRequestDto {
         /(?:(?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
         message: 'The password must have a Uppercase, lowercase letter and a number'
     })
-    password: string;
+    password!: string;
 }
 
+
+export class RegisterPersonaMinRequestDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  nombre!: string;
+
+  @IsInt()
+  idTipoDocumentoIdentidad!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(20)
+  documentoIdentidad!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  apellido?: string | null;
+}
+
+export class RegisterExternalUsuarioRequestDto {
+  @IsString()
+  @IsNotEmpty()
+  login!: string;
+
+  @IsString()
+  @MinLength(6)
+  @MaxLength(50)
+  @Matches(/(?:(?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+    message: 'The password must have a Uppercase, lowercase letter and a number',
+  })
+  password!: string;
+
+  @ValidateNested()
+  @Type(() => RegisterPersonaMinRequestDto)
+  persona!: RegisterPersonaMinRequestDto;
+}
+
+
 export class LoginRequestDto {
-    @IsNotEmpty()
-    login: string;
-  
-    @IsNotEmpty()
-    password: string;
-  }
-  
+  @IsNotEmpty()
+  login!: string;
+
+  @IsNotEmpty()
+  password!: string;
+}

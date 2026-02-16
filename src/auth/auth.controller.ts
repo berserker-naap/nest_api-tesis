@@ -1,10 +1,15 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 import { Auth } from './decorators/auth.decorator';
+import { GetClientIp } from './decorators/get-client-ip.decorator';
 import { GetUsuario } from './decorators/get-usuario.decorator';
 import { Usuario } from 'src/security/entities/usuario.entity';
-import { RegisterUsuarioRequestDto, LoginRequestDto } from './dto/auth.dto';
+import {
+  RegisterUsuarioRequestDto,
+  LoginRequestDto,
+  RegisterExternalUsuarioRequestDto,
+} from './dto/auth.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -24,8 +29,24 @@ export class AuthController {
   }
 
   @Post('register')
-  createUsuario(@Body() registerUsuarioRequestDto: RegisterUsuarioRequestDto ) {
-    return this.authService.create( registerUsuarioRequestDto );
+  createUsuario(
+    @Body() registerUsuarioRequestDto: RegisterUsuarioRequestDto,
+    @GetClientIp() ip: string,
+  ) {
+    return this.authService.create(registerUsuarioRequestDto, ip);
+  }
+
+  @Post('register-external')
+  createUsuarioExternal(
+    @Body() registerUsuarioRequestDto: RegisterExternalUsuarioRequestDto,
+    @GetClientIp() ip: string,
+  ) {
+    return this.authService.createExternal(registerUsuarioRequestDto, ip);
+  }
+
+  @Get('validar-dni/:numeroDocumento')
+  validarDni(@Param('numeroDocumento') numeroDocumento: string) {
+    return this.authService.validarDni(numeroDocumento);
   }
 
 }

@@ -10,8 +10,17 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   app.enableCors({
-    origin: 'http://localhost:4200',
-    credentials: true
+    origin: (origin, callback) => {
+      // Permite requests sin origin (Postman, mobile apps, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Permite localhost/127.0.0.1 en cualquier puerto de desarrollo
+      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      if (isLocalhost) return callback(null, true);
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`), false);
+    },
+    credentials: true,
   });
 
   // 👇 Aquí registras el filtro personalizado
