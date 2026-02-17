@@ -69,6 +69,21 @@ export class ProfileMeResponseDto {
   documentoIdentidad!: string | null;
 
   @IsNullable()
+  @IsString()
+  @MaxLength(500)
+  fotoPerfilUrl!: string | null;
+
+  @IsNullable()
+  @IsString()
+  @MaxLength(255)
+  nombreFotoPerfil!: string | null;
+
+  @IsNullable()
+  @Type(() => Date)
+  @IsDate()
+  fechaCargaFotoPerfil!: Date | null;
+
+  @IsNullable()
   @Type(() => Date)
   @IsDate()
   fechaNacimiento!: Date | null;
@@ -79,4 +94,16 @@ export class ProfileMeResponseDto {
   @IsString()
   @IsNotEmpty()
   validacionEstado!: ProfileValidationStatus;
+}
+
+export class UpdateProfilePhotoDto {
+  @IsNullable()
+  @IsString()
+  @MaxLength(500)
+  fotoPerfilUrl!: string | null;
+
+  @IsNullable()
+  @IsString()
+  @MaxLength(255)
+  nombreFotoPerfil!: string | null;
 }

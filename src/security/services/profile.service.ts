@@ -6,7 +6,12 @@ import { Profile } from '../entities/profile.entity';
 import { ReniecData } from '../entities/reniec-data.entity';
 import { Usuario } from '../entities/usuario.entity';
 import { Repository } from 'typeorm';
-import { ProfileMeResponseDto, UpdateProfileCredentialsDto, UpdateProfileDataDto } from '../dto/profile.dto';
+import {
+  ProfileMeResponseDto,
+  UpdateProfileCredentialsDto,
+  UpdateProfileDataDto,
+  UpdateProfilePhotoDto,
+} from '../dto/profile.dto';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from 'src/auth/auth.service';
 import { SessionResponseDto } from 'src/auth/dto/auth.dto';
@@ -46,6 +51,9 @@ export class ProfileService {
               nombres: usuario.profile.nombres,
               apellidos: usuario.profile.apellidos,
               documentoIdentidad: usuario.profile.documentoIdentidad,
+              fotoPerfilUrl: usuario.profile.fotoPerfilUrl,
+              nombreFotoPerfil: usuario.profile.nombreFotoPerfil,
+              fechaCargaFotoPerfil: usuario.profile.fechaCargaFotoPerfil,
               fechaNacimiento: usuario.profile.fechaNacimiento,
               tipoDocumento: usuario.profile.tipoDocumento
                 ? {
@@ -145,6 +153,9 @@ export class ProfileService {
         nombres: profile.nombres,
         apellidos: profile.apellidos,
         documentoIdentidad: profile.documentoIdentidad,
+        fotoPerfilUrl: profile.fotoPerfilUrl,
+        nombreFotoPerfil: profile.nombreFotoPerfil,
+        fechaCargaFotoPerfil: profile.fechaCargaFotoPerfil,
         fechaNacimiento: profile.fechaNacimiento,
         tipoDocumento: {
           nombre: tipoDocumento.nombre,
@@ -161,6 +172,64 @@ export class ProfileService {
         error instanceof BadRequestException || error instanceof NotFoundException
           ? error.message
           : 'Error al actualizar datos personales';
+
+      return new StatusResponse(false, statusCode, message, null);
+    }
+  }
+
+  async updateProfilePhoto(
+    usuarioRequest: Usuario,
+    dto: UpdateProfilePhotoDto,
+    ip: string,
+  ): Promise<
+    StatusResponse<
+      Pick<ProfileMeResponseDto, 'fotoPerfilUrl' | 'nombreFotoPerfil' | 'fechaCargaFotoPerfil'> | null
+    >
+  > {
+    try {
+      const usuario = await this.usuarioRepository.findOne({
+        where: { id: usuarioRequest.id, activo: true, eliminado: false },
+        relations: ['profile'],
+      });
+
+      if (!usuario) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      if (!usuario.profile) {
+        throw new NotFoundException('La cuenta no tiene un perfil asociado');
+      }
+
+      const profile = await this.profileRepository.findOne({
+        where: { id: usuario.profile.id, activo: true, eliminado: false },
+      });
+      if (!profile) {
+        throw new NotFoundException('Perfil no encontrado');
+      }
+
+      const fotoPerfilUrl = dto.fotoPerfilUrl?.trim() || null;
+      const nombreFotoPerfil = dto.nombreFotoPerfil?.trim() || null;
+
+      profile.fotoPerfilUrl = fotoPerfilUrl;
+      profile.nombreFotoPerfil = fotoPerfilUrl ? nombreFotoPerfil : null;
+      profile.fechaCargaFotoPerfil = fotoPerfilUrl ? new Date() : null;
+      profile.usuarioModificacion = usuarioRequest.login;
+      profile.ipModificacion = ip;
+      profile.fechaModificacion = new Date();
+
+      await this.profileRepository.save(profile);
+
+      return new StatusResponse(true, 200, 'Foto de perfil actualizada', {
+        fotoPerfilUrl: profile.fotoPerfilUrl,
+        nombreFotoPerfil: profile.nombreFotoPerfil,
+        fechaCargaFotoPerfil: profile.fechaCargaFotoPerfil,
+      });
+    } catch (error) {
+      const statusCode = error instanceof NotFoundException ? error.getStatus() : 500;
+      const message =
+        error instanceof NotFoundException
+          ? error.message
+          : 'Error al actualizar foto de perfil';
 
       return new StatusResponse(false, statusCode, message, null);
     }

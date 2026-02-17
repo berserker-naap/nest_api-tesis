@@ -22,6 +22,15 @@ export class Profile extends Audit {
   @Column({ type: 'nvarchar', length: 50, nullable: true })
   documentoIdentidad!: string | null;
 
+  @Column({ type: 'nvarchar', length: 500, nullable: true })
+  fotoPerfilUrl!: string | null;
+
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  nombreFotoPerfil!: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  fechaCargaFotoPerfil!: Date | null;
+
   @Column({ type: 'date', nullable: true })
   fechaNacimiento!: Date  | null;
 
