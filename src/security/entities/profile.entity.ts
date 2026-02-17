@@ -1,8 +1,17 @@
 import { Audit } from 'src/common/entity/audit';
-import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import { ReniecData } from './reniec-data.entity';
 import { ProfileValidationStatus } from '../enums/profile-validation-status.enum';
+import { ProfilePhone } from './profile-phone.entity';
 
 @Entity('PROFILE')
 export class Profile extends Audit {
@@ -47,4 +56,7 @@ export class Profile extends Audit {
   @OneToOne(() => ReniecData, (reniecData) => reniecData.profile, { nullable: true })
   @JoinColumn({ name: 'idReniecData' })
   reniecData!: ReniecData | null;
+
+  @OneToMany(() => ProfilePhone, (profilePhone) => profilePhone.profile)
+  profilePhones!: ProfilePhone[];
 }

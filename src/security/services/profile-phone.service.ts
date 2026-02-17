@@ -1,9 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { Repository } from 'typeorm';
 import { Usuario } from '../entities/usuario.entity';
-import { CreateProfilePhoneDto, VerifyProfilePhoneOtpDto } from '../dto/profile-phone.dto';
+import {
+  CreateProfilePhoneDto,
+  VerifyProfilePhoneOtpDto,
+} from '../dto/profile-phone.dto';
 import { OtpVerificacionService } from './otp-verificacion.service';
 import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { ProfilePhone } from '../entities/profile-phone.entity';
@@ -19,7 +26,58 @@ export class ProfilePhoneService {
     private readonly whatsappSenderService: WhatsappSenderService,
   ) {}
 
-  private buildPhoneParts(countryCode: string, phone: string): {
+  async createAndSendOtp(
+    dto: CreateProfilePhoneDto,
+    usuarioRequest: Usuario,
+    ip: string,
+  ): Promise<StatusResponse<any>> {
+    try {
+      const { usuario, internationalPhoneNumber } =
+        await this.createOrRefreshProfilePhone(
+          usuarioRequest,
+          dto.countryCode,
+          dto.phone,
+          ip,
+          dto.alias ?? null,
+        );
+
+      const { plainCode } = await this.otpService.createOtp({
+        usuario,
+        canal: 'WHATSAPP',
+        destino: internationalPhoneNumber,
+      });
+
+      await this.whatsappSenderService.sendOtp(
+        internationalPhoneNumber,
+        plainCode,
+      );
+
+      return new StatusResponse(
+        true,
+        200,
+        'Codigo OTP enviado por WhatsApp',
+        null,
+      );
+    } catch (error) {
+      const statusCode =
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+          ? error.getStatus()
+          : 500;
+      const message =
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+          ? error.message
+          : 'Error al registrar telefono';
+
+      return new StatusResponse(false, statusCode, message, null);
+    }
+  }
+
+  private buildPhoneParts(
+    countryCode: string,
+    phone: string,
+  ): {
     countryCode: string;
     phoneNumber: string;
     internationalPhoneNumber: string;
@@ -43,7 +101,9 @@ export class ProfilePhoneService {
 
   private normalizeIncomingWhatsappPhone(phone: string): string {
     const cleaned = phone.trim().replace(/[^\d+]/g, '');
-    const internationalPhoneNumber = cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
+    const internationalPhoneNumber = cleaned.startsWith('+')
+      ? cleaned
+      : `+${cleaned}`;
     if (!/^\+\d{8,19}$/.test(internationalPhoneNumber)) {
       throw new BadRequestException('Telefono WhatsApp invalido');
     }
@@ -90,8 +150,13 @@ export class ProfilePhoneService {
       relations: ['profile'],
     });
 
-    if (linkedInOtherProfile && linkedInOtherProfile.profile.id !== usuario.profile!.id) {
-      throw new BadRequestException('Ese numero ya esta vinculado a otro perfil');
+    if (
+      linkedInOtherProfile &&
+      linkedInOtherProfile.profile.id !== usuario.profile!.id
+    ) {
+      throw new BadRequestException(
+        'Ese numero ya esta vinculado a otro perfil',
+      );
     }
 
     let profilePhone = await this.profilePhoneRepository.findOne({
@@ -158,7 +223,9 @@ export class ProfilePhoneService {
     });
 
     if (!profilePhone) {
-      throw new NotFoundException('No existe solicitud de enlace para ese numero');
+      throw new NotFoundException(
+        'No existe solicitud de enlace para ese numero',
+      );
     }
 
     return {
@@ -168,72 +235,7 @@ export class ProfilePhoneService {
     };
   }
 
-  async findMyPhones(usuarioRequest: Usuario): Promise<StatusResponse<any>> {
-    try {
-      const usuario = await this.getUsuarioConProfile(usuarioRequest.id);
-      const phones = await this.profilePhoneRepository.find({
-        where: {
-          profile: { id: usuario.profile!.id },
-          activo: true,
-          eliminado: false,
-        },
-        order: { fechaRegistro: 'DESC' },
-      });
-      const payload = phones.map((item) => ({
-        id: item.id,
-        countryCode: item.countryCode,
-        phoneNumber: item.phoneNumber,
-        internationalPhoneNumber: item.internationalPhoneNumber,
-        alias: item.alias,
-        verified: item.verified,
-        fechaVerificacion: item.fechaVerificacion,
-      }));
-      return new StatusResponse(true, 200, 'Telefonos obtenidos', payload);
-    } catch (error) {
-      const statusCode = error instanceof NotFoundException ? error.getStatus() : 500;
-      const message =
-        error instanceof NotFoundException ? error.message : 'Error al obtener telefonos';
-      return new StatusResponse(false, statusCode, message, null);
-    }
-  }
 
-  async createAndSendOtp(
-    dto: CreateProfilePhoneDto,
-    usuarioRequest: Usuario,
-    ip: string,
-  ): Promise<StatusResponse<any>> {
-    try {
-      const { usuario, internationalPhoneNumber } =
-        await this.createOrRefreshProfilePhone(
-          usuarioRequest,
-          dto.countryCode,
-          dto.phone,
-          ip,
-          dto.alias ?? null,
-        );
-
-      const { plainCode } = await this.otpService.createOtp({
-        usuario,
-        canal: 'WHATSAPP',
-        destino: internationalPhoneNumber,
-      });
-
-      await this.whatsappSenderService.sendOtp(internationalPhoneNumber, plainCode);
-
-      return new StatusResponse(true, 200, 'Codigo OTP enviado por WhatsApp', null);
-    } catch (error) {
-      const statusCode =
-        error instanceof BadRequestException || error instanceof NotFoundException
-          ? error.getStatus()
-          : 500;
-      const message =
-        error instanceof BadRequestException || error instanceof NotFoundException
-          ? error.message
-          : 'Error al registrar telefono';
-
-      return new StatusResponse(false, statusCode, message, null);
-    }
-  }
 
   async verifyOtp(
     dto: VerifyProfilePhoneOtpDto,
@@ -262,14 +264,21 @@ export class ProfilePhoneService {
       profilePhone.fechaModificacion = new Date();
       await this.profilePhoneRepository.save(profilePhone);
 
-      return new StatusResponse(true, 200, 'Telefono validado correctamente', null);
+      return new StatusResponse(
+        true,
+        200,
+        'Telefono validado correctamente',
+        null,
+      );
     } catch (error) {
       const statusCode =
-        error instanceof BadRequestException || error instanceof NotFoundException
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
           ? error.getStatus()
           : 500;
       const message =
-        error instanceof BadRequestException || error instanceof NotFoundException
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
           ? error.message
           : 'Error al validar telefono';
 

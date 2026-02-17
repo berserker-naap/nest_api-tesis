@@ -17,7 +17,7 @@ export class ProfilePhone extends Audit {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @ManyToOne(() => Profile, { nullable: false })
+  @ManyToOne(() => Profile, (profile) => profile.profilePhones, { nullable: false })
   @JoinColumn({ name: 'idProfile' })
   profile!: Profile;
 

@@ -63,21 +63,26 @@ export class ProfileService {
     try {
       const usuario = await this.usuarioRepository.findOne({
         where: { id: usuarioRequest.id, activo: true, eliminado: false },
-        relations: ['profile', 'profile.tipoDocumento'],
+        relations: ['profile', 'profile.tipoDocumento', 'profile.profilePhones'],
       });
 
       if (!usuario) {
         throw new NotFoundException('Usuario no encontrado');
       }
 
-      const profilePhones = await this.profilePhoneRepository.find({
-        where: {
-          profile: { id: usuario.profile!.id },
-          activo: true,
-          eliminado: false,
-        },
-        order: { fechaRegistro: 'DESC' },
-      });
+      const profilePhones = (usuario.profile?.profilePhones ?? [])
+        .filter((item) => item.activo && !item.eliminado)
+        .sort((a, b) => b.fechaRegistro.getTime() - a.fechaRegistro.getTime());
+
+      const phones = profilePhones.map((item) => ({
+        id: item.id,
+        countryCode: item.countryCode,
+        phoneNumber: item.phoneNumber,
+        internationalPhoneNumber: item.internationalPhoneNumber,
+        alias: item.alias,
+        verified: item.verified,
+        fechaVerificacion: item.fechaVerificacion,
+      }));
 
       return new StatusResponse(
         true,
@@ -94,6 +99,7 @@ export class ProfileService {
               fechaNacimiento: usuario.profile.fechaNacimiento,
               tipoDocumento: usuario.profile.tipoDocumento
                 ? {
+                    id: usuario.profile.tipoDocumento.id,
                     nombre: usuario.profile.tipoDocumento.nombre,
                     valor: usuario.profile.tipoDocumento.valor,
                   }
@@ -101,15 +107,7 @@ export class ProfileService {
               validacionEstado:
                 usuario.profile.validacionEstado ??
                 ProfileValidationStatus.PENDING,
-              profilePhones: profilePhones.map((item) => ({
-                id: item.id,
-                countryCode: item.countryCode,
-                phoneNumber: item.phoneNumber,
-                internationalPhoneNumber: item.internationalPhoneNumber,
-                alias: item.alias,
-                verified: item.verified,
-                fechaVerificacion: item.fechaVerificacion,
-              })),
+              profilePhones: phones,
             }
           : null,
       );
@@ -122,7 +120,19 @@ export class ProfileService {
     usuarioRequest: Usuario,
     dto: UpdateProfileDataDto,
     ip: string,
-  ): Promise<StatusResponse<ProfileMeResponseDto | null>> {
+  ): Promise<
+    StatusResponse<
+      Pick<
+        ProfileMeResponseDto,
+        | 'nombres'
+        | 'apellidos'
+        | 'documentoIdentidad'
+        | 'fechaNacimiento'
+        | 'tipoDocumento'
+        | 'validacionEstado'
+      > | null
+    >
+  > {
     try {
       const usuario = await this.usuarioRepository.findOne({
         where: { id: usuarioRequest.id, activo: true, eliminado: false },
@@ -202,17 +212,14 @@ export class ProfileService {
       profile.fechaModificacion = new Date();
 
       await this.profileRepository.save(profile);
-      const fotoPerfilUrl = await this.resolvePhotoUrl(profile);
 
       return new StatusResponse(true, 200, 'Datos personales actualizados', {
         nombres: profile.nombres,
         apellidos: profile.apellidos,
         documentoIdentidad: profile.documentoIdentidad,
-        fotoPerfilUrl,
-        nombreFotoPerfil: profile.nombreFotoPerfil,
-        fechaCargaFotoPerfil: profile.fechaCargaFotoPerfil,
         fechaNacimiento: profile.fechaNacimiento,
         tipoDocumento: {
+          id: tipoDocumento.id,
           nombre: tipoDocumento.nombre,
           valor: tipoDocumento.valor,
         },

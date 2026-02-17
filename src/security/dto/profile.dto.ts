@@ -1,5 +1,6 @@
 ﻿import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsDate,
   IsDateString,
   IsInt,
@@ -64,6 +65,9 @@ export class UpdateProfileDataDto {
 }
 
 export class ProfileTipoDocumentoResponseDto {
+  @IsInt()
+  id!: number;
+
   @IsString()
   @IsNotEmpty()
   nombre!: string;
@@ -117,5 +121,6 @@ export class ProfileMeResponseDto {
   validacionEstado!: ProfileValidationStatus;
 
   @IsOptional()
-  profilePhones?: ProfilePhoneMeResponseDto[];
+  @IsArray()
+  profilePhones?: ProfilePhoneMeResponseDto[] | [];
 }
