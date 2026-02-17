@@ -1,5 +1,16 @@
 import { Type } from 'class-transformer';
-import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested, IsInt, MinLength, IsDate } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsInt,
+  MinLength,
+  IsDate,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 import { IsNullable } from 'src/common/decorators/is-nullable.decorator';
 
 export class RolResponseDto {
@@ -165,4 +176,25 @@ export class ProfileResponseDto {
 
   @IsNullable()
   tipoDocumento!: ProfileTipoDocumentoResponseDto | null;
+}
+
+export class UpdateUsuarioCredentialsDto {
+  @IsString()
+  @IsNotEmpty()
+  login!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  @MaxLength(50)
+  currentPassword!: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  @MaxLength(50)
+  @Matches(/(?:(?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+    message: 'La contrasena debe tener una letra mayuscula, una letra minuscula y un numero',
+  })
+  password?: string;
 }

@@ -1,21 +1,42 @@
-import { Type } from 'class-transformer';
-import { IsDate, IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+﻿import { Type } from 'class-transformer';
+import {
+  IsDate,
+  IsDateString,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { IsNullable } from 'src/common/decorators/is-nullable.decorator';
 import { ProfileValidationStatus } from '../enums/profile-validation-status.enum';
 
-export class UpdateProfileCredentialsDto {
+export class ProfilePhoneMeResponseDto {
+  @IsInt()
+  id!: number;
+
   @IsString()
   @IsNotEmpty()
-  login!: string;
+  countryCode!: string;
 
-  @IsOptional()
   @IsString()
-  @MinLength(6)
-  @MaxLength(50)
-  @Matches(/(?:(?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
-    message: 'La contraseña debe tener una letra mayúscula, una letra minúscula y un número',
-  })
-  password?: string;
+  @IsNotEmpty()
+  phoneNumber!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  internationalPhoneNumber!: string;
+
+  @IsNullable()
+  @IsString()
+  alias!: string | null;
+
+  verified!: boolean;
+
+  @IsNullable()
+  @Type(() => Date)
+  @IsDate()
+  fechaVerificacion!: Date | null;
 }
 
 export class UpdateProfileDataDto {
@@ -94,4 +115,7 @@ export class ProfileMeResponseDto {
   @IsString()
   @IsNotEmpty()
   validacionEstado!: ProfileValidationStatus;
+
+  @IsOptional()
+  profilePhones?: ProfilePhoneMeResponseDto[];
 }

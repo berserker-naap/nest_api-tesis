@@ -3,172 +3,83 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
-import { IsNull, Repository } from 'typeorm';
 import {
   ConfirmWhatsappLinkDto,
   RequestWhatsappLinkDto,
+  UnlinkWhatsappDto,
 } from '../dto/whatsapp-link.dto';
-import { OtpVerificacion } from '../entities/otp-verificacion.entity';
-import { UsuarioCanal } from '../entities/usuario-canal.entity';
 import { Usuario } from '../entities/usuario.entity';
 import { OtpVerificacionService } from './otp-verificacion.service';
+import { ProfileService } from './profile.service';
+import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 
 @Injectable()
 export class WhatsappLinkService {
   constructor(
-    @InjectRepository(UsuarioCanal)
-    private readonly usuarioCanalRepository: Repository<UsuarioCanal>,
-    @InjectRepository(OtpVerificacion)
-    private readonly otpRepository: Repository<OtpVerificacion>,
     private readonly otpService: OtpVerificacionService,
+    private readonly profileService: ProfileService,
+    private readonly whatsappSenderService: WhatsappSenderService,
   ) {}
-
-  private normalizePhone(phone: string): string {
-    const cleaned = phone.replace(/[^\d+]/g, '');
-    if (cleaned.startsWith('+')) {
-      if (!/^\+\d{8,15}$/.test(cleaned)) {
-        throw new BadRequestException('Telefono invalido, formato E.164 requerido');
-      }
-      return cleaned;
-    }
-
-    const onlyDigits = cleaned.replace(/\D/g, '');
-    const normalized = onlyDigits.startsWith('51') ? `+${onlyDigits}` : `+51${onlyDigits}`;
-    if (!/^\+\d{8,15}$/.test(normalized)) {
-      throw new BadRequestException('Telefono invalido, formato E.164 requerido');
-    }
-    return normalized;
-  }
 
   async requestLink(
     dto: RequestWhatsappLinkDto,
-    usuario: Usuario,
+    usuarioRequest: Usuario,
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const phone = this.normalizePhone(dto.phone);
-      const destino = dto.via === 'EMAIL' ? dto.emailDestino : phone;
-
-      if (!destino) {
-        throw new BadRequestException('Destino requerido para el canal seleccionado');
-      }
-
-      const linkedInOtherUser = await this.usuarioCanalRepository.findOne({
-        where: {
-          canal: 'WHATSAPP',
-          identificador: phone,
-          activo: true,
-          eliminado: false,
-        },
-        relations: ['usuario'],
-      });
-
-      if (linkedInOtherUser && linkedInOtherUser.usuario.id !== usuario.id) {
-        throw new BadRequestException('Ese numero ya esta vinculado a otro usuario');
-      }
-
-      let canal = await this.usuarioCanalRepository.findOne({
-        where: {
-          usuario: { id: usuario.id },
-          canal: 'WHATSAPP',
-          activo: true,
-          eliminado: false,
-        },
-        relations: ['usuario'],
-      });
-
-      if (!canal) {
-        canal = this.usuarioCanalRepository.create({
-          usuario,
-          canal: 'WHATSAPP',
-          identificador: phone,
-          verificado: false,
-          fechaVerificacion: null,
-          usuarioRegistro: usuario.login,
-          ipRegistro: ip,
-        });
-      } else {
-        canal.identificador = phone;
-        canal.verificado = false;
-        canal.fechaVerificacion = null;
-        canal.usuarioModificacion = usuario.login;
-        canal.ipModificacion = ip;
-        canal.fechaModificacion = new Date();
-      }
-
-      await this.usuarioCanalRepository.save(canal);
+      const { usuario, internationalPhoneNumber } =
+        await this.profileService.createOrRefreshProfilePhone(
+          usuarioRequest,
+          dto.countryCode,
+          dto.phone,
+          ip,
+        );
 
       const { plainCode } = await this.otpService.createOtp({
         usuario,
-        canal: dto.via,
-        destino,
+        canal: 'WHATSAPP',
+        destino: internationalPhoneNumber,
       });
 
-      console.log(`OTP ${dto.via} para ${destino}: ${plainCode}`);
+      await this.whatsappSenderService.sendOtp(internationalPhoneNumber, plainCode);
 
-      return new StatusResponse(true, 200, 'Codigo enviado', null);
+      return new StatusResponse(true, 200, 'Codigo enviado por WhatsApp', null);
     } catch (error) {
-      console.error('Error al solicitar enlace WhatsApp:', error);
-      return new StatusResponse(
-        false,
-        500,
-        'Error al solicitar enlace WhatsApp',
-        error,
-      );
+      const statusCode =
+        error instanceof BadRequestException || error instanceof NotFoundException
+          ? error.getStatus()
+          : 500;
+      const message =
+        error instanceof BadRequestException || error instanceof NotFoundException
+          ? error.message
+          : 'Error al solicitar enlace WhatsApp';
+
+      return new StatusResponse(false, statusCode, message, null);
     }
   }
 
   async confirmLink(
     dto: ConfirmWhatsappLinkDto,
-    usuario: Usuario,
+    usuarioRequest: Usuario,
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const phone = this.normalizePhone(dto.phone);
-
-      const otp = await this.otpRepository.findOne({
-        where: {
-          usuario: { id: usuario.id },
-          usedAt: IsNull(),
-        },
-        relations: ['usuario'],
-        order: { id: 'DESC' },
-      });
-
-      if (!otp) {
-        throw new NotFoundException('No hay OTP pendiente para confirmar');
-      }
+      const { usuario, profilePhone, internationalPhoneNumber } =
+        await this.profileService.getProfilePhoneForUsuario(
+          usuarioRequest,
+          dto.countryCode,
+          dto.phone,
+        );
 
       await this.otpService.validateOtp({
         usuarioId: usuario.id,
-        canal: otp.canal,
-        destino: otp.destino,
+        canal: 'WHATSAPP',
+        destino: internationalPhoneNumber,
         code: dto.code,
       });
 
-      const canal = await this.usuarioCanalRepository.findOne({
-        where: {
-          usuario: { id: usuario.id },
-          canal: 'WHATSAPP',
-          identificador: phone,
-          activo: true,
-          eliminado: false,
-        },
-        relations: ['usuario'],
-      });
-
-      if (!canal) {
-        throw new NotFoundException('No existe solicitud de enlace para ese numero');
-      }
-
-      canal.verificado = true;
-      canal.fechaVerificacion = new Date();
-      canal.usuarioModificacion = usuario.login;
-      canal.ipModificacion = ip;
-      canal.fechaModificacion = new Date();
-      await this.usuarioCanalRepository.save(canal);
+      await this.profileService.markProfilePhoneVerified(profilePhone, usuario.login, ip);
 
       return new StatusResponse(
         true,
@@ -177,59 +88,48 @@ export class WhatsappLinkService {
         null,
       );
     } catch (error) {
-      console.error('Error al confirmar enlace WhatsApp:', error);
-      return new StatusResponse(
-        false,
-        500,
-        'Error al confirmar enlace WhatsApp',
-        error,
-      );
+      const statusCode =
+        error instanceof BadRequestException || error instanceof NotFoundException
+          ? error.getStatus()
+          : 500;
+      const message =
+        error instanceof BadRequestException || error instanceof NotFoundException
+          ? error.message
+          : 'Error al confirmar enlace WhatsApp';
+
+      return new StatusResponse(false, statusCode, message, null);
     }
   }
 
-  async unlink(usuario: Usuario, ip: string): Promise<StatusResponse<any>> {
+  async unlink(
+    dto: UnlinkWhatsappDto,
+    usuarioRequest: Usuario,
+    ip: string,
+  ): Promise<StatusResponse<any>> {
     try {
-      const canal = await this.usuarioCanalRepository.findOne({
-        where: {
-          usuario: { id: usuario.id },
-          canal: 'WHATSAPP',
-          activo: true,
-          eliminado: false,
-        },
-        relations: ['usuario'],
-      });
-
-      if (!canal) {
-        throw new NotFoundException('No existe WhatsApp vinculado');
-      }
-
-      canal.verificado = false;
-      canal.activo = false;
-      canal.eliminado = true;
-      canal.fechaEliminacion = new Date();
-      canal.usuarioEliminacion = usuario.login;
-      canal.ipEliminacion = ip;
-      await this.usuarioCanalRepository.save(canal);
+      const { usuario, profilePhone } = await this.profileService.getProfilePhoneForUsuario(
+        usuarioRequest,
+        dto.countryCode,
+        dto.phone,
+      );
+      await this.profileService.unlinkProfilePhone(profilePhone, usuario.login, ip);
 
       return new StatusResponse(true, 200, 'WhatsApp desvinculado', null);
     } catch (error) {
-      console.error('Error al desvincular WhatsApp:', error);
-      return new StatusResponse(false, 500, 'Error al desvincular WhatsApp', error);
+      const statusCode =
+        error instanceof BadRequestException || error instanceof NotFoundException
+          ? error.getStatus()
+          : 500;
+      const message =
+        error instanceof BadRequestException || error instanceof NotFoundException
+          ? error.message
+          : 'Error al desvincular WhatsApp';
+
+      return new StatusResponse(false, statusCode, message, null);
     }
   }
 
   async findVerifiedUserByWhatsapp(phone: string): Promise<Usuario | null> {
-    const normalized = this.normalizePhone(phone);
-    const canal = await this.usuarioCanalRepository.findOne({
-      where: {
-        canal: 'WHATSAPP',
-        identificador: normalized,
-        verificado: true,
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['usuario'],
-    });
-    return canal?.usuario ?? null;
+    return this.profileService.findVerifiedUserByWhatsapp(phone);
   }
 }

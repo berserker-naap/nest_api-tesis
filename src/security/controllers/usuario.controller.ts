@@ -12,6 +12,7 @@ import {
 import {
   AsignarUsuarioRolesDto,
   CreateUsuarioDto,
+  UpdateUsuarioCredentialsDto,
   UpdateUsuarioDto,
 } from '../dto/usuario.dto';
 import { UsuarioService } from '../services/usuario.service';
@@ -52,6 +53,16 @@ export class UsuarioController {
     @GetClientIp() ip: string,
   ) {
     return this.usuarioService.update(id, dto, user.login, ip);
+  }
+
+  @Patch('credentials')
+  @Auth()
+  updateUsuarioCredentials(
+    @GetUsuario() usuario: Usuario,
+    @Body() dto: UpdateUsuarioCredentialsDto,
+    @GetClientIp() ip: string,
+  ) {
+    return this.usuarioService.updateUsuarioCredentials(usuario, dto, ip);
   }
 
   @Delete(':id')

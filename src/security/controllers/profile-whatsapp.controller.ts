@@ -4,6 +4,7 @@ import { Usuario } from '../entities/usuario.entity';
 import {
   ConfirmWhatsappLinkDto,
   RequestWhatsappLinkDto,
+  UnlinkWhatsappDto,
 } from '../dto/whatsapp-link.dto';
 import { WhatsappLinkService } from '../services/whatsapp-link.service';
 
@@ -31,7 +32,11 @@ export class ProfileWhatsappController {
   }
 
   @Delete('unlink')
-  unlink(@GetUsuario() usuario: Usuario, @GetClientIp() ip: string) {
-    return this.whatsappLinkService.unlink(usuario, ip);
+  unlink(
+    @Body() dto: UnlinkWhatsappDto,
+    @GetUsuario() usuario: Usuario,
+    @GetClientIp() ip: string,
+  ) {
+    return this.whatsappLinkService.unlink(dto, usuario, ip);
   }
 }

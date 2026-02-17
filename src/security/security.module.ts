@@ -26,7 +26,6 @@ import { ModuloController } from './controllers/modulo.controller';
 import { UsuarioService } from './services/usuario.service';
 import { UsuarioController } from './controllers/usuario.controller';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
-import { UsuarioCanal } from './entities/usuario-canal.entity';
 import { OtpVerificacion } from './entities/otp-verificacion.entity';
 import { ProfileWhatsappController } from './controllers/profile-whatsapp.controller';
 import { OtpVerificacionService } from './services/otp-verificacion.service';
@@ -35,6 +34,8 @@ import { ProfileController } from './controllers/profile.controller';
 import { ProfileService } from './services/profile.service';
 import { ReniecData } from './entities/reniec-data.entity';
 import { BlobStorageService } from 'src/common/services/blob-storage.service';
+import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
+import { ProfilePhone } from './entities/profile-phone.entity';
 
 @Module({
   imports: [
@@ -50,7 +51,7 @@ import { BlobStorageService } from 'src/common/services/blob-storage.service';
       Rol,
       UsuarioRol,
       Usuario,
-      UsuarioCanal,
+      ProfilePhone,
       OtpVerificacion]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -94,6 +95,7 @@ import { BlobStorageService } from 'src/common/services/blob-storage.service';
     WhatsappLinkService,
     ProfileService,
     BlobStorageService,
+    WhatsappSenderService,
   ],
   exports: [WhatsappLinkService],
 

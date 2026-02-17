@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+﻿import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt, createHash } from 'crypto';
 import { IsNull, Repository } from 'typeorm';
@@ -26,7 +26,7 @@ export class OtpVerificacionService {
 
   async createOtp(params: {
     usuario: Usuario;
-    canal: 'SMS' | 'EMAIL';
+    canal: 'WHATSAPP';
     destino: string;
     ttlMinutes?: number;
     maxAttempts?: number;
@@ -40,8 +40,8 @@ export class OtpVerificacionService {
       canal: params.canal,
       destino: params.destino,
       codigoHash: this.hashCode(plainCode),
-      expiresAt: new Date(Date.now() + ttlMinutes * 60 * 1000),
-      usedAt: null,
+      fechaExpiracion: new Date(Date.now() + ttlMinutes * 60 * 1000),
+      fechaUso: null,
       attempts: 0,
       maxAttempts,
     });
@@ -52,7 +52,7 @@ export class OtpVerificacionService {
 
   async validateOtp(params: {
     usuarioId: number;
-    canal: 'SMS' | 'EMAIL';
+    canal: 'WHATSAPP';
     destino: string;
     code: string;
   }): Promise<OtpVerificacion> {
@@ -61,15 +61,15 @@ export class OtpVerificacionService {
         usuario: { id: params.usuarioId },
         canal: params.canal,
         destino: params.destino,
-        usedAt: IsNull(),
+        fechaUso: IsNull(),
       },
       relations: ['usuario'],
       order: { id: 'DESC' },
     });
 
     if (!otp) throw new BadRequestException('No existe OTP activo para ese destino');
-    if (otp.expiresAt.getTime() < Date.now()) {
-      throw new BadRequestException('El OTP expiró');
+    if (otp.fechaExpiracion.getTime() < Date.now()) {
+      throw new BadRequestException('El OTP expiro');
     }
     if (otp.attempts >= otp.maxAttempts) {
       throw new BadRequestException('OTP bloqueado por intentos fallidos');
@@ -79,11 +79,12 @@ export class OtpVerificacionService {
     if (hash !== otp.codigoHash) {
       otp.attempts += 1;
       await this.otpRepository.save(otp);
-      throw new BadRequestException('Código OTP incorrecto');
+      throw new BadRequestException('Codigo OTP incorrecto');
     }
 
-    otp.usedAt = new Date();
+    otp.fechaUso = new Date();
     await this.otpRepository.save(otp);
     return otp;
   }
 }
+

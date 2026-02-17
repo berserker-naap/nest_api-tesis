@@ -1,6 +1,7 @@
 import {
   AsignarUsuarioRolesDto,
   CreateUsuarioDto,
+  UpdateUsuarioCredentialsDto,
   UpdateUsuarioDto,
   UsuarioResponseDto,
   ProfileResponseDto,
@@ -18,6 +19,8 @@ import { Profile } from '../entities/profile.entity';
 import { UsuarioRol } from '../entities/usuario-rol.entity';
 import { Rol } from '../entities/rol.entity';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
+import { AuthService } from 'src/auth/auth.service';
+import { SessionResponseDto } from 'src/auth/dto/auth.dto';
 
 import * as bcrypt from 'bcrypt';
 @Injectable()
@@ -33,6 +36,7 @@ export class UsuarioService {
     @InjectRepository(Profile)
     private readonly profileRepository: Repository<Profile>,
 
+    private readonly authService: AuthService,
     private readonly dataSource: DataSource,
   ) { }
 
@@ -606,6 +610,61 @@ export class UsuarioService {
         'Error al resetear contraseña',
         error,
       );
+    }
+  }
+
+  async updateUsuarioCredentials(
+    usuarioRequest: Usuario,
+    dto: UpdateUsuarioCredentialsDto,
+    ip: string,
+  ): Promise<StatusResponse<SessionResponseDto | null>> {
+    try {
+      const usuario = await this.usuarioRepository.findOne({
+        where: { id: usuarioRequest.id, activo: true, eliminado: false },
+      });
+
+      if (!usuario) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      const isCurrentPasswordValid = bcrypt.compareSync(dto.currentPassword, usuario.password);
+      if (!isCurrentPasswordValid) {
+        throw new BadRequestException('La contrasena actual es incorrecta');
+      }
+
+      const loginNormalizado = dto.login.trim().toLowerCase();
+      const usuarioConMismoLogin = await this.usuarioRepository.findOne({
+        where: { login: loginNormalizado, activo: true, eliminado: false },
+      });
+
+      if (usuarioConMismoLogin && usuarioConMismoLogin.id !== usuario.id) {
+        throw new BadRequestException('El correo ingresado ya se encuentra en uso');
+      }
+
+      usuario.login = loginNormalizado;
+      if (dto.password) {
+        usuario.password = bcrypt.hashSync(dto.password, 10);
+      }
+
+      usuario.usuarioModificacion = usuarioRequest.login;
+      usuario.ipModificacion = ip;
+      usuario.fechaModificacion = new Date();
+
+      await this.usuarioRepository.save(usuario);
+      const session = await this.authService.buildSessionPayload(usuario.id, usuario.login);
+
+      return new StatusResponse(true, 200, 'Credenciales actualizadas', session);
+    } catch (error) {
+      const statusCode =
+        error instanceof BadRequestException || error instanceof NotFoundException
+          ? error.getStatus()
+          : 500;
+      const message =
+        error instanceof BadRequestException || error instanceof NotFoundException
+          ? error.message
+          : 'Error al actualizar credenciales';
+
+      return new StatusResponse(false, statusCode, message, null);
     }
   }
 
