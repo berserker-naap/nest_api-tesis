@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -22,7 +23,7 @@ export class RegisterUsuarioRequestDto {
     @MaxLength(50)
     @Matches(
         /(?:(?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
-        message: 'The password must have a Uppercase, lowercase letter and a number'
+        message: 'La contraseña debe tener una letra mayúscula, una letra minúscula y un número'
     })
     password!: string;
 }
@@ -57,7 +58,7 @@ export class RegisterExternalUsuarioRequestDto {
   @MinLength(6)
   @MaxLength(50)
   @Matches(/(?:(?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
-    message: 'The password must have a Uppercase, lowercase letter and a number',
+    message: 'La contraseña debe tener una letra mayúscula, una letra minúscula y un número',
   })
   password!: string;
 
@@ -73,4 +74,22 @@ export class LoginRequestDto {
 
   @IsNotEmpty()
   password!: string;
+}
+
+export class SessionResponseDto {
+  @IsString()
+  @IsNotEmpty()
+  login!: string;
+
+  @IsOptional()
+  @IsArray()
+  roles!: string[] | [];
+
+  @IsOptional()
+  @IsArray()
+  permisos!: any[] | [];
+
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
 }

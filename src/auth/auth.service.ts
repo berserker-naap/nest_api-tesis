@@ -17,6 +17,7 @@ import {
   RegisterExternalUsuarioRequestDto,
   RegisterUsuarioRequestDto,
   LoginRequestDto,
+  SessionResponseDto,
 } from './dto/auth.dto';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { Permiso } from 'src/security/entities/permiso.entity';
@@ -47,7 +48,7 @@ export class AuthService {
   async create(
     registerUsuarioRequestDto: RegisterUsuarioRequestDto,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<SessionResponseDto | null>> {
     try {
       const { password: passwordDto, ...usuarioData } = registerUsuarioRequestDto;
 
@@ -60,12 +61,9 @@ export class AuthService {
       if (!usuario)
         throw new InternalServerErrorException('No se pudo crear el usuario');
 
-      delete (usuario as any).password;
+      const session = await this.buildSessionPayload(usuario.id, usuario.login);
 
-      return new StatusResponse(true, 201, 'Registro creado exitosamente', {
-        ...usuario,
-        token: this.getJwtToken({ id: usuario.id, login: usuario.login }),
-      });
+      return new StatusResponse(true, 201, 'Registro creado exitosamente', session);
     } catch (error) {
       const statusCode =
         error instanceof HttpException ? error.getStatus() : 500;
@@ -82,7 +80,7 @@ export class AuthService {
   async createExternal(
     registerUsuarioRequestDto: RegisterExternalUsuarioRequestDto,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<StatusResponse<SessionResponseDto | null>> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -109,7 +107,7 @@ export class AuthService {
       }
 
       const documentoIdentidad = personaDto.documentoIdentidad.trim();
-      const validacionDocumento = await this.validateDocumentoExterno(
+      const validacionDocumento = await this.validateDocumento(
         personaDto.idTipoDocumentoIdentidad,
         documentoIdentidad,
       );
@@ -189,11 +187,8 @@ export class AuthService {
 
       await queryRunner.commitTransaction();
 
-      delete (usuario as any).password;
-      return new StatusResponse(true, 201, 'Registro creado exitosamente', {
-        ...usuario,
-        token: this.getJwtToken({ id: usuario.id, login: usuario.login }),
-      });
+      const session = await this.buildSessionPayload(usuario.id, usuario.login);
+      return new StatusResponse(true, 201, 'Registro creado exitosamente', session);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       const statusCode =
@@ -207,7 +202,6 @@ export class AuthService {
       await queryRunner.release();
     }
   }
-
 
   async validarDni(numeroDocumento: string): Promise<StatusResponse<any>> {
     try {
@@ -244,7 +238,8 @@ export class AuthService {
       return new StatusResponse(false, 500, 'Error al validar DNI', null);
     }
   }
-  private async validateDocumentoExterno(
+
+  private async validateDocumento(
     idTipoDocumentoIdentidad: number,
     numeroDocumento: string,
   ): Promise<{ ok: boolean }> {
@@ -305,7 +300,7 @@ export class AuthService {
     return (await response.json()) as Record<string, any>;
   }
 
-  async login(loginRequestDto: LoginRequestDto) {
+  async login(loginRequestDto: LoginRequestDto): Promise<StatusResponse<SessionResponseDto | null>> {
     try {
       const { login, password } = loginRequestDto;
 
@@ -319,19 +314,8 @@ export class AuthService {
         return new StatusResponse(false, 401, 'Credenciales no válidas', null);
       }
 
-      const roles = usuario.roles.map((r) => r.rol.nombre);
-      const usuarioPlano: Partial<Usuario> = { ...usuario };
-      delete usuarioPlano.password;
-
-      const permisos = await this.getPermisosUnificadosPorUsuario(usuario.id);
-
-      return new StatusResponse(true, 200, 'Login exitoso', {
-        ...usuarioPlano,
-        roles,
-        permisos,
-        token: this.getJwtToken({ id: usuario.id, login: usuario.login }),
-      });
-
+      const session = await this.buildSessionPayload(usuario.id, usuario.login);
+      return new StatusResponse(true, 200, 'Login exitoso', session);
     } catch (error) {
       const statusCode = error instanceof HttpException ? error.getStatus() : 500;
       const message = error instanceof HttpException
@@ -341,8 +325,7 @@ export class AuthService {
     }
   }
 
-
-  async checkAuthStatus(usuarioRequest: Usuario) {
+  async checkAuthStatus(usuarioRequest: Usuario): Promise<StatusResponse<SessionResponseDto | null>> {
     const usuario = await this.usuarioRepository.findOne({
       where: { id: usuarioRequest.id },
       relations: { roles: { rol: true } },
@@ -351,19 +334,28 @@ export class AuthService {
 
     if (!usuario) throw new UnauthorizedException('Credenciales no válidas');
 
-    const roles = usuario.roles.map((r) => r.rol.nombre);
-    const permisos = await this.getPermisosUnificadosPorUsuario(usuario.id);
-
-    return new StatusResponse(true, 200, 'Actualización de sesión exitosa', {
-      id: usuario.id,
-      login: usuario.login,
-      roles,
-      permisos,
-      token: this.getJwtToken({ id: usuario.id, login: usuario.login }),
-    });
+    const session = await this.buildSessionPayload(usuario.id, usuario.login);
+    return new StatusResponse(true, 200, 'Actualización de sesión exitosa', session);
   }
 
+  async buildSessionPayload(usuarioId: number, login: string): Promise<SessionResponseDto> {
+    const usuarioConRoles = await this.usuarioRepository.findOne({
+      where: { id: usuarioId },
+      relations: { roles: { rol: true } },
+      select: { id: true },
+    });
 
+    const roles = (usuarioConRoles?.roles ?? []).map((r) => r.rol.nombre);
+    const permisos = await this.getPermisosUnificadosPorUsuario(usuarioId);
+
+    return {
+      login,
+      roles,
+      permisos,
+      token: this.getJwtToken({ id: usuarioId, login }),
+    };
+  }
+  
   private getJwtToken(payload: JwtPayload) {
     const token = this.jwtService.sign(payload);
     return token;
@@ -452,4 +444,3 @@ export class AuthService {
   }
 
 }
-

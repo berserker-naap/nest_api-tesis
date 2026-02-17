@@ -33,6 +33,8 @@ import { OtpVerificacion } from './entities/otp-verificacion.entity';
 import { ProfileWhatsappController } from './controllers/profile-whatsapp.controller';
 import { OtpVerificacionService } from './services/otp-verificacion.service';
 import { WhatsappLinkService } from './services/whatsapp-link.service';
+import { ProfileController } from './controllers/profile.controller';
+import { ProfileService } from './services/profile.service';
 
 @Module({
   imports: [
@@ -79,6 +81,7 @@ import { WhatsappLinkService } from './services/whatsapp-link.service';
     UsuarioController,
     PersonaController,
     ProfileWhatsappController,
+    ProfileController,
   ],
   providers: [
     AccionService,
@@ -90,6 +93,7 @@ import { WhatsappLinkService } from './services/whatsapp-link.service';
     PersonaService,
     OtpVerificacionService,
     WhatsappLinkService,
+    ProfileService,
   ],
   exports: [WhatsappLinkService],
 
