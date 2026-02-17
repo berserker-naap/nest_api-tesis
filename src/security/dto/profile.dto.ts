@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsDate, IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { IsNullable } from 'src/common/decorators/is-nullable.decorator';
+import { ProfileValidationStatus } from '../enums/profile-validation-status.enum';
 
 export class UpdateProfileCredentialsDto {
   @IsString()
@@ -17,7 +18,7 @@ export class UpdateProfileCredentialsDto {
   password?: string;
 }
 
-export class UpdateProfilePersonaDto {
+export class UpdateProfileDataDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
@@ -74,4 +75,8 @@ export class ProfileMeResponseDto {
 
   @IsNullable()
   tipoDocumento!: ProfileTipoDocumentoResponseDto | null;
+
+  @IsString()
+  @IsNotEmpty()
+  validacionEstado!: ProfileValidationStatus;
 }

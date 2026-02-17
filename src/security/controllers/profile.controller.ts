@@ -2,7 +2,7 @@ import { Body, Controller, Get, Patch } from '@nestjs/common';
 import { Auth, GetClientIp, GetUsuario } from 'src/auth/decorators';
 import { Usuario } from '../entities/usuario.entity';
 import { ProfileService } from '../services/profile.service';
-import { UpdateProfileCredentialsDto, UpdateProfilePersonaDto } from '../dto/profile.dto';
+import { UpdateProfileCredentialsDto, UpdateProfileDataDto } from '../dto/profile.dto';
 
 @Controller('profile')
 @Auth()
@@ -23,12 +23,12 @@ export class ProfileController {
     return this.profileService.updateCredentials(usuario, dto, ip);
   }
 
-  @Patch('persona')
-  updatePersona(
+  @Patch('data')
+  updateProfileData(
     @GetUsuario() usuario: Usuario,
-    @Body() dto: UpdateProfilePersonaDto,
+    @Body() dto: UpdateProfileDataDto,
     @GetClientIp() ip: string,
   ) {
-    return this.profileService.updatePersona(usuario, dto, ip);
+    return this.profileService.updateProfileData(usuario, dto, ip);
   }
 }

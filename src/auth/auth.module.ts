@@ -10,9 +10,10 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { Usuario } from 'src/security/entities/usuario.entity';
 import { Permiso } from 'src/security/entities/permiso.entity';
-import { Persona } from 'src/security/entities/persona.entity';
+import { Profile } from 'src/security/entities/profile.entity';
 import { Rol } from 'src/security/entities/rol.entity';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
+import { ReniecData } from 'src/security/entities/reniec-data.entity';
 
 @Module({
 
@@ -22,7 +23,8 @@ import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
       Usuario,
       Permiso,
       UsuarioRol,
-      Persona,
+      Profile,
+      ReniecData,
       Rol,
       Multitabla,
     ]),
@@ -49,3 +51,4 @@ import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
   exports: [ TypeOrmModule, JwtStrategy, PassportModule, JwtModule, AuthService ]
 })
 export class AuthModule {}
+

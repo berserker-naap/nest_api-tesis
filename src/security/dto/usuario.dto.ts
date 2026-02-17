@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested, IsInt, MinLength } from 'class-validator';
-import { CreatePersonaDto, PersonaResponseDto } from './persona.dto';
+import { CreateProfileDto, ProfileResponseDto } from './persona.dto';
 
 export class RolResponseDto {
   @IsInt()
@@ -24,12 +24,12 @@ export class CreateUsuarioDto {
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => CreatePersonaDto)
-  persona?: CreatePersonaDto | null;
+  @Type(() => CreateProfileDto)
+  profile?: CreateProfileDto | null;
 
   @IsOptional()
   @IsInt()
-  idPersona?: number | null;
+  idProfile?: number | null;
 
   @IsOptional()
   @IsArray()
@@ -50,12 +50,12 @@ export class UpdateUsuarioDto {
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => CreatePersonaDto)
-  persona?: CreatePersonaDto | null;
+  @Type(() => CreateProfileDto)
+  profile?: CreateProfileDto | null;
 
   @IsOptional()
   @IsInt()
-  idPersona?: number | null;
+  idProfile?: number | null;
 
   @IsOptional()
   @IsArray()
@@ -74,8 +74,8 @@ export class UsuarioResponseDto {
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => PersonaResponseDto)
-  persona?: PersonaResponseDto | null;
+  @Type(() => ProfileResponseDto)
+  profile?: ProfileResponseDto | null;
 
   @IsOptional()
   @IsArray()

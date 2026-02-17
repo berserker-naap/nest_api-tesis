@@ -2,7 +2,7 @@ import { Type } from 'class-transformer';
 import { IsString, IsNotEmpty, IsInt, IsDate } from 'class-validator';
 import { IsNullable } from 'src/common/decorators/is-nullable.decorator';
 
-export class CreatePersonaDto {
+export class CreateProfileDto {
   @IsString()
   @IsNotEmpty()
   nombre!: string;
@@ -24,7 +24,7 @@ export class CreatePersonaDto {
   fechaNacimiento!: Date | null;
 }
 
-export class UpdatePersonaDto {
+export class UpdateProfileDto {
   @IsString()
   @IsNotEmpty()
   nombre!: string;
@@ -46,7 +46,7 @@ export class UpdatePersonaDto {
   fechaNacimiento!: Date | null;
 }
 
-export class TipoDocumentoResponseDto {
+export class ProfileTipoDocumentoResponseDto {
   @IsInt()
   id!: number;
 
@@ -59,7 +59,7 @@ export class TipoDocumentoResponseDto {
   valor!: string | null;
 }
 
-export class PersonaResponseDto {
+export class ProfileResponseDto {
   @IsInt()
   id!: number;
 
@@ -81,5 +81,5 @@ export class PersonaResponseDto {
   fechaNacimiento!: Date | null;
 
   @IsNullable()
-  tipoDocumento!: TipoDocumentoResponseDto | null;
+  tipoDocumento!: ProfileTipoDocumentoResponseDto | null;
 }

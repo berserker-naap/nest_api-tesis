@@ -2,25 +2,25 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { In, Repository } from 'typeorm';
-import { Persona } from '../entities/persona.entity';
+import { Profile } from '../entities/profile.entity';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import {
-  CreatePersonaDto,
-  UpdatePersonaDto,
-  PersonaResponseDto,
-  TipoDocumentoResponseDto,
+  CreateProfileDto,
+  UpdateProfileDto,
+  ProfileResponseDto,
+  ProfileTipoDocumentoResponseDto,
 } from '../dto/persona.dto';
 
 @Injectable()
-export class PersonaService {
+export class ProfileCatalogService {
   constructor(
-    @InjectRepository(Persona)
-    private readonly personaRepository: Repository<Persona>,
+    @InjectRepository(Profile)
+    private readonly personaRepository: Repository<Profile>,
     @InjectRepository(Multitabla)
     private readonly multitablaRepository: Repository<Multitabla>,
   ) {}
 
-  async findAll(): Promise<StatusResponse<PersonaResponseDto[] | any>> {
+  async findAll(): Promise<StatusResponse<ProfileResponseDto[] | any>> {
     try {
       const personas = await this.personaRepository.find({
         where: {
@@ -30,7 +30,7 @@ export class PersonaService {
         relations: ['tipoDocumento'],
       });
 
-      const personasDto: PersonaResponseDto[] = personas.map((p) => ({
+      const personasDto: ProfileResponseDto[] = personas.map((p) => ({
         id: p.id,
         nombre: p.nombre,
         apellido: p.apellido ?? null,
@@ -56,7 +56,7 @@ export class PersonaService {
     }
   }
 
-  async findOne(id: number): Promise<StatusResponse<PersonaResponseDto | any>> {
+  async findOne(id: number): Promise<StatusResponse<ProfileResponseDto | any>> {
     try {
       const persona = await this.personaRepository.findOne({
         where: { id, activo: true, eliminado: false },
@@ -66,7 +66,7 @@ export class PersonaService {
         return new StatusResponse(false, 404, 'Persona no encontrada', null);
       }
 
-      const personaDto: PersonaResponseDto = {
+      const personaDto: ProfileResponseDto = {
         id: persona.id,
         nombre: persona.nombre,
         apellido: persona.apellido ?? null,
@@ -93,10 +93,10 @@ export class PersonaService {
   }
 
   async create(
-    dto: CreatePersonaDto,
+    dto: CreateProfileDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<PersonaResponseDto | any>> {
+  ): Promise<StatusResponse<ProfileResponseDto | any>> {
     try {
       // Buscar el tipo de documento usando el repositorio de Multitabla
       const tipoDocumento = await this.multitablaRepository.findOne({
@@ -126,7 +126,7 @@ export class PersonaService {
       });
       const saved = await this.personaRepository.save(persona);
 
-      const personaDto: PersonaResponseDto = {
+      const personaDto: ProfileResponseDto = {
         id: saved.id,
         nombre: saved.nombre,
         apellido: saved.apellido ?? null,
@@ -147,10 +147,10 @@ export class PersonaService {
 
   async update(
     id: number,
-    dto: UpdatePersonaDto,
+    dto: UpdateProfileDto,
     usuario: string,
     ip: string,
-  ): Promise<StatusResponse<PersonaResponseDto | any>> {
+  ): Promise<StatusResponse<ProfileResponseDto | any>> {
     try {
       const persona = await this.personaRepository.findOne({
         where: { id, activo: true, eliminado: false },
@@ -188,7 +188,7 @@ export class PersonaService {
 
       const updated = await this.personaRepository.save(persona);
 
-      const personaDto: PersonaResponseDto = {
+      const personaDto: ProfileResponseDto = {
         id: updated.id,
         nombre: updated.nombre,
         apellido: updated.apellido ?? null,
@@ -289,3 +289,5 @@ export class PersonaService {
     }
   }
 }
+
+

@@ -29,7 +29,7 @@ export class RegisterUsuarioRequestDto {
 }
 
 
-export class RegisterPersonaMinRequestDto {
+export class RegisterProfileMinRequestDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
@@ -63,8 +63,8 @@ export class RegisterExternalUsuarioRequestDto {
   password!: string;
 
   @ValidateNested()
-  @Type(() => RegisterPersonaMinRequestDto)
-  persona!: RegisterPersonaMinRequestDto;
+  @Type(() => RegisterProfileMinRequestDto)
+  profile!: RegisterProfileMinRequestDto;
 }
 
 

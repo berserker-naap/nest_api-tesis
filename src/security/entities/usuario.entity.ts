@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Persona } from './persona.entity';
+import { Profile } from './profile.entity';
 import { Audit } from 'src/common/entity/audit';
 import { UsuarioRol } from './usuario-rol.entity';
 
@@ -14,9 +14,9 @@ export class Usuario extends Audit {
   @Column({ type: 'nvarchar', length: 255, nullable: false })
   password!: string;
 
-  @ManyToOne(() => Persona)
-  @JoinColumn({ name: 'idPersona' })
-  persona!: Persona | null;
+  @ManyToOne(() => Profile)
+  @JoinColumn({ name: 'idProfile' })
+  profile!: Profile | null;
 
   @OneToMany(() => UsuarioRol, (usuarioRol) => usuarioRol.usuario)
   roles!: UsuarioRol[];

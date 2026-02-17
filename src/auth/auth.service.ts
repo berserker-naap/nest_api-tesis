@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 
 import * as bcrypt from 'bcrypt';
 
@@ -23,8 +23,18 @@ import { StatusResponse } from 'src/common/dto/response.dto';
 import { Permiso } from 'src/security/entities/permiso.entity';
 import { UsuarioRol } from 'src/security/entities/usuario-rol.entity';
 import { Rol } from 'src/security/entities/rol.entity';
-import { Persona } from 'src/security/entities/persona.entity';
+import { Profile } from 'src/security/entities/profile.entity';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
+import { ReniecData } from 'src/security/entities/reniec-data.entity';
+import { ProfileValidationStatus } from 'src/security/enums/profile-validation-status.enum';
+
+interface ResolvedReniecIdentity {
+  numeroDocumento: string;
+  nombres: string;
+  apellidos: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -40,6 +50,8 @@ export class AuthService {
     private readonly permisoRepository: Repository<Permiso>,
     @InjectRepository(Multitabla)
     private readonly multitablaRepository: Repository<Multitabla>,
+    @InjectRepository(ReniecData)
+    private readonly reniecDataRepository: Repository<ReniecData>,
     private readonly jwtService: JwtService,
     private readonly dataSource: DataSource,
   ) { }
@@ -86,7 +98,7 @@ export class AuthService {
     await queryRunner.startTransaction();
 
     try {
-      const { persona: personaDto } = registerUsuarioRequestDto;
+      const { profile: profileDto } = registerUsuarioRequestDto;
 
       const usuarioExistente = await queryRunner.manager.findOne(Usuario, {
         where: { login: registerUsuarioRequestDto.login },
@@ -97,7 +109,7 @@ export class AuthService {
 
       const tipoDocumento = await queryRunner.manager.findOne(Multitabla, {
         where: {
-          id: personaDto.idTipoDocumentoIdentidad,
+          id: profileDto.idTipoDocumentoIdentidad,
           activo: true,
           eliminado: false,
         },
@@ -106,16 +118,17 @@ export class AuthService {
         throw new BadRequestException('Tipo de documento no encontrado');
       }
 
-      const documentoIdentidad = personaDto.documentoIdentidad.trim();
+      const documentoIdentidad = profileDto.documentoIdentidad.trim();
       const validacionDocumento = await this.validateDocumento(
-        personaDto.idTipoDocumentoIdentidad,
+        profileDto.idTipoDocumentoIdentidad,
         documentoIdentidad,
+        queryRunner.manager,
       );
       if (!validacionDocumento.ok) {
         throw new BadRequestException('Documento erroneo');
       }
 
-      let personaSaved = await queryRunner.manager.findOne(Persona, {
+      let profileSaved = await queryRunner.manager.findOne(Profile, {
         where: {
           documentoIdentidad,
           tipoDocumento: { id: tipoDocumento.id },
@@ -125,37 +138,66 @@ export class AuthService {
         relations: ['tipoDocumento'],
       });
 
-      if (personaSaved) {
+      if (profileSaved) {
         const usuarioActivo = await queryRunner.manager.findOne(Usuario, {
           where: {
-            persona: { id: personaSaved.id },
+            profile: { id: profileSaved.id },
             activo: true,
             eliminado: false,
           },
-          relations: ['persona'],
+          relations: ['profile'],
         });
 
         if (usuarioActivo) {
           throw new BadRequestException(
-            'Usted ya cuenta con una cuenta activa, si no recuerda su contraseña porfavor dele clic a olvide mi contraseña',
+            'Usted ya cuenta con una cuenta activa, si no recuerda su contrasena por favor dele clic a olvide mi contrasena',
           );
         }
+
+        profileSaved.validacionEstado = this.resolveValidationStatus(
+          profileDto.idTipoDocumentoIdentidad,
+          profileDto.nombre,
+          profileDto.apellido ?? null,
+          validacionDocumento.reniecIdentity ?? null,
+        );
+        profileSaved.fechaVerificacion =
+          profileSaved.validacionEstado === ProfileValidationStatus.PENDING
+            ? null
+            : new Date();
+        profileSaved.reniecData = validacionDocumento.reniecDataId
+          ? ({ id: validacionDocumento.reniecDataId } as ReniecData)
+          : null;
+        profileSaved.usuarioModificacion = registerUsuarioRequestDto.login;
+        profileSaved.ipModificacion = ip;
+        profileSaved.fechaModificacion = new Date();
+        profileSaved = await queryRunner.manager.save(Profile, profileSaved);
       } else {
-        const persona = queryRunner.manager.create(Persona, {
-          nombre: personaDto.nombre,
-          apellido: personaDto.apellido ?? null,
+        const profile = queryRunner.manager.create(Profile, {
+          nombre: profileDto.nombre,
+          apellido: profileDto.apellido ?? null,
           tipoDocumento,
           documentoIdentidad,
           fechaNacimiento: null,
+          validacionEstado: this.resolveValidationStatus(
+            profileDto.idTipoDocumentoIdentidad,
+            profileDto.nombre,
+            profileDto.apellido ?? null,
+            validacionDocumento.reniecIdentity ?? null,
+          ),
+          fechaVerificacion:
+            profileDto.idTipoDocumentoIdentidad === this.TIPO_DOC_DNI ? new Date() : null,
+          reniecData: validacionDocumento.reniecDataId
+            ? ({ id: validacionDocumento.reniecDataId } as ReniecData)
+            : null,
           usuarioRegistro: registerUsuarioRequestDto.login,
           ipRegistro: ip,
         });
-        personaSaved = await queryRunner.manager.save(Persona, persona);
+        profileSaved = await queryRunner.manager.save(Profile, profile);
       }
 
       const usuarioEntity = queryRunner.manager.create(Usuario, {
         login: registerUsuarioRequestDto.login,
-        persona: personaSaved,
+        profile: profileSaved,
         usuarioRegistro: registerUsuarioRequestDto.login,
         ipRegistro: ip,
         password: bcrypt.hashSync(registerUsuarioRequestDto.password, 10),
@@ -210,29 +252,17 @@ export class AuthService {
         return new StatusResponse(false, 400, 'El DNI debe tener 8 digitos', null);
       }
 
-      const data = await this.fetchDocumentoExterno(this.TIPO_DOC_DNI, numero);
-      if (!data) {
+      const reniecIdentity = await this.resolveReniecIdentity(numero);
+      if (!reniecIdentity) {
         return new StatusResponse(false, 400, 'No se encontro informacion para el DNI', null);
       }
 
-      const numeroRespuesta = String(data?.document_number ?? '').trim();
-      if (numeroRespuesta !== numero) {
-        return new StatusResponse(false, 400, 'Documento erroneo', null);
-      }
-
-      const nombres = String(data?.first_name ?? data?.nombres ?? '').trim();
-      const apellidoPaterno = String(data?.first_last_name ?? data?.apellido_paterno ?? '').trim();
-      const apellidoMaterno = String(data?.second_last_name ?? data?.apellido_materno ?? '').trim();
-      const apellidos = [apellidoPaterno, apellidoMaterno]
-        .filter((x) => !!x)
-        .join(' ');
-
       return new StatusResponse(true, 200, 'DNI validado', {
-        numeroDocumento: numeroRespuesta,
-        nombres,
-        apellidos,
-        apellidoPaterno,
-        apellidoMaterno,
+        numeroDocumento: reniecIdentity.numeroDocumento,
+        nombres: reniecIdentity.nombres,
+        apellidos: reniecIdentity.apellidos,
+        apellidoPaterno: reniecIdentity.apellidoPaterno,
+        apellidoMaterno: reniecIdentity.apellidoMaterno,
       });
     } catch (_) {
       return new StatusResponse(false, 500, 'Error al validar DNI', null);
@@ -242,19 +272,30 @@ export class AuthService {
   private async validateDocumento(
     idTipoDocumentoIdentidad: number,
     numeroDocumento: string,
-  ): Promise<{ ok: boolean }> {
+    manager?: EntityManager,
+  ): Promise<{ ok: boolean; reniecDataId?: number; reniecIdentity?: ResolvedReniecIdentity }> {
     try {
+      const numero = numeroDocumento.trim();
+
+      if (idTipoDocumentoIdentidad === this.TIPO_DOC_DNI) {
+        const reniecIdentity = await this.resolveReniecIdentity(numero, manager);
+        if (!reniecIdentity) {
+          return { ok: false };
+        }
+        const reniecData = await this.findReniecDataByDocumento(this.TIPO_DOC_DNI, numero, manager);
+        return {
+          ok: reniecIdentity.numeroDocumento === numero,
+          reniecDataId: reniecData?.id,
+          reniecIdentity,
+        };
+      }
+
       const data = await this.fetchDocumentoExterno(
         idTipoDocumentoIdentidad,
-        numeroDocumento,
+        numero,
       );
       if (!data) {
         return { ok: false };
-      }
-
-      if (idTipoDocumentoIdentidad === this.TIPO_DOC_DNI) {
-        const numeroRespuesta = String(data?.document_number ?? '').trim();
-        return { ok: numeroRespuesta === numeroDocumento };
       }
 
       if (idTipoDocumentoIdentidad === this.TIPO_DOC_RUC) {
@@ -263,14 +304,158 @@ export class AuthService {
         ).trim();
         const estado = String(data?.estado ?? '').trim().toUpperCase();
         return {
-          ok: numeroRespuesta === numeroDocumento && estado === 'ACTIVO',
+          ok: numeroRespuesta === numero && estado === 'ACTIVO',
         };
       }
 
-      return { ok: false };
+      return { ok: true };
     } catch (error) {
       return { ok: false };
     }
+  }
+
+  async resolveReniecIdentity(
+    numeroDocumento: string,
+    manager?: EntityManager,
+  ): Promise<ResolvedReniecIdentity | null> {
+    const numero = numeroDocumento.trim();
+    const cached = await this.findReniecDataByDocumento(this.TIPO_DOC_DNI, numero, manager);
+    if (cached) {
+      return {
+        numeroDocumento: cached.numeroDocumento,
+        nombres: cached.nombres ?? '',
+        apellidos: cached.apellidos ?? '',
+        apellidoPaterno: cached.apellidoPaterno ?? '',
+        apellidoMaterno: cached.apellidoMaterno ?? '',
+      };
+    }
+
+    const data = await this.fetchDocumentoExterno(this.TIPO_DOC_DNI, numero);
+    if (!data) {
+      return null;
+    }
+
+    const numeroRespuesta = String(data?.document_number ?? '').trim();
+    if (numeroRespuesta !== numero) {
+      return null;
+    }
+
+    const nombres = String(data?.first_name ?? data?.nombres ?? '').trim();
+    const apellidoPaterno = String(data?.first_last_name ?? data?.apellido_paterno ?? '').trim();
+    const apellidoMaterno = String(data?.second_last_name ?? data?.apellido_materno ?? '').trim();
+    const apellidos = [apellidoPaterno, apellidoMaterno]
+      .filter((x) => !!x)
+      .join(' ');
+
+    await this.saveReniecData(
+      {
+        idTipoDocumentoIdentidad: this.TIPO_DOC_DNI,
+        numeroDocumento: numeroRespuesta,
+        nombres: nombres || null,
+        apellidos: apellidos || null,
+        apellidoPaterno: apellidoPaterno || null,
+        apellidoMaterno: apellidoMaterno || null,
+      },
+      manager,
+    );
+
+    return {
+      numeroDocumento: numeroRespuesta,
+      nombres,
+      apellidos,
+      apellidoPaterno,
+      apellidoMaterno,
+    };
+  }
+
+  private resolveValidationStatus(
+    idTipoDocumentoIdentidad: number,
+    nombreProfile: string,
+    apellidoProfile: string | null,
+    reniecIdentity: ResolvedReniecIdentity | null,
+  ): ProfileValidationStatus {
+    if (idTipoDocumentoIdentidad !== this.TIPO_DOC_DNI) {
+      return ProfileValidationStatus.PENDING;
+    }
+    if (!reniecIdentity) {
+      return ProfileValidationStatus.FAILED;
+    }
+
+    const nombrePerfil = this.normalizeText(nombreProfile);
+    const apellidoPerfil = this.normalizeText(apellidoProfile ?? '');
+    const nombreReniec = this.normalizeText(reniecIdentity.nombres);
+    const apellidoReniec = this.normalizeText(reniecIdentity.apellidos);
+
+    if (nombrePerfil === nombreReniec && apellidoPerfil === apellidoReniec) {
+      return ProfileValidationStatus.VERIFIED;
+    }
+
+    return ProfileValidationStatus.MISMATCH;
+  }
+
+  private normalizeText(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase();
+  }
+
+  private async findReniecDataByDocumento(
+    idTipoDocumentoIdentidad: number,
+    numeroDocumento: string,
+    manager?: EntityManager,
+  ): Promise<ReniecData | null> {
+    const repository = manager
+      ? manager.getRepository(ReniecData)
+      : this.reniecDataRepository;
+    return repository.findOne({
+      where: {
+        idTipoDocumentoIdentidad,
+        numeroDocumento,
+        activo: true,
+        eliminado: false,
+      },
+    });
+  }
+
+  private async saveReniecData(
+    payload: {
+      idTipoDocumentoIdentidad: number;
+      numeroDocumento: string;
+      nombres: string | null;
+      apellidos: string | null;
+      apellidoPaterno: string | null;
+      apellidoMaterno: string | null;
+    },
+    manager?: EntityManager,
+  ): Promise<ReniecData> {
+    const repository = manager
+      ? manager.getRepository(ReniecData)
+      : this.reniecDataRepository;
+
+    const existing = await repository.findOne({
+      where: {
+        idTipoDocumentoIdentidad: payload.idTipoDocumentoIdentidad,
+        numeroDocumento: payload.numeroDocumento,
+      },
+    });
+
+    if (existing) {
+      existing.nombres = payload.nombres;
+      existing.apellidos = payload.apellidos;
+      existing.apellidoPaterno = payload.apellidoPaterno;
+      existing.apellidoMaterno = payload.apellidoMaterno;
+      existing.activo = true;
+      existing.eliminado = false;
+      return repository.save(existing);
+    }
+
+    const created = repository.create({
+      ...payload,
+    });
+    return repository.save(created);
   }
 
   private async fetchDocumentoExterno(
@@ -444,3 +629,7 @@ export class AuthService {
   }
 
 }
+
+
+
+

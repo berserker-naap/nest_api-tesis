@@ -13,7 +13,7 @@ import { Usuario } from '../entities/usuario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
-import { Persona } from '../entities/persona.entity';
+import { Profile } from '../entities/profile.entity';
 import { UsuarioRol } from '../entities/usuario-rol.entity';
 import { Rol } from '../entities/rol.entity';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
@@ -29,8 +29,8 @@ export class UsuarioService {
 
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
-    @InjectRepository(Persona)
-    private readonly personaRepository: Repository<Persona>,
+    @InjectRepository(Profile)
+    private readonly profileRepository: Repository<Profile>,
 
     private readonly dataSource: DataSource,
   ) { }
@@ -42,24 +42,24 @@ export class UsuarioService {
           activo: true,
           eliminado: false,
         },
-        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
+        relations: ['profile', 'profile.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       const usuariosDto: UsuarioResponseDto[] = usuarios.map((usuario) => ({
         id: usuario.id,
         login: usuario.login,
-        persona: usuario.persona
+        profile: usuario.profile
           ? {
-            id: usuario.persona.id,
-            nombre: usuario.persona.nombre,
-            apellido: usuario.persona.apellido,
-            documentoIdentidad: usuario.persona.documentoIdentidad,
-            fechaNacimiento: usuario.persona.fechaNacimiento,
-            tipoDocumento: usuario.persona.tipoDocumento
+            id: usuario.profile.id,
+            nombre: usuario.profile.nombre,
+            apellido: usuario.profile.apellido,
+            documentoIdentidad: usuario.profile.documentoIdentidad,
+            fechaNacimiento: usuario.profile.fechaNacimiento,
+            tipoDocumento: usuario.profile.tipoDocumento
               ? {
-                id: usuario.persona.tipoDocumento.id,
-                nombre: usuario.persona.tipoDocumento.nombre,
-                valor: usuario.persona.tipoDocumento.valor,
+                id: usuario.profile.tipoDocumento.id,
+                nombre: usuario.profile.tipoDocumento.nombre,
+                valor: usuario.profile.tipoDocumento.valor,
               }
               : null,
           }
@@ -87,37 +87,37 @@ export class UsuarioService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      let persona;
-      if (dto.idPersona) {
-        persona = await queryRunner.manager.findOne(Persona, {
-          where: { id: dto.idPersona },
+      let profile;
+      if (dto.idProfile) {
+        profile = await queryRunner.manager.findOne(Profile, {
+          where: { id: dto.idProfile },
         });
-        if (!persona) throw new NotFoundException('Persona no encontrada');
-      } else if (dto.persona) {
+        if (!profile) throw new NotFoundException('Profile no encontrada');
+      } else if (dto.profile) {
         // Buscar tipo documento si se está creando una persona
         const tipoDocumento = await queryRunner.manager.findOne(Multitabla, {
-          where: { id: dto.persona.idTipoDocumentoIdentidad },
+          where: { id: dto.profile.idTipoDocumentoIdentidad },
         });
         if (!tipoDocumento)
           throw new BadRequestException('Tipo de documento no encontrado');
 
-        persona = queryRunner.manager.create(Persona, {
-          ...dto.persona,
+        profile = queryRunner.manager.create(Profile, {
+          ...dto.profile,
           tipoDocumento,
           usuarioRegistro,
           ipRegistro: ip,
         });
-        persona = await queryRunner.manager.save(Persona, persona);
+        profile = await queryRunner.manager.save(Profile, profile);
       } else {
         throw new BadRequestException(
-          'Debe enviar idPersona o un objeto persona para crear el usuario',
+          'Debe enviar idProfile o un objeto persona para crear el usuario',
         );
       }
 
       const usuario = queryRunner.manager.create(Usuario, {
         login: dto.login,
         password: bcrypt.hashSync(dto.password, 10),
-        persona,
+        profile,
         usuarioRegistro,
         ipRegistro: ip,
       });
@@ -142,7 +142,7 @@ export class UsuarioService {
       // Volver a cargar el usuario con relaciones actualizadas
       const usuarioCompleto = await queryRunner.manager.findOne(Usuario, {
         where: { id: saved.id },
-        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
+        relations: ['profile', 'profile.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       await queryRunner.commitTransaction();
@@ -154,18 +154,18 @@ export class UsuarioService {
       const usuarioDto: UsuarioResponseDto = {
         id: usuarioCompleto.id,
         login: usuarioCompleto.login,
-        persona: usuarioCompleto.persona
+        profile: usuarioCompleto.profile
           ? {
-            id: usuarioCompleto.persona.id,
-            nombre: usuarioCompleto.persona.nombre,
-            apellido: usuarioCompleto.persona.apellido,
-            documentoIdentidad: usuarioCompleto.persona.documentoIdentidad,
-            fechaNacimiento: usuarioCompleto.persona.fechaNacimiento,
-            tipoDocumento: usuarioCompleto.persona.tipoDocumento
+            id: usuarioCompleto.profile.id,
+            nombre: usuarioCompleto.profile.nombre,
+            apellido: usuarioCompleto.profile.apellido,
+            documentoIdentidad: usuarioCompleto.profile.documentoIdentidad,
+            fechaNacimiento: usuarioCompleto.profile.fechaNacimiento,
+            tipoDocumento: usuarioCompleto.profile.tipoDocumento
               ? {
-                id: usuarioCompleto.persona.tipoDocumento.id,
-                nombre: usuarioCompleto.persona.tipoDocumento.nombre,
-                valor: usuarioCompleto.persona.tipoDocumento.valor,
+                id: usuarioCompleto.profile.tipoDocumento.id,
+                nombre: usuarioCompleto.profile.tipoDocumento.nombre,
+                valor: usuarioCompleto.profile.tipoDocumento.valor,
               }
               : null,
           }
@@ -201,7 +201,7 @@ export class UsuarioService {
       // 1. Obtener usuario existente
       const usuarioExistente = await queryRunner.manager.findOne(Usuario, {
         where: { id },
-        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
+        relations: ['profile', 'profile.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       if (!usuarioExistente) {
@@ -209,34 +209,34 @@ export class UsuarioService {
       }
 
       // 2. Manejo de persona
-      let persona = usuarioExistente.persona;
+      let profile = usuarioExistente.profile;
 
-      if (dto.idPersona) {
-        persona = await this.personaRepository.findOne({
-          where: { id: dto.idPersona, activo: true, eliminado: false },
+      if (dto.idProfile) {
+        profile = await this.profileRepository.findOne({
+          where: { id: dto.idProfile, activo: true, eliminado: false },
         });
-        if (!persona) {
-          throw new NotFoundException('Persona no encontrada');
+        if (!profile) {
+          throw new NotFoundException('Profile no encontrada');
         }
-      } else if (dto.persona) {
+      } else if (dto.profile) {
         const tipoDocumento = await queryRunner.manager.findOne(Multitabla, {
-          where: { id: dto.persona.idTipoDocumentoIdentidad },
+          where: { id: dto.profile.idTipoDocumentoIdentidad },
         });
         if (!tipoDocumento)
           throw new BadRequestException('Tipo de documento no encontrado');
 
-        persona = queryRunner.manager.create(Persona, {
-          ...dto.persona,
+        profile = queryRunner.manager.create(Profile, {
+          ...dto.profile,
           tipoDocumento,
           usuarioRegistro: usuarioModificacion,
           ipRegistro: ip,
         });
-        persona = await queryRunner.manager.save(Persona, persona);
+        profile = await queryRunner.manager.save(Profile, profile);
       }
 
       // 3. Actualizar usuario
       usuarioExistente.login = dto.login ?? usuarioExistente.login;
-      usuarioExistente.persona = persona;
+      usuarioExistente.profile = profile;
       usuarioExistente.usuarioModificacion = usuarioModificacion;
       usuarioExistente.ipModificacion = ip;
 
@@ -273,7 +273,7 @@ export class UsuarioService {
       // 5. Recargar usuario completo
       const usuarioCompleto = await queryRunner.manager.findOne(Usuario, {
         where: { id: usuarioExistente.id },
-        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
+        relations: ['profile', 'profile.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       await queryRunner.commitTransaction();
@@ -289,18 +289,18 @@ export class UsuarioService {
         {
           id: usuarioCompleto.id,
           login: usuarioCompleto.login,
-          persona: usuarioCompleto.persona
+          profile: usuarioCompleto.profile
             ? {
-              id: usuarioCompleto.persona.id,
-              nombre: usuarioCompleto.persona.nombre,
-              apellido: usuarioCompleto.persona.apellido,
-              documentoIdentidad: usuarioCompleto.persona.documentoIdentidad,
-              fechaNacimiento: usuarioCompleto.persona.fechaNacimiento,
-              tipoDocumento: usuarioCompleto.persona.tipoDocumento
+              id: usuarioCompleto.profile.id,
+              nombre: usuarioCompleto.profile.nombre,
+              apellido: usuarioCompleto.profile.apellido,
+              documentoIdentidad: usuarioCompleto.profile.documentoIdentidad,
+              fechaNacimiento: usuarioCompleto.profile.fechaNacimiento,
+              tipoDocumento: usuarioCompleto.profile.tipoDocumento
                 ? {
-                  id: usuarioCompleto.persona.tipoDocumento.id,
-                  nombre: usuarioCompleto.persona.tipoDocumento.nombre,
-                  valor: usuarioCompleto.persona.tipoDocumento.valor,
+                  id: usuarioCompleto.profile.tipoDocumento.id,
+                  nombre: usuarioCompleto.profile.tipoDocumento.nombre,
+                  valor: usuarioCompleto.profile.tipoDocumento.valor,
                 }
                 : null,
             }
@@ -331,7 +331,7 @@ export class UsuarioService {
     try {
       const usuario = await this.usuarioRepository.findOne({
         where: { id, activo: true, eliminado: false },
-        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
+        relations: ['profile', 'profile.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       if (!usuario) {
@@ -341,18 +341,18 @@ export class UsuarioService {
       const usuarioDto: UsuarioResponseDto = {
         id: usuario.id,
         login: usuario.login,
-        persona: usuario.persona
+        profile: usuario.profile
           ? {
-            id: usuario.persona.id,
-            nombre: usuario.persona.nombre,
-            apellido: usuario.persona.apellido,
-            documentoIdentidad: usuario.persona.documentoIdentidad,
-            fechaNacimiento: usuario.persona.fechaNacimiento,
-            tipoDocumento: usuario.persona.tipoDocumento
+            id: usuario.profile.id,
+            nombre: usuario.profile.nombre,
+            apellido: usuario.profile.apellido,
+            documentoIdentidad: usuario.profile.documentoIdentidad,
+            fechaNacimiento: usuario.profile.fechaNacimiento,
+            tipoDocumento: usuario.profile.tipoDocumento
               ? {
-                id: usuario.persona.tipoDocumento.id,
-                nombre: usuario.persona.tipoDocumento.nombre,
-                valor: usuario.persona.tipoDocumento.valor,
+                id: usuario.profile.tipoDocumento.id,
+                nombre: usuario.profile.tipoDocumento.nombre,
+                valor: usuario.profile.tipoDocumento.valor,
               }
               : null,
           }
@@ -460,7 +460,7 @@ export class UsuarioService {
 
       const usuario = await queryRunner.manager.findOne(Usuario, {
         where: { id: idUsuario, activo: true, eliminado: false },
-        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
+        relations: ['profile', 'profile.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       if (!usuario)
@@ -503,7 +503,7 @@ export class UsuarioService {
       // Recargar usuario actualizado
       const usuarioCompleto = await queryRunner.manager.findOne(Usuario, {
         where: { id: idUsuario },
-        relations: ['persona', 'persona.tipoDocumento', 'roles', 'roles.rol'],
+        relations: ['profile', 'profile.tipoDocumento', 'roles', 'roles.rol'],
       });
 
       await queryRunner.commitTransaction();
@@ -515,18 +515,18 @@ export class UsuarioService {
       const usuarioDto: UsuarioResponseDto = {
         id: usuarioCompleto.id,
         login: usuarioCompleto.login,
-        persona: usuarioCompleto.persona
+        profile: usuarioCompleto.profile
           ? {
-            id: usuarioCompleto.persona.id,
-            nombre: usuarioCompleto.persona.nombre,
-            apellido: usuarioCompleto.persona.apellido,
-            documentoIdentidad: usuarioCompleto.persona.documentoIdentidad,
-            fechaNacimiento: usuarioCompleto.persona.fechaNacimiento,
-            tipoDocumento: usuarioCompleto.persona.tipoDocumento
+            id: usuarioCompleto.profile.id,
+            nombre: usuarioCompleto.profile.nombre,
+            apellido: usuarioCompleto.profile.apellido,
+            documentoIdentidad: usuarioCompleto.profile.documentoIdentidad,
+            fechaNacimiento: usuarioCompleto.profile.fechaNacimiento,
+            tipoDocumento: usuarioCompleto.profile.tipoDocumento
               ? {
-                id: usuarioCompleto.persona.tipoDocumento.id,
-                nombre: usuarioCompleto.persona.tipoDocumento.nombre,
-                valor: usuarioCompleto.persona.tipoDocumento.valor,
+                id: usuarioCompleto.profile.tipoDocumento.id,
+                nombre: usuarioCompleto.profile.tipoDocumento.nombre,
+                valor: usuarioCompleto.profile.tipoDocumento.valor,
               }
               : null,
           }
@@ -612,3 +612,6 @@ export class UsuarioService {
 
 
 }
+
+
+

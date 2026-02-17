@@ -9,45 +9,45 @@ import {
 } from '@nestjs/common';
 import { Auth, GetUsuario } from 'src/auth/decorators';
 import { Usuario } from '../entities/usuario.entity';
-import { PersonaService } from '../services/persona.service';
-import { CreatePersonaDto, UpdatePersonaDto } from '../dto/persona.dto';
+import { ProfileCatalogService } from '../services/persona.service';
+import { CreateProfileDto, UpdateProfileDto } from '../dto/persona.dto';
 import { GetClientIp } from 'src/auth/decorators/get-client-ip.decorator';
 
-@Controller('persona')
-export class PersonaController {
-  constructor(private readonly personaService: PersonaService) {}
+@Controller('profile-catalog')
+export class ProfileCatalogController {
+  constructor(private readonly profileCatalogService: ProfileCatalogService) {}
 
   @Get()
   @Auth()
   findAll() {
-    return this.personaService.findAll();
+    return this.profileCatalogService.findAll();
   }
 
   @Get(':id')
   @Auth()
   findOne(@Param('id') id: number) {
-    return this.personaService.findOne(id);
+    return this.profileCatalogService.findOne(id);
   }
 
   @Post()
   @Auth()
   create(
-    @Body() dto: CreatePersonaDto,
+    @Body() dto: CreateProfileDto,
     @GetUsuario() user: Usuario,
     @GetClientIp() ip: string,
   ) {
-    return this.personaService.create(dto, user.login, ip);
+    return this.profileCatalogService.create(dto, user.login, ip);
   }
 
   @Patch(':id')
   @Auth()
   update(
     @Param('id') id: number,
-    @Body() dto: UpdatePersonaDto,
+    @Body() dto: UpdateProfileDto,
     @GetUsuario() user: Usuario,
     @GetClientIp() ip: string,
   ) {
-    return this.personaService.update(id, dto, user.login, ip);
+    return this.profileCatalogService.update(id, dto, user.login, ip);
   }
 
   @Delete(':id')
@@ -57,7 +57,7 @@ export class PersonaController {
     @GetUsuario() user: Usuario,
     @GetClientIp() ip: string,
   ) {
-    return this.personaService.delete(id, user.login, ip);
+    return this.profileCatalogService.delete(id, user.login, ip);
   }
 
   @Post('delete-all')
@@ -67,6 +67,6 @@ export class PersonaController {
     @GetUsuario() user: Usuario,
     @GetClientIp() ip: string,
   ) {
-    return this.personaService.deleteMany(ids, user.login, ip);
+    return this.profileCatalogService.deleteMany(ids, user.login, ip);
   }
 }

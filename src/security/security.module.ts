@@ -12,7 +12,7 @@ import { Rol } from './entities/rol.entity';
 import { AuthModule } from 'src/auth/auth.module';
 import { Usuario } from './entities/usuario.entity';
 import { Accion } from './entities/accion.entity';
-import { Persona } from './entities/persona.entity';
+import { Profile } from './entities/profile.entity';
 import { UsuarioRol } from './entities/usuario-rol.entity';
 import { Opcion } from './entities/opcion.entity';
 import { Modulo } from './entities/modulo.entity';
@@ -25,8 +25,8 @@ import { AccionController } from './controllers/accion.controller';
 import { ModuloController } from './controllers/modulo.controller';
 import { UsuarioService } from './services/usuario.service';
 import { UsuarioController } from './controllers/usuario.controller';
-import { PersonaService } from './services/persona.service';
-import { PersonaController } from './controllers/persona.controller';
+import { ProfileCatalogService } from './services/persona.service';
+import { ProfileCatalogController } from './controllers/persona.controller';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import { UsuarioCanal } from './entities/usuario-canal.entity';
 import { OtpVerificacion } from './entities/otp-verificacion.entity';
@@ -35,6 +35,7 @@ import { OtpVerificacionService } from './services/otp-verificacion.service';
 import { WhatsappLinkService } from './services/whatsapp-link.service';
 import { ProfileController } from './controllers/profile.controller';
 import { ProfileService } from './services/profile.service';
+import { ReniecData } from './entities/reniec-data.entity';
 
 @Module({
   imports: [
@@ -45,7 +46,8 @@ import { ProfileService } from './services/profile.service';
       Opcion,
       Permiso,
       Multitabla,
-      Persona,
+      Profile,
+      ReniecData,
       Rol,
       UsuarioRol,
       Usuario,
@@ -79,7 +81,7 @@ import { ProfileService } from './services/profile.service';
     PermisoController, 
     RolController,
     UsuarioController,
-    PersonaController,
+    ProfileCatalogController,
     ProfileWhatsappController,
     ProfileController,
   ],
@@ -90,7 +92,7 @@ import { ProfileService } from './services/profile.service';
     PermisoService, 
     RolService,
     UsuarioService,
-    PersonaService,
+    ProfileCatalogService,
     OtpVerificacionService,
     WhatsappLinkService,
     ProfileService,
