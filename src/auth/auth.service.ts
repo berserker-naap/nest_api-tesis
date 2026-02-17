@@ -372,7 +372,7 @@ export class AuthService {
     };
   }
 
-  private resolveValidationStatus(
+  resolveValidationStatus(
     idTipoDocumentoIdentidad: number,
     nombresProfile: string,
     apellidosProfile: string | null,

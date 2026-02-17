@@ -27,7 +27,7 @@ import { UsuarioService } from './services/usuario.service';
 import { UsuarioController } from './controllers/usuario.controller';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import { OtpVerificacion } from './entities/otp-verificacion.entity';
-import { ProfileWhatsappController } from './controllers/profile-whatsapp.controller';
+import { ProfilePhoneController } from './controllers/profile-phone.controller';
 import { OtpVerificacionService } from './services/otp-verificacion.service';
 import { WhatsappLinkService } from './services/whatsapp-link.service';
 import { ProfileController } from './controllers/profile.controller';
@@ -36,6 +36,7 @@ import { ReniecData } from './entities/reniec-data.entity';
 import { BlobStorageService } from 'src/common/services/blob-storage.service';
 import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { ProfilePhone } from './entities/profile-phone.entity';
+import { ProfilePhoneService } from './services/profile-phone.service';
 
 @Module({
   imports: [
@@ -81,7 +82,7 @@ import { ProfilePhone } from './entities/profile-phone.entity';
     PermisoController, 
     RolController,
     UsuarioController,
-    ProfileWhatsappController,
+    ProfilePhoneController,
     ProfileController,
   ],
   providers: [
@@ -94,6 +95,7 @@ import { ProfilePhone } from './entities/profile-phone.entity';
     OtpVerificacionService,
     WhatsappLinkService,
     ProfileService,
+    ProfilePhoneService,
     BlobStorageService,
     WhatsappSenderService,
   ],

@@ -1,4 +1,8 @@
-﻿import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
@@ -11,7 +15,6 @@ import { ReniecData } from '../entities/reniec-data.entity';
 import { Usuario } from '../entities/usuario.entity';
 import { Repository } from 'typeorm';
 import {
-  ProfilePhoneMeResponseDto,
   ProfileMeResponseDto,
   UpdateProfileDataDto,
 } from '../dto/profile.dto';
@@ -54,206 +57,9 @@ export class ProfileService {
     );
   }
 
-  buildPhoneParts(countryCode: string, phone: string): {
-    countryCode: string;
-    phoneNumber: string;
-    internationalPhoneNumber: string;
-  } {
-    const normalizedCountry = countryCode.replace(/[^\d]/g, '');
-    if (!/^\d{1,4}$/.test(normalizedCountry)) {
-      throw new BadRequestException('Codigo de pais invalido');
-    }
-
-    const normalizedPhone = phone.replace(/[^\d]/g, '');
-    if (!/^\d{6,15}$/.test(normalizedPhone)) {
-      throw new BadRequestException('Telefono invalido');
-    }
-
-    return {
-      countryCode: `+${normalizedCountry}`,
-      phoneNumber: normalizedPhone,
-      internationalPhoneNumber: `+${normalizedCountry}${normalizedPhone}`,
-    };
-  }
-
-  normalizeIncomingWhatsappPhone(phone: string): string {
-    const cleaned = phone.trim().replace(/[^\d+]/g, '');
-    const internationalPhoneNumber = cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
-    if (!/^\+\d{8,19}$/.test(internationalPhoneNumber)) {
-      throw new BadRequestException('Telefono WhatsApp invalido');
-    }
-    return internationalPhoneNumber;
-  }
-
-  async getUsuarioConProfile(usuarioId: number): Promise<Usuario> {
-    const usuario = await this.usuarioRepository.findOne({
-      where: { id: usuarioId, activo: true, eliminado: false },
-      relations: ['profile'],
-    });
-
-    if (!usuario) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
-
-    if (!usuario.profile) {
-      throw new NotFoundException('La cuenta no tiene un perfil asociado');
-    }
-
-    return usuario;
-  }
-
-  async createOrRefreshProfilePhone(
+  async me(
     usuarioRequest: Usuario,
-    countryCode: string,
-    phone: string,
-    ip: string,
-  ): Promise<{
-    usuario: Usuario;
-    profilePhone: ProfilePhone;
-    internationalPhoneNumber: string;
-  }> {
-    const usuario = await this.getUsuarioConProfile(usuarioRequest.id);
-    const phoneParts = this.buildPhoneParts(countryCode, phone);
-
-    const linkedInOtherProfile = await this.profilePhoneRepository.findOne({
-      where: {
-        internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['profile'],
-    });
-
-    if (linkedInOtherProfile && linkedInOtherProfile.profile.id !== usuario.profile!.id) {
-      throw new BadRequestException('Ese numero ya esta vinculado a otro perfil');
-    }
-
-    let profilePhone = await this.profilePhoneRepository.findOne({
-      where: {
-        profile: { id: usuario.profile!.id },
-        internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['profile'],
-    });
-
-    if (!profilePhone) {
-      profilePhone = this.profilePhoneRepository.create({
-        profile: usuario.profile!,
-        countryCode: phoneParts.countryCode,
-        phoneNumber: phoneParts.phoneNumber,
-        internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-        verified: false,
-        fechaVerificacion: null,
-        usuarioRegistro: usuario.login,
-        ipRegistro: ip,
-      });
-    } else {
-      profilePhone.countryCode = phoneParts.countryCode;
-      profilePhone.phoneNumber = phoneParts.phoneNumber;
-      profilePhone.verified = false;
-      profilePhone.fechaVerificacion = null;
-      profilePhone.usuarioModificacion = usuario.login;
-      profilePhone.ipModificacion = ip;
-      profilePhone.fechaModificacion = new Date();
-    }
-
-    await this.profilePhoneRepository.save(profilePhone);
-    return {
-      usuario,
-      profilePhone,
-      internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-    };
-  }
-
-  async getProfilePhoneForUsuario(
-    usuarioRequest: Usuario,
-    countryCode: string,
-    phone: string,
-  ): Promise<{
-    usuario: Usuario;
-    profilePhone: ProfilePhone;
-    internationalPhoneNumber: string;
-  }> {
-    const usuario = await this.getUsuarioConProfile(usuarioRequest.id);
-    const phoneParts = this.buildPhoneParts(countryCode, phone);
-
-    const profilePhone = await this.profilePhoneRepository.findOne({
-      where: {
-        profile: { id: usuario.profile!.id },
-        internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['profile'],
-    });
-
-    if (!profilePhone) {
-      throw new NotFoundException('No existe solicitud de enlace para ese numero');
-    }
-
-    return {
-      usuario,
-      profilePhone,
-      internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-    };
-  }
-
-  async markProfilePhoneVerified(
-    profilePhone: ProfilePhone,
-    usuarioLogin: string,
-    ip: string,
-  ): Promise<void> {
-    profilePhone.verified = true;
-    profilePhone.fechaVerificacion = new Date();
-    profilePhone.usuarioModificacion = usuarioLogin;
-    profilePhone.ipModificacion = ip;
-    profilePhone.fechaModificacion = new Date();
-    await this.profilePhoneRepository.save(profilePhone);
-  }
-
-  async unlinkProfilePhone(
-    profilePhone: ProfilePhone,
-    usuarioLogin: string,
-    ip: string,
-  ): Promise<void> {
-    profilePhone.verified = false;
-    profilePhone.activo = false;
-    profilePhone.eliminado = true;
-    profilePhone.fechaEliminacion = new Date();
-    profilePhone.usuarioEliminacion = usuarioLogin;
-    profilePhone.ipEliminacion = ip;
-    await this.profilePhoneRepository.save(profilePhone);
-  }
-
-  async findVerifiedUserByWhatsapp(phone: string): Promise<Usuario | null> {
-    const normalized = this.normalizeIncomingWhatsappPhone(phone);
-    const profilePhone = await this.profilePhoneRepository.findOne({
-      where: {
-        internationalPhoneNumber: normalized,
-        verified: true,
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['profile'],
-    });
-
-    if (!profilePhone) {
-      return null;
-    }
-
-    return this.usuarioRepository.findOne({
-      where: {
-        profile: { id: profilePhone.profile.id },
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['profile'],
-    });
-  }
-
-  async me(usuarioRequest: Usuario): Promise<StatusResponse<ProfileMeResponseDto | null>> {
+  ): Promise<StatusResponse<ProfileMeResponseDto | null>> {
     try {
       const usuario = await this.usuarioRepository.findOne({
         where: { id: usuarioRequest.id, activo: true, eliminado: false },
@@ -264,25 +70,14 @@ export class ProfileService {
         throw new NotFoundException('Usuario no encontrado');
       }
 
-      const profilePhones = usuario.profile
-        ? await this.profilePhoneRepository.find({
-            where: {
-              profile: { id: usuario.profile.id },
-              activo: true,
-              eliminado: false,
-            },
-            order: { fechaRegistro: 'DESC' },
-          })
-        : [];
-      const profilePhonesResponse: ProfilePhoneMeResponseDto[] = profilePhones.map((item) => ({
-        id: item.id,
-        countryCode: item.countryCode,
-        phoneNumber: item.phoneNumber,
-        internationalPhoneNumber: item.internationalPhoneNumber,
-        alias: item.alias,
-        verified: item.verified,
-        fechaVerificacion: item.fechaVerificacion,
-      }));
+      const profilePhones = await this.profilePhoneRepository.find({
+        where: {
+          profile: { id: usuario.profile!.id },
+          activo: true,
+          eliminado: false,
+        },
+        order: { fechaRegistro: 'DESC' },
+      });
 
       return new StatusResponse(
         true,
@@ -304,8 +99,17 @@ export class ProfileService {
                   }
                 : null,
               validacionEstado:
-                usuario.profile.validacionEstado ?? ProfileValidationStatus.PENDING,
-              profilePhones: profilePhonesResponse,
+                usuario.profile.validacionEstado ??
+                ProfileValidationStatus.PENDING,
+              profilePhones: profilePhones.map((item) => ({
+                id: item.id,
+                countryCode: item.countryCode,
+                phoneNumber: item.phoneNumber,
+                internationalPhoneNumber: item.internationalPhoneNumber,
+                alias: item.alias,
+                verified: item.verified,
+                fechaVerificacion: item.fechaVerificacion,
+              })),
             }
           : null,
       );
@@ -334,7 +138,11 @@ export class ProfileService {
       }
 
       const tipoDocumento = await this.multitablaRepository.findOne({
-        where: { id: dto.idTipoDocumentoIdentidad, activo: true, eliminado: false },
+        where: {
+          id: dto.idTipoDocumentoIdentidad,
+          activo: true,
+          eliminado: false,
+        },
       });
       if (!tipoDocumento) {
         throw new BadRequestException('Tipo de documento no encontrado');
@@ -351,11 +159,14 @@ export class ProfileService {
       profile.nombres = dto.nombres?.trim();
       profile.apellidos = dto.apellidos ? dto.apellidos?.trim() : null;
       profile.documentoIdentidad = dto.documentoIdentidad;
-      profile.fechaNacimiento = dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : null;
+      profile.fechaNacimiento = dto.fechaNacimiento
+        ? new Date(dto.fechaNacimiento)
+        : null;
       profile.tipoDocumento = tipoDocumento;
       const documento = (dto.documentoIdentidad ?? '').trim();
       if (tipoDocumento.id === 3 && /^\d{8}$/.test(documento)) {
-        const reniecIdentity = await this.authService.resolveReniecIdentity(documento);
+        const reniecIdentity =
+          await this.authService.resolveReniecIdentity(documento);
         if (!reniecIdentity) {
           profile.validacionEstado = ProfileValidationStatus.FAILED;
           profile.fechaVerificacion = null;
@@ -369,11 +180,11 @@ export class ProfileService {
               eliminado: false,
             },
           });
-          profile.validacionEstado = this.resolveValidationStatus(
+          profile.validacionEstado = this.authService.resolveValidationStatus(
+            tipoDocumento.id,
             profile.nombres,
             profile.apellidos,
-            reniecIdentity.nombres,
-            reniecIdentity.apellidos,
+            reniecIdentity,
           );
           profile.fechaVerificacion = new Date();
         }
@@ -409,11 +220,13 @@ export class ProfileService {
       });
     } catch (error) {
       const statusCode =
-        error instanceof BadRequestException || error instanceof NotFoundException
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
           ? error.getStatus()
           : 500;
       const message =
-        error instanceof BadRequestException || error instanceof NotFoundException
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
           ? error.message
           : 'Error al actualizar datos personales';
 
@@ -426,9 +239,10 @@ export class ProfileService {
     file: UploadedFile | undefined,
     ip: string,
   ): Promise<
-    StatusResponse<
-      Pick<ProfileMeResponseDto, 'fotoPerfilUrl' | 'nombreFotoPerfil' | 'fechaCargaFotoPerfil'> | null
-    >
+    StatusResponse<Pick<
+      ProfileMeResponseDto,
+      'fotoPerfilUrl' | 'nombreFotoPerfil' | 'fechaCargaFotoPerfil'
+    > | null>
   > {
     try {
       const usuario = await this.usuarioRepository.findOne({
@@ -452,7 +266,9 @@ export class ProfileService {
       }
 
       if (!file) {
-        throw new BadRequestException('Debe enviar una imagen en el campo "file"');
+        throw new BadRequestException(
+          'Debe enviar una imagen en el campo "file"',
+        );
       }
 
       if (!this.allowedProfilePhotoMimeTypes.has(file.mimetype.toLowerCase())) {
@@ -463,7 +279,9 @@ export class ProfileService {
 
       if (file.size > this.maxProfilePhotoSizeBytes) {
         const maxSizeMb = this.maxProfilePhotoSizeBytes / (1024 * 1024);
-        throw new BadRequestException(`La imagen supera el tamaño máximo permitido (${maxSizeMb}MB)`);
+        throw new BadRequestException(
+          `La imagen supera el tamaño máximo permitido (${maxSizeMb}MB)`,
+        );
       }
 
       const uploadResult = await this.blobStorageService.uploadProfileImage(
@@ -491,44 +309,18 @@ export class ProfileService {
       });
     } catch (error) {
       const statusCode =
-        error instanceof BadRequestException || error instanceof NotFoundException
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
           ? error.getStatus()
           : 500;
       const message =
-        error instanceof BadRequestException || error instanceof NotFoundException
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
           ? error.message
           : 'Error al actualizar foto de perfil';
 
       return new StatusResponse(false, statusCode, message, null);
     }
-  }
-
-
-  private resolveValidationStatus(
-    profileNombres: string,
-    profileApellidos: string | null,
-    reniecNombre: string,
-    reniecApellido: string,
-  ): ProfileValidationStatus {
-    const nombrePerfil = this.normalizeText(profileNombres);
-    const apellidoPerfil = this.normalizeText(profileApellidos ?? '');
-    const nombreReniec = this.normalizeText(reniecNombre);
-    const apellidoReniec = this.normalizeText(reniecApellido);
-
-    if (nombrePerfil === nombreReniec && apellidoPerfil === apellidoReniec) {
-      return ProfileValidationStatus.VERIFIED;
-    }
-
-    return ProfileValidationStatus.MISMATCH;
-  }
-
-  private normalizeText(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toUpperCase();
   }
 
   private async resolvePhotoUrl(profile: Profile): Promise<string | null> {
@@ -544,7 +336,3 @@ export class ProfileService {
     }
   }
 }
-
-
-
-

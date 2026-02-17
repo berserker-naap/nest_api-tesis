@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 
-export class RequestWhatsappLinkDto {
+export class CreateProfilePhoneDto {
   @IsString()
   @IsNotEmpty()
   countryCode!: string;
@@ -8,9 +8,13 @@ export class RequestWhatsappLinkDto {
   @IsString()
   @IsNotEmpty()
   phone!: string;
+
+  @IsOptional()
+  @IsString()
+  alias?: string | null;
 }
 
-export class ConfirmWhatsappLinkDto {
+export class VerifyProfilePhoneOtpDto {
   @IsString()
   @IsNotEmpty()
   countryCode!: string;
@@ -22,18 +26,4 @@ export class ConfirmWhatsappLinkDto {
   @IsString()
   @Length(6, 6)
   code!: string;
-}
-
-export class UnlinkWhatsappDto {
-  @IsString()
-  @IsNotEmpty()
-  countryCode!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  phone!: string;
-
-  @IsOptional()
-  @IsString()
-  motivo?: string;
 }
