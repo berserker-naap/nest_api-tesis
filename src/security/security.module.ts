@@ -25,8 +25,6 @@ import { AccionController } from './controllers/accion.controller';
 import { ModuloController } from './controllers/modulo.controller';
 import { UsuarioService } from './services/usuario.service';
 import { UsuarioController } from './controllers/usuario.controller';
-import { ProfileCatalogService } from './services/persona.service';
-import { ProfileCatalogController } from './controllers/persona.controller';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import { UsuarioCanal } from './entities/usuario-canal.entity';
 import { OtpVerificacion } from './entities/otp-verificacion.entity';
@@ -81,7 +79,6 @@ import { ReniecData } from './entities/reniec-data.entity';
     PermisoController, 
     RolController,
     UsuarioController,
-    ProfileCatalogController,
     ProfileWhatsappController,
     ProfileController,
   ],
@@ -92,7 +89,6 @@ import { ReniecData } from './entities/reniec-data.entity';
     PermisoService, 
     RolService,
     UsuarioService,
-    ProfileCatalogService,
     OtpVerificacionService,
     WhatsappLinkService,
     ProfileService,

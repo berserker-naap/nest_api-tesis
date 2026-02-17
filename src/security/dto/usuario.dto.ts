@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested, IsInt, MinLength } from 'class-validator';
-import { CreateProfileDto, ProfileResponseDto } from './persona.dto';
+import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested, IsInt, MinLength, IsDate } from 'class-validator';
+import { IsNullable } from 'src/common/decorators/is-nullable.decorator';
 
 export class RolResponseDto {
   @IsInt()
@@ -102,4 +102,67 @@ export class AsignarUsuarioRolesDto {
   @ValidateNested({ each: true })
   @Type(() => RolIdDto)
   roles!: RolIdDto[];
+}
+
+
+
+export class CreateProfileDto {
+  @IsString()
+  @IsNotEmpty()
+  nombres!: string;
+
+  @IsNullable()
+  @IsString()
+  apellidos!: string | null;
+
+  @IsInt()
+  idTipoDocumentoIdentidad!: number;
+
+  @IsNullable()
+  @IsString()
+  documentoIdentidad!: string | null;
+
+  @IsNullable()
+  @Type(() => Date)
+  @IsDate()
+  fechaNacimiento!: Date | null;
+}
+
+
+export class ProfileTipoDocumentoResponseDto {
+  @IsInt()
+  id!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  nombre!: string;
+
+  @IsNullable()
+  @IsString()
+  valor!: string | null;
+}
+
+export class ProfileResponseDto {
+  @IsInt()
+  id!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  nombres!: string;
+
+  @IsNullable()
+  @IsString()
+  apellidos!: string | null;
+
+  @IsNullable()
+  @IsString()
+  documentoIdentidad!: string | null;
+
+  @IsNullable()
+  @Type(() => Date)
+  @IsDate()
+  fechaNacimiento!: Date | null;
+
+  @IsNullable()
+  tipoDocumento!: ProfileTipoDocumentoResponseDto | null;
 }

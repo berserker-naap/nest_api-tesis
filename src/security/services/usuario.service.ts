@@ -3,6 +3,7 @@ import {
   CreateUsuarioDto,
   UpdateUsuarioDto,
   UsuarioResponseDto,
+  ProfileResponseDto,
 } from '../dto/usuario.dto';
 import {
   BadRequestException,
