@@ -22,12 +22,12 @@ export class UpdateProfileDataDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  nombre!: string;
+  nombres!: string;
 
   @IsNullable()
   @IsString()
   @MaxLength(100)
-  apellido!: string | null;
+  apellidos!: string | null;
 
   @IsInt()
   idTipoDocumentoIdentidad!: number;
@@ -56,12 +56,12 @@ export class ProfileMeResponseDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  nombre!: string;
+  nombres!: string;
 
   @IsNullable()
   @IsString()
   @MaxLength(100)
-  apellido!: string | null;
+  apellidos!: string | null;
 
   @IsNullable()
   @IsString()

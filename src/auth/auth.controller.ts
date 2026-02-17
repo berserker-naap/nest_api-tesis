@@ -28,7 +28,7 @@ export class AuthController {
     return this.authService.checkAuthStatus( user );
   }
 
-  @Post('register')
+  @Post('register-single')
   createUsuario(
     @Body() registerUsuarioRequestDto: RegisterUsuarioRequestDto,
     @GetClientIp() ip: string,

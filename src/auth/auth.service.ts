@@ -18,7 +18,9 @@ import {
   RegisterUsuarioRequestDto,
   LoginRequestDto,
   SessionResponseDto,
+  ValidarDniResponseDto,
 } from './dto/auth.dto';
+import { ReniecExternalResponseDto } from './dto/reniec-external-response.dto';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { Permiso } from 'src/security/entities/permiso.entity';
 import { UsuarioRol } from 'src/security/entities/usuario-rol.entity';
@@ -101,7 +103,7 @@ export class AuthService {
       const { profile: profileDto } = registerUsuarioRequestDto;
 
       const usuarioExistente = await queryRunner.manager.findOne(Usuario, {
-        where: { login: registerUsuarioRequestDto.login },
+        where: { login: registerUsuarioRequestDto.login, activo: true, eliminado: false },
       });
       if (usuarioExistente) {
         throw new BadRequestException('Usted ya cuenta con una cuenta activa, si no recuerda su contraseña porfavor dele clic a olvide mi contraseña');
@@ -156,8 +158,8 @@ export class AuthService {
 
         profileSaved.validacionEstado = this.resolveValidationStatus(
           profileDto.idTipoDocumentoIdentidad,
-          profileDto.nombre,
-          profileDto.apellido ?? null,
+          profileDto.nombres,
+          profileDto.apellidos ?? null,
           validacionDocumento.reniecIdentity ?? null,
         );
         profileSaved.fechaVerificacion =
@@ -173,15 +175,15 @@ export class AuthService {
         profileSaved = await queryRunner.manager.save(Profile, profileSaved);
       } else {
         const profile = queryRunner.manager.create(Profile, {
-          nombre: profileDto.nombre,
-          apellido: profileDto.apellido ?? null,
+          nombres: profileDto.nombres,
+          apellidos: profileDto.apellidos ?? null,
           tipoDocumento,
           documentoIdentidad,
           fechaNacimiento: null,
           validacionEstado: this.resolveValidationStatus(
             profileDto.idTipoDocumentoIdentidad,
-            profileDto.nombre,
-            profileDto.apellido ?? null,
+            profileDto.nombres,
+            profileDto.apellidos ?? null,
             validacionDocumento.reniecIdentity ?? null,
           ),
           fechaVerificacion:
@@ -245,7 +247,7 @@ export class AuthService {
     }
   }
 
-  async validarDni(numeroDocumento: string): Promise<StatusResponse<any>> {
+  async validarDni(numeroDocumento: string): Promise<StatusResponse<ValidarDniResponseDto | null>> {
     try {
       const numero = numeroDocumento.trim();
       if (!/^\d{8}$/.test(numero)) {
@@ -258,11 +260,10 @@ export class AuthService {
       }
 
       return new StatusResponse(true, 200, 'DNI validado', {
-        numeroDocumento: reniecIdentity.numeroDocumento,
         nombres: reniecIdentity.nombres,
         apellidos: reniecIdentity.apellidos,
-        apellidoPaterno: reniecIdentity.apellidoPaterno,
-        apellidoMaterno: reniecIdentity.apellidoMaterno,
+        idTipoDocumentoIdentidad: this.TIPO_DOC_DNI,
+        documentoIdentidad: reniecIdentity.numeroDocumento,
       });
     } catch (_) {
       return new StatusResponse(false, 500, 'Error al validar DNI', null);
@@ -330,7 +331,10 @@ export class AuthService {
       };
     }
 
-    const data = await this.fetchDocumentoExterno(this.TIPO_DOC_DNI, numero);
+    const data = (await this.fetchDocumentoExterno(
+      this.TIPO_DOC_DNI,
+      numero,
+    )) as ReniecExternalResponseDto | null;
     if (!data) {
       return null;
     }
@@ -340,9 +344,9 @@ export class AuthService {
       return null;
     }
 
-    const nombres = String(data?.first_name ?? data?.nombres ?? '').trim();
-    const apellidoPaterno = String(data?.first_last_name ?? data?.apellido_paterno ?? '').trim();
-    const apellidoMaterno = String(data?.second_last_name ?? data?.apellido_materno ?? '').trim();
+    const nombres = String(data?.first_name ?? '').trim();
+    const apellidoPaterno = String(data?.first_last_name ?? '').trim();
+    const apellidoMaterno = String(data?.second_last_name ?? '').trim();
     const apellidos = [apellidoPaterno, apellidoMaterno]
       .filter((x) => !!x)
       .join(' ');
@@ -370,8 +374,8 @@ export class AuthService {
 
   private resolveValidationStatus(
     idTipoDocumentoIdentidad: number,
-    nombreProfile: string,
-    apellidoProfile: string | null,
+    nombresProfile: string,
+    apellidosProfile: string | null,
     reniecIdentity: ResolvedReniecIdentity | null,
   ): ProfileValidationStatus {
     if (idTipoDocumentoIdentidad !== this.TIPO_DOC_DNI) {
@@ -381,8 +385,8 @@ export class AuthService {
       return ProfileValidationStatus.FAILED;
     }
 
-    const nombrePerfil = this.normalizeText(nombreProfile);
-    const apellidoPerfil = this.normalizeText(apellidoProfile ?? '');
+    const nombrePerfil = this.normalizeText(nombresProfile);
+    const apellidoPerfil = this.normalizeText(apellidosProfile ?? '');
     const nombreReniec = this.normalizeText(reniecIdentity.nombres);
     const apellidoReniec = this.normalizeText(reniecIdentity.apellidos);
 
@@ -629,7 +633,6 @@ export class AuthService {
   }
 
 }
-
 
 
 

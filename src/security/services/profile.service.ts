@@ -43,8 +43,8 @@ export class ProfileService {
         'Perfil obtenido',
         usuario.profile
           ? {
-              nombre: usuario.profile.nombre,
-              apellido: usuario.profile.apellido,
+              nombres: usuario.profile.nombres,
+              apellidos: usuario.profile.apellidos,
               documentoIdentidad: usuario.profile.documentoIdentidad,
               fechaNacimiento: usuario.profile.fechaNacimiento,
               tipoDocumento: usuario.profile.tipoDocumento
@@ -97,8 +97,8 @@ export class ProfileService {
         throw new NotFoundException('Perfil no encontrado');
       }
 
-      profile.nombre = dto.nombre?.trim();
-      profile.apellido = dto.apellido ? dto.apellido?.trim() : null;
+      profile.nombres = dto.nombres?.trim();
+      profile.apellidos = dto.apellidos ? dto.apellidos?.trim() : null;
       profile.documentoIdentidad = dto.documentoIdentidad;
       profile.fechaNacimiento = dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : null;
       profile.tipoDocumento = tipoDocumento;
@@ -119,8 +119,8 @@ export class ProfileService {
             },
           });
           profile.validacionEstado = this.resolveValidationStatus(
-            profile.nombre,
-            profile.apellido,
+            profile.nombres,
+            profile.apellidos,
             reniecIdentity.nombres,
             reniecIdentity.apellidos,
           );
@@ -142,8 +142,8 @@ export class ProfileService {
       await this.profileRepository.save(profile);
 
       return new StatusResponse(true, 200, 'Datos personales actualizados', {
-        nombre: profile.nombre,
-        apellido: profile.apellido,
+        nombres: profile.nombres,
+        apellidos: profile.apellidos,
         documentoIdentidad: profile.documentoIdentidad,
         fechaNacimiento: profile.fechaNacimiento,
         tipoDocumento: {
@@ -218,13 +218,13 @@ export class ProfileService {
   }
 
   private resolveValidationStatus(
-    profileNombre: string,
-    profileApellido: string | null,
+    profileNombres: string,
+    profileApellidos: string | null,
     reniecNombre: string,
     reniecApellido: string,
   ): ProfileValidationStatus {
-    const nombrePerfil = this.normalizeText(profileNombre);
-    const apellidoPerfil = this.normalizeText(profileApellido ?? '');
+    const nombrePerfil = this.normalizeText(profileNombres);
+    const apellidoPerfil = this.normalizeText(profileApellidos ?? '');
     const nombreReniec = this.normalizeText(reniecNombre);
     const apellidoReniec = this.normalizeText(reniecApellido);
 

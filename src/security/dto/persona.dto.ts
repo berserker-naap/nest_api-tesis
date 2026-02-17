@@ -5,11 +5,11 @@ import { IsNullable } from 'src/common/decorators/is-nullable.decorator';
 export class CreateProfileDto {
   @IsString()
   @IsNotEmpty()
-  nombre!: string;
+  nombres!: string;
 
   @IsNullable()
   @IsString()
-  apellido!: string | null;
+  apellidos!: string | null;
 
   @IsInt()
   idTipoDocumentoIdentidad!: number;
@@ -27,11 +27,11 @@ export class CreateProfileDto {
 export class UpdateProfileDto {
   @IsString()
   @IsNotEmpty()
-  nombre!: string;
+  nombres!: string;
 
   @IsNullable()
   @IsString()
-  apellido!: string | null;
+  apellidos!: string | null;
 
   @IsInt()
   idTipoDocumentoIdentidad!: number;
@@ -65,11 +65,11 @@ export class ProfileResponseDto {
 
   @IsString()
   @IsNotEmpty()
-  nombre!: string;
+  nombres!: string;
 
   @IsNullable()
   @IsString()
-  apellido!: string | null;
+  apellidos!: string | null;
 
   @IsNullable()
   @IsString()

@@ -10,10 +10,10 @@ export class Profile extends Audit {
   id!: number;
 
   @Column({ type: 'nvarchar', length: 100 })
-  nombre!: string;
+  nombres!: string;
 
   @Column({ type: 'nvarchar', length: 100, nullable: true })
-  apellido!: string | null;
+  apellidos!: string | null;
 
   @ManyToOne(() => Multitabla)
   @JoinColumn({ name: 'idTipoDocumentoIdentidad' })

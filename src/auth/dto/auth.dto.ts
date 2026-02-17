@@ -33,7 +33,7 @@ export class RegisterProfileMinRequestDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  nombre!: string;
+  nombres!: string;
 
   @IsInt()
   idTipoDocumentoIdentidad!: number;
@@ -46,7 +46,27 @@ export class RegisterProfileMinRequestDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  apellido?: string | null;
+  apellidos?: string | null;
+}
+
+export class ValidarDniResponseDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  nombres!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(150)
+  apellidos!: string;
+
+  @IsInt()
+  idTipoDocumentoIdentidad!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(20)
+  documentoIdentidad!: string;
 }
 
 export class RegisterExternalUsuarioRequestDto {

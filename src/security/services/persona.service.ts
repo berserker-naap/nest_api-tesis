@@ -32,8 +32,8 @@ export class ProfileCatalogService {
 
       const personasDto: ProfileResponseDto[] = personas.map((p) => ({
         id: p.id,
-        nombre: p.nombre,
-        apellido: p.apellido ?? null,
+        nombres: p.nombres,
+        apellidos: p.apellidos ?? null,
         documentoIdentidad: p.documentoIdentidad ?? null,
         fechaNacimiento: p.fechaNacimiento ?? null,
         tipoDocumento: p.tipoDocumento
@@ -68,8 +68,8 @@ export class ProfileCatalogService {
 
       const personaDto: ProfileResponseDto = {
         id: persona.id,
-        nombre: persona.nombre,
-        apellido: persona.apellido ?? null,
+        nombres: persona.nombres,
+        apellidos: persona.apellidos ?? null,
         documentoIdentidad: persona.documentoIdentidad ?? null,
         fechaNacimiento: persona.fechaNacimiento ?? null,
         tipoDocumento: persona.tipoDocumento
@@ -116,8 +116,8 @@ export class ProfileCatalogService {
       }
 
       const persona = this.personaRepository.create({
-        nombre: dto.nombre,
-        apellido: dto.apellido ?? null,
+        nombres: dto.nombres,
+        apellidos: dto.apellidos ?? null,
         documentoIdentidad: dto.documentoIdentidad ?? null,
         fechaNacimiento: dto.fechaNacimiento ?? null,
         usuarioRegistro: usuario,
@@ -128,8 +128,8 @@ export class ProfileCatalogService {
 
       const personaDto: ProfileResponseDto = {
         id: saved.id,
-        nombre: saved.nombre,
-        apellido: saved.apellido ?? null,
+        nombres: saved.nombres,
+        apellidos: saved.apellidos ?? null,
         documentoIdentidad: saved.documentoIdentidad ?? null,
         fechaNacimiento: saved.fechaNacimiento ?? null,
         tipoDocumento: {
@@ -177,8 +177,8 @@ export class ProfileCatalogService {
       }
 
       // Actualizar los campos
-      persona.nombre = dto.nombre ?? '';
-      persona.apellido = dto.apellido ?? null;
+      persona.nombres = dto.nombres ?? '';
+      persona.apellidos = dto.apellidos ?? null;
       persona.documentoIdentidad = dto.documentoIdentidad ?? null;
       persona.fechaNacimiento = dto.fechaNacimiento ?? null;
       persona.tipoDocumento = tipoDocumento;
@@ -190,8 +190,8 @@ export class ProfileCatalogService {
 
       const personaDto: ProfileResponseDto = {
         id: updated.id,
-        nombre: updated.nombre,
-        apellido: updated.apellido ?? null,
+        nombres: updated.nombres,
+        apellidos: updated.apellidos ?? null,
         documentoIdentidad: updated.documentoIdentidad ?? null,
         fechaNacimiento: updated.fechaNacimiento ?? null,
         tipoDocumento: {

@@ -51,8 +51,8 @@ export class UsuarioService {
         profile: usuario.profile
           ? {
             id: usuario.profile.id,
-            nombre: usuario.profile.nombre,
-            apellido: usuario.profile.apellido,
+            nombres: usuario.profile.nombres,
+            apellidos: usuario.profile.apellidos,
             documentoIdentidad: usuario.profile.documentoIdentidad,
             fechaNacimiento: usuario.profile.fechaNacimiento,
             tipoDocumento: usuario.profile.tipoDocumento
@@ -157,8 +157,8 @@ export class UsuarioService {
         profile: usuarioCompleto.profile
           ? {
             id: usuarioCompleto.profile.id,
-            nombre: usuarioCompleto.profile.nombre,
-            apellido: usuarioCompleto.profile.apellido,
+            nombres: usuarioCompleto.profile.nombres,
+            apellidos: usuarioCompleto.profile.apellidos,
             documentoIdentidad: usuarioCompleto.profile.documentoIdentidad,
             fechaNacimiento: usuarioCompleto.profile.fechaNacimiento,
             tipoDocumento: usuarioCompleto.profile.tipoDocumento
@@ -292,8 +292,8 @@ export class UsuarioService {
           profile: usuarioCompleto.profile
             ? {
               id: usuarioCompleto.profile.id,
-              nombre: usuarioCompleto.profile.nombre,
-              apellido: usuarioCompleto.profile.apellido,
+              nombres: usuarioCompleto.profile.nombres,
+              apellidos: usuarioCompleto.profile.apellidos,
               documentoIdentidad: usuarioCompleto.profile.documentoIdentidad,
               fechaNacimiento: usuarioCompleto.profile.fechaNacimiento,
               tipoDocumento: usuarioCompleto.profile.tipoDocumento
@@ -344,8 +344,8 @@ export class UsuarioService {
         profile: usuario.profile
           ? {
             id: usuario.profile.id,
-            nombre: usuario.profile.nombre,
-            apellido: usuario.profile.apellido,
+            nombres: usuario.profile.nombres,
+            apellidos: usuario.profile.apellidos,
             documentoIdentidad: usuario.profile.documentoIdentidad,
             fechaNacimiento: usuario.profile.fechaNacimiento,
             tipoDocumento: usuario.profile.tipoDocumento
@@ -518,8 +518,8 @@ export class UsuarioService {
         profile: usuarioCompleto.profile
           ? {
             id: usuarioCompleto.profile.id,
-            nombre: usuarioCompleto.profile.nombre,
-            apellido: usuarioCompleto.profile.apellido,
+            nombres: usuarioCompleto.profile.nombres,
+            apellidos: usuarioCompleto.profile.apellidos,
             documentoIdentidad: usuarioCompleto.profile.documentoIdentidad,
             fechaNacimiento: usuarioCompleto.profile.fechaNacimiento,
             tipoDocumento: usuarioCompleto.profile.tipoDocumento
