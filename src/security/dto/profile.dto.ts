@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 import { IsNullable } from 'src/common/decorators/is-nullable.decorator';
 import { ProfileValidationStatus } from '../enums/profile-validation-status.enum';
@@ -120,7 +121,8 @@ export class ProfileMeResponseDto {
   @IsNotEmpty()
   validacionEstado!: ProfileValidationStatus;
 
-  @IsOptional()
+  @ValidateNested({ each: true })
   @IsArray()
+  @Type(() => ProfilePhoneMeResponseDto)
   profilePhones?: ProfilePhoneMeResponseDto[] | [];
 }

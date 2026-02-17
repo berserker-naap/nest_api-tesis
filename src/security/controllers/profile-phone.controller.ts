@@ -9,6 +9,11 @@ import { ProfilePhoneService } from '../services/profile-phone.service';
 export class ProfilePhoneController {
   constructor(private readonly profilePhoneService: ProfilePhoneService) {}
 
+  @Get()
+  findMyPhones(@GetUsuario() usuario: Usuario) {
+    return this.profilePhoneService.findMyPhones(usuario);
+  }
+
 
   @Post()
   createAndSendOtp(

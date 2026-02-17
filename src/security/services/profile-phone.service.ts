@@ -14,6 +14,7 @@ import {
 import { OtpVerificacionService } from './otp-verificacion.service';
 import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { ProfilePhone } from '../entities/profile-phone.entity';
+import { ProfileMeResponseDto } from '../dto/profile.dto';
 
 @Injectable()
 export class ProfilePhoneService {
@@ -26,11 +27,17 @@ export class ProfilePhoneService {
     private readonly whatsappSenderService: WhatsappSenderService,
   ) {}
 
-  async createAndSendOtp(
+    async createAndSendOtp(
     dto: CreateProfilePhoneDto,
     usuarioRequest: Usuario,
     ip: string,
-  ): Promise<StatusResponse<any>> {
+  ): Promise<
+    StatusResponse<
+      (Pick<ProfileMeResponseDto, 'profilePhones'> & {
+        otp: { sent: boolean; channel: 'WHATSAPP' };
+      }) | null
+    >
+  > {
     try {
       const { usuario, internationalPhoneNumber } =
         await this.createOrRefreshProfilePhone(
@@ -38,7 +45,7 @@ export class ProfilePhoneService {
           dto.countryCode,
           dto.phone,
           ip,
-          dto.alias ?? null,
+          dto.alias,
         );
 
       const { plainCode } = await this.otpService.createOtp({
@@ -52,11 +59,19 @@ export class ProfilePhoneService {
         plainCode,
       );
 
+      const payload = await this.buildProfilePhonesResponse(usuario.profile!.id);
+
       return new StatusResponse(
         true,
         200,
         'Codigo OTP enviado por WhatsApp',
-        null,
+        {
+          ...payload,
+          otp: {
+            sent: true,
+            channel: 'WHATSAPP',
+          },
+        },
       );
     } catch (error) {
       const statusCode =
@@ -74,6 +89,50 @@ export class ProfilePhoneService {
     }
   }
 
+  private async buildProfilePhonesResponse(
+    profileId: number,
+  ): Promise<Pick<ProfileMeResponseDto, 'profilePhones'>> {
+    const phones = await this.profilePhoneRepository.find({
+      where: {
+        profile: { id: profileId },
+        activo: true,
+        eliminado: false,
+      },
+      order: { fechaRegistro: 'DESC' },
+    });
+
+    return {
+      profilePhones: phones.map((item) => ({
+        id: item.id,
+        countryCode: item.countryCode,
+        phoneNumber: item.phoneNumber,
+        internationalPhoneNumber: item.internationalPhoneNumber,
+        alias: item.alias,
+        verified: item.verified,
+        fechaVerificacion: item.fechaVerificacion,
+      })),
+    };
+  }
+
+  async findMyPhones(
+    usuarioRequest: Usuario,
+  ): Promise<StatusResponse<Pick<ProfileMeResponseDto, 'profilePhones'> | null>> {
+    try {
+      const usuario = await this.getUsuarioConProfile(usuarioRequest.id);
+      const payload = await this.buildProfilePhonesResponse(usuario.profile!.id);
+      return new StatusResponse(true, 200, 'Telefonos obtenidos', payload);
+    } catch (error) {
+      const statusCode =
+        error instanceof NotFoundException ? error.getStatus() : 500;
+      const message =
+        error instanceof NotFoundException
+          ? error.message
+          : 'Error al obtener telefonos';
+      return new StatusResponse(false, statusCode, message, null);
+    }
+  }
+
+
   private buildPhoneParts(
     countryCode: string,
     phone: string,
@@ -83,14 +142,7 @@ export class ProfilePhoneService {
     internationalPhoneNumber: string;
   } {
     const normalizedCountry = countryCode.replace(/[^\d]/g, '');
-    if (!/^\d{1,4}$/.test(normalizedCountry)) {
-      throw new BadRequestException('Codigo de pais invalido');
-    }
-
     const normalizedPhone = phone.replace(/[^\d]/g, '');
-    if (!/^\d{6,15}$/.test(normalizedPhone)) {
-      throw new BadRequestException('Telefono invalido');
-    }
 
     return {
       countryCode: `+${normalizedCountry}`,
@@ -234,8 +286,6 @@ export class ProfilePhoneService {
       internationalPhoneNumber: phoneParts.internationalPhoneNumber,
     };
   }
-
-
 
   async verifyOtp(
     dto: VerifyProfilePhoneOtpDto,
