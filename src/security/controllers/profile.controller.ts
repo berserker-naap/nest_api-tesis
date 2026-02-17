@@ -1,12 +1,17 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Auth, GetClientIp, GetUsuario } from 'src/auth/decorators';
+import { UploadedFile as UploadedFileType } from 'src/common/types/uploaded-file.type';
 import { Usuario } from '../entities/usuario.entity';
 import { ProfileService } from '../services/profile.service';
-import {
-  UpdateProfileCredentialsDto,
-  UpdateProfileDataDto,
-  UpdateProfilePhotoDto,
-} from '../dto/profile.dto';
+import { UpdateProfileCredentialsDto, UpdateProfileDataDto } from '../dto/profile.dto';
 
 @Controller('profile')
 @Auth()
@@ -37,11 +42,12 @@ export class ProfileController {
   }
 
   @Patch('photo')
+  @UseInterceptors(FileInterceptor('file'))
   updateProfilePhoto(
     @GetUsuario() usuario: Usuario,
-    @Body() dto: UpdateProfilePhotoDto,
+    @UploadedFile() file: UploadedFileType | undefined,
     @GetClientIp() ip: string,
   ) {
-    return this.profileService.updateProfilePhoto(usuario, dto, ip);
+    return this.profileService.updateProfilePhoto(usuario, file, ip);
   }
 }

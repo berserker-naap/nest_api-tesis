@@ -34,6 +34,7 @@ import { WhatsappLinkService } from './services/whatsapp-link.service';
 import { ProfileController } from './controllers/profile.controller';
 import { ProfileService } from './services/profile.service';
 import { ReniecData } from './entities/reniec-data.entity';
+import { BlobStorageService } from 'src/common/services/blob-storage.service';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { ReniecData } from './entities/reniec-data.entity';
     OtpVerificacionService,
     WhatsappLinkService,
     ProfileService,
+    BlobStorageService,
   ],
   exports: [WhatsappLinkService],
 

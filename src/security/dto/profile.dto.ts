@@ -95,15 +95,3 @@ export class ProfileMeResponseDto {
   @IsNotEmpty()
   validacionEstado!: ProfileValidationStatus;
 }
-
-export class UpdateProfilePhotoDto {
-  @IsNullable()
-  @IsString()
-  @MaxLength(500)
-  fotoPerfilUrl!: string | null;
-
-  @IsNullable()
-  @IsString()
-  @MaxLength(255)
-  nombreFotoPerfil!: string | null;
-}

@@ -1,6 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
+import { BlobStorageService } from 'src/common/services/blob-storage.service';
+import { UploadedFile } from 'src/common/types/uploaded-file.type';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import { Profile } from '../entities/profile.entity';
 import { ReniecData } from '../entities/reniec-data.entity';
@@ -10,7 +13,6 @@ import {
   ProfileMeResponseDto,
   UpdateProfileCredentialsDto,
   UpdateProfileDataDto,
-  UpdateProfilePhotoDto,
 } from '../dto/profile.dto';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from 'src/auth/auth.service';
@@ -19,6 +21,9 @@ import { ProfileValidationStatus } from '../enums/profile-validation-status.enum
 
 @Injectable()
 export class ProfileService {
+  private readonly maxProfilePhotoSizeBytes: number;
+  private readonly allowedProfilePhotoMimeTypes: Set<string>;
+
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
@@ -28,8 +33,25 @@ export class ProfileService {
     private readonly reniecDataRepository: Repository<ReniecData>,
     @InjectRepository(Multitabla)
     private readonly multitablaRepository: Repository<Multitabla>,
+    private readonly configService: ConfigService,
     private readonly authService: AuthService,
-  ) {}
+    private readonly blobStorageService: BlobStorageService,
+  ) {
+    const maxSizeMb = Number(
+      this.configService.get<string>('PROFILE_PHOTO_MAX_SIZE_MB') ?? '5',
+    );
+    this.maxProfilePhotoSizeBytes = maxSizeMb * 1024 * 1024;
+
+    const rawMimeTypes =
+      this.configService.get<string>('PROFILE_PHOTO_ALLOWED_MIME_TYPES') ??
+      'image/jpeg,image/png,image/webp';
+    this.allowedProfilePhotoMimeTypes = new Set(
+      rawMimeTypes
+        .split(',')
+        .map((value) => value.trim().toLowerCase())
+        .filter((value) => value.length > 0),
+    );
+  }
 
   async me(usuarioRequest: Usuario): Promise<StatusResponse<ProfileMeResponseDto | null>> {
     try {
@@ -51,7 +73,7 @@ export class ProfileService {
               nombres: usuario.profile.nombres,
               apellidos: usuario.profile.apellidos,
               documentoIdentidad: usuario.profile.documentoIdentidad,
-              fotoPerfilUrl: usuario.profile.fotoPerfilUrl,
+              fotoPerfilUrl: await this.resolvePhotoUrl(usuario.profile),
               nombreFotoPerfil: usuario.profile.nombreFotoPerfil,
               fechaCargaFotoPerfil: usuario.profile.fechaCargaFotoPerfil,
               fechaNacimiento: usuario.profile.fechaNacimiento,
@@ -148,12 +170,13 @@ export class ProfileService {
       profile.fechaModificacion = new Date();
 
       await this.profileRepository.save(profile);
+      const fotoPerfilUrl = await this.resolvePhotoUrl(profile);
 
       return new StatusResponse(true, 200, 'Datos personales actualizados', {
         nombres: profile.nombres,
         apellidos: profile.apellidos,
         documentoIdentidad: profile.documentoIdentidad,
-        fotoPerfilUrl: profile.fotoPerfilUrl,
+        fotoPerfilUrl,
         nombreFotoPerfil: profile.nombreFotoPerfil,
         fechaCargaFotoPerfil: profile.fechaCargaFotoPerfil,
         fechaNacimiento: profile.fechaNacimiento,
@@ -179,7 +202,7 @@ export class ProfileService {
 
   async updateProfilePhoto(
     usuarioRequest: Usuario,
-    dto: UpdateProfilePhotoDto,
+    file: UploadedFile | undefined,
     ip: string,
   ): Promise<
     StatusResponse<
@@ -207,27 +230,51 @@ export class ProfileService {
         throw new NotFoundException('Perfil no encontrado');
       }
 
-      const fotoPerfilUrl = dto.fotoPerfilUrl?.trim() || null;
-      const nombreFotoPerfil = dto.nombreFotoPerfil?.trim() || null;
+      if (!file) {
+        throw new BadRequestException('Debe enviar una imagen en el campo "file"');
+      }
 
-      profile.fotoPerfilUrl = fotoPerfilUrl;
-      profile.nombreFotoPerfil = fotoPerfilUrl ? nombreFotoPerfil : null;
-      profile.fechaCargaFotoPerfil = fotoPerfilUrl ? new Date() : null;
+      if (!this.allowedProfilePhotoMimeTypes.has(file.mimetype.toLowerCase())) {
+        throw new BadRequestException(
+          'Formato de imagen no permitido. Use JPG, PNG o WEBP',
+        );
+      }
+
+      if (file.size > this.maxProfilePhotoSizeBytes) {
+        const maxSizeMb = this.maxProfilePhotoSizeBytes / (1024 * 1024);
+        throw new BadRequestException(`La imagen supera el tamaño máximo permitido (${maxSizeMb}MB)`);
+      }
+
+      const uploadResult = await this.blobStorageService.uploadProfileImage(
+        file.buffer,
+        file.mimetype,
+        file.originalname,
+        usuario.id,
+        profile.documentoIdentidad,
+      );
+
+      profile.fotoPerfilUrl = uploadResult.url;
+      profile.nombreFotoPerfil = uploadResult.blobName;
+      profile.fechaCargaFotoPerfil = new Date();
       profile.usuarioModificacion = usuarioRequest.login;
       profile.ipModificacion = ip;
       profile.fechaModificacion = new Date();
 
       await this.profileRepository.save(profile);
+      const fotoPerfilUrl = await this.resolvePhotoUrl(profile);
 
       return new StatusResponse(true, 200, 'Foto de perfil actualizada', {
-        fotoPerfilUrl: profile.fotoPerfilUrl,
+        fotoPerfilUrl,
         nombreFotoPerfil: profile.nombreFotoPerfil,
         fechaCargaFotoPerfil: profile.fechaCargaFotoPerfil,
       });
     } catch (error) {
-      const statusCode = error instanceof NotFoundException ? error.getStatus() : 500;
+      const statusCode =
+        error instanceof BadRequestException || error instanceof NotFoundException
+          ? error.getStatus()
+          : 500;
       const message =
-        error instanceof NotFoundException
+        error instanceof BadRequestException || error instanceof NotFoundException
           ? error.message
           : 'Error al actualizar foto de perfil';
 
@@ -312,6 +359,21 @@ export class ProfileService {
       .trim()
       .toUpperCase();
   }
+
+  private async resolvePhotoUrl(profile: Profile): Promise<string | null> {
+    const blobName = profile.nombreFotoPerfil?.trim();
+    if (!blobName) {
+      return profile.fotoPerfilUrl;
+    }
+
+    try {
+      return await this.blobStorageService.getProfileImageReadUrl(blobName);
+    } catch {
+      return profile.fotoPerfilUrl;
+    }
+  }
 }
+
+
 
 
