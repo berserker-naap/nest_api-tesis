@@ -81,10 +81,7 @@ export class ProfileService {
         phoneNumber: item.phoneNumber,
         internationalPhoneNumber: item.internationalPhoneNumber,
         alias: item.alias,
-        verified: item.verified,
-        estado: item.verified
-          ? ProfilePhoneStatus.VERIFIED
-          : ProfilePhoneStatus.PENDING,
+        validacionEstado: item.validacionEstado ?? ProfilePhoneStatus.PENDING,
         fechaVerificacion: item.fechaVerificacion,
       }));
 

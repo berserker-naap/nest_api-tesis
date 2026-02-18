@@ -6,12 +6,16 @@ export class WhatsappSenderService {
   constructor(private readonly configService: ConfigService) {}
 
   async sendOtp(toE164: string, code: string): Promise<void> {
-    const accessToken = this.configService.get<string>('WHATSAPP_ACCESS_TOKEN');
-    const phoneNumberId = this.configService.get<string>('WHATSAPP_PHONE_NUMBER_ID');
-    const apiVersion = this.configService.get<string>('WHATSAPP_API_VERSION') ?? 'v22.0';
     const otpMessagePrefix =
       this.configService.get<string>('WHATSAPP_OTP_MESSAGE_PREFIX') ??
       'Tu codigo de verificacion es';
+    await this.sendTextMessage(toE164, `${otpMessagePrefix}: ${code}`);
+  }
+
+  async sendTextMessage(toInternational: string, message: string): Promise<void> {
+    const accessToken = this.configService.get<string>('WHATSAPP_ACCESS_TOKEN');
+    const phoneNumberId = this.configService.get<string>('WHATSAPP_PHONE_NUMBER_ID');
+    const apiVersion = this.configService.get<string>('WHATSAPP_API_VERSION') ?? 'v22.0';
 
     if (!accessToken || !phoneNumberId) {
       throw new InternalServerErrorException(
@@ -20,13 +24,13 @@ export class WhatsappSenderService {
     }
 
     const endpoint = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
-    const cleanTo = toE164.replace('+', '');
+    const cleanTo = toInternational.replace(/\D/g, '');
     const body = {
       messaging_product: 'whatsapp',
       to: cleanTo,
       type: 'text',
       text: {
-        body: `${otpMessagePrefix}: ${code}`,
+        body: message,
       },
     };
 

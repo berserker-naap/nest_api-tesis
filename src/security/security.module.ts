@@ -29,7 +29,6 @@ import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import { OtpVerificacion } from './entities/otp-verificacion.entity';
 import { ProfilePhoneController } from './controllers/profile-phone.controller';
 import { OtpVerificacionService } from './services/otp-verificacion.service';
-import { WhatsappLinkService } from './services/whatsapp-link.service';
 import { ProfileController } from './controllers/profile.controller';
 import { ProfileService } from './services/profile.service';
 import { ReniecData } from './entities/reniec-data.entity';
@@ -93,13 +92,12 @@ import { ProfilePhoneService } from './services/profile-phone.service';
     RolService,
     UsuarioService,
     OtpVerificacionService,
-    WhatsappLinkService,
     ProfileService,
     ProfilePhoneService,
     BlobStorageService,
     WhatsappSenderService,
   ],
-  exports: [WhatsappLinkService],
+  exports: [ProfilePhoneService, OtpVerificacionService],
 
 })
 export class SecurityModule { }

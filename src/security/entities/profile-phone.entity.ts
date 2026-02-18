@@ -9,10 +9,11 @@ import {
   Unique,
 } from 'typeorm';
 import { Profile } from './profile.entity';
+import { ProfilePhoneStatus } from '../enums/profile-phone-status.enum';
 
 @Entity('PROFILE_PHONE')
 @Unique('UQ_PROFILE_PHONE_INTERNATIONAL_PHONE', ['internationalPhoneNumber'])
-@Index('IDX_PROFILE_PHONE_VERIFIED', ['internationalPhoneNumber', 'verified'])
+@Index('IDX_PROFILE_PHONE_STATUS', ['internationalPhoneNumber', 'validacionEstado'])
 export class ProfilePhone extends Audit {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -30,8 +31,12 @@ export class ProfilePhone extends Audit {
   @Column({ type: 'nvarchar', length: 20 })
   internationalPhoneNumber!: string;
 
-  @Column({ default: false })
-  verified!: boolean;
+  @Column({
+    type: 'nvarchar',
+    length: 20,
+    default: ProfilePhoneStatus.PENDING,
+  })
+  validacionEstado!: ProfilePhoneStatus;
 
   @Column({ type: 'datetime', nullable: true })
   fechaVerificacion!: Date | null;

@@ -35,12 +35,10 @@ export class ProfilePhoneMeResponseDto {
   @IsString()
   alias!: string | null;
 
-  verified!: boolean;
-
   @IsString()
   @IsNotEmpty()
   @IsEnum(ProfilePhoneStatus)
-  estado!: ProfilePhoneStatus;
+  validacionEstado!: ProfilePhoneStatus;
 
   @IsNullable()
   @Type(() => Date)

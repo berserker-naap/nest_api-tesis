@@ -1,13 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { StatusResponse } from 'src/common/dto/response.dto';
+import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { CrearTransaccionBaseDto } from 'src/finance/dto/transaccion.dto';
 import { TransaccionFinanceService } from 'src/finance/services/transaccion-finance.service';
 import { Usuario } from 'src/security/entities/usuario.entity';
+import { ProfilePhoneLookupStatus } from 'src/security/enums/profile-phone-lookup-status.enum';
+import { WhatsappLinkOrchestrator } from '../orchestrators/whatsapp-link.orchestrator';
 
 @Injectable()
 export class WhatsappWebhookService {
   constructor(
     private readonly transaccionFinanceService: TransaccionFinanceService,
+    private readonly whatsappLinkOrchestrator: WhatsappLinkOrchestrator,
+    private readonly whatsappSenderService: WhatsappSenderService,
   ) {}
 
   verifyWebhook(mode?: string, token?: string, challenge?: string): string | null {
@@ -23,10 +28,37 @@ export class WhatsappWebhookService {
       const messages = this.extractMessages(payload);
 
       for (const item of messages) {
-        // const user = await this.whatsappLinkService.findVerifiedUserByWhatsapp(item.from);
-        // if (!user) {
-        //   continue;
-        // }
+        const linkedPhone = await this.whatsappLinkOrchestrator.resolveByInternationalPhone(
+          item.from,
+        );
+
+        if (
+          linkedPhone.status === ProfilePhoneLookupStatus.NOT_ASSOCIATED ||
+          !linkedPhone.usuario
+        ) {
+          await this.whatsappSenderService.sendTextMessage(
+            item.from,
+            'Debes asociar tu numero a tu cuenta desde la app para continuar.',
+          );
+          continue;
+        }
+
+        if (linkedPhone.status === ProfilePhoneLookupStatus.PENDING) {
+          const otpCode = await this.whatsappLinkOrchestrator.createWhatsappOtp(
+            linkedPhone.usuario,
+            item.from,
+          );
+          await this.whatsappSenderService.sendTextMessage(
+            item.from,
+            `Este es tu codigo OTP: ${otpCode}. Verificalo desde tu cuenta en la app para continuar.`,
+          );
+          continue;
+        }
+
+        const user = {
+          id: linkedPhone.usuario.id,
+          login: linkedPhone.usuario.login,
+        } as Usuario;
 
         const parsed = this.parseTextToTransaction(item.text);
         if (!parsed) {
@@ -64,8 +96,10 @@ export class WhatsappWebhookService {
         const messages = values?.messages ?? [];
         for (const msg of messages) {
           if (!msg?.from || !msg?.id || !msg?.text?.body) continue;
+          const normalizedFrom = String(msg.from).replace(/\D/g, '');
+          if (!normalizedFrom) continue;
           result.push({
-            from: msg.from.startsWith('+') ? msg.from : `+${msg.from}`,
+            from: normalizedFrom,
             messageId: msg.id,
             text: msg.text.body,
           });

@@ -15,6 +15,7 @@ import { OtpVerificacionService } from './otp-verificacion.service';
 import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { ProfilePhone } from '../entities/profile-phone.entity';
 import { ProfileMeResponseDto } from '../dto/profile.dto';
+import { ProfilePhoneLookupStatus } from '../enums/profile-phone-lookup-status.enum';
 import { ProfilePhoneStatus } from '../enums/profile-phone-status.enum';
 
 @Injectable()
@@ -93,7 +94,7 @@ export class ProfilePhoneService {
           phoneNumber: phoneNumber,
           internationalPhoneNumber: internationalPhoneNumber,
           alias: dto.alias.trim() || null,
-          verified: false,
+          validacionEstado: ProfilePhoneStatus.PENDING,
           fechaVerificacion: null,
           activo: true,
           eliminado: false,
@@ -106,7 +107,7 @@ export class ProfilePhoneService {
         profilePhone.phoneNumber = phoneNumber;
         profilePhone.internationalPhoneNumber = internationalPhoneNumber;
         profilePhone.alias = dto.alias.trim() || profilePhone.alias || null;
-        profilePhone.verified = false;
+        profilePhone.validacionEstado = ProfilePhoneStatus.PENDING;
         profilePhone.fechaVerificacion = null;
         profilePhone.activo = true;
         profilePhone.eliminado = false;
@@ -146,10 +147,8 @@ export class ProfilePhoneService {
         phoneNumber: item.phoneNumber,
         internationalPhoneNumber: item.internationalPhoneNumber,
         alias: item.alias,
-        verified: item.verified,
-        estado: item.verified
-          ? ProfilePhoneStatus.VERIFIED
-          : ProfilePhoneStatus.PENDING,
+        validacionEstado:
+          item.validacionEstado ?? ProfilePhoneStatus.PENDING,
         fechaVerificacion: item.fechaVerificacion,
       }));
 
@@ -216,7 +215,7 @@ export class ProfilePhoneService {
         code: dto.code,
       });
 
-      profilePhone.verified = true;
+      profilePhone.validacionEstado = ProfilePhoneStatus.VERIFIED;
       profilePhone.fechaVerificacion = new Date();
       profilePhone.usuarioModificacion = usuario.login;
       profilePhone.ipModificacion = ip;
@@ -243,5 +242,86 @@ export class ProfilePhoneService {
 
       return new StatusResponse(false, statusCode, message, null);
     }
+  }
+
+  async findVerifiedUsuarioByInternationalPhone(
+    internationalPhoneNumber: string,
+  ): Promise<{
+    status: ProfilePhoneLookupStatus;
+    usuario: Pick<Usuario, 'id' | 'login'> | null;
+  }> {
+    const numero = internationalPhoneNumber.trim();
+
+    if (!/^\d{8,19}$/.test(numero)) {
+      throw new BadRequestException('Numero internacional invalido');
+    }
+
+    const profilePhone = await this.profilePhoneRepository.findOne({
+      where: {
+        internationalPhoneNumber: numero,
+        validacionEstado: ProfilePhoneStatus.VERIFIED,
+        activo: true,
+        eliminado: false,
+      },
+      relations: ['profile'],
+    });
+
+    if (!profilePhone?.profile?.id) {
+      const pendingProfilePhone = await this.profilePhoneRepository.findOne({
+        where: {
+          internationalPhoneNumber: numero,
+          validacionEstado: ProfilePhoneStatus.PENDING,
+          activo: true,
+          eliminado: false,
+        },
+        relations: ['profile'],
+      });
+
+      if (!pendingProfilePhone?.profile?.id) {
+        return { status: ProfilePhoneLookupStatus.NOT_ASSOCIATED, usuario: null };
+      }
+
+      const pendingUsuario = await this.usuarioRepository.findOne({
+        where: {
+          profile: { id: pendingProfilePhone.profile.id },
+          activo: true,
+          eliminado: false,
+        },
+        select: {
+          id: true,
+          login: true,
+        },
+      });
+
+      if (!pendingUsuario) {
+        return { status: ProfilePhoneLookupStatus.NOT_ASSOCIATED, usuario: null };
+      }
+
+      return {
+        status: ProfilePhoneLookupStatus.PENDING,
+        usuario: { id: pendingUsuario.id, login: pendingUsuario.login },
+      };
+    }
+
+    const usuario = await this.usuarioRepository.findOne({
+      where: {
+        profile: { id: profilePhone.profile.id },
+        activo: true,
+        eliminado: false,
+      },
+      select: {
+        id: true,
+        login: true,
+      },
+    });
+
+    if (!usuario) {
+      return { status: ProfilePhoneLookupStatus.NOT_ASSOCIATED, usuario: null };
+    }
+
+    return {
+      status: ProfilePhoneLookupStatus.VERIFIED,
+      usuario: { id: usuario.id, login: usuario.login },
+    };
   }
 }
