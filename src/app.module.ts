@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from './auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
 import { SecurityModule } from './security/security.module';
 import { BusinessparamModule } from './businessparam/businessparam.module';
 import { FinanceModule } from './finance/finance.module';
@@ -10,29 +10,28 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-
     TypeOrmModule.forRoot({
       type: 'mssql',
-      host: 'servidor-tesisunt.database.windows.net', // o la IP o nombre de tu servidor
-      username: 'servidor-tesisunt',
-      password: 'Unix456nel!!',
-      database: 'basedatos-tesisunt',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'], // ruta donde estarán tus entidades
-      synchronize: true, // Ojo: true crea automáticamente tablas. Para producción mejor false.
+      host: process.env.DB_HOST,
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      synchronize: true,
+      requestTimeout: 30000,
       options: {
-        encrypt: true, // poner true si estás en Azure o quieres forzar encriptación de conexión
-        trustServerCertificate: true, // usual para desarrollo local
+        encrypt: true,
+        trustServerCertificate: true,
+        connectTimeout: 30000,
       },
     }),
     AuthModule,
     SecurityModule,
     BusinessparamModule,
     FinanceModule,
-    WhatsappModule
+    WhatsappModule,
   ],
-
   controllers: [],
   providers: [],
 })
 export class AppModule {}
-
