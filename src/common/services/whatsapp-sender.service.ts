@@ -5,14 +5,9 @@ import { ConfigService } from '@nestjs/config';
 export class WhatsappSenderService {
   constructor(private readonly configService: ConfigService) {}
 
-  async sendOtp(toE164: string, code: string): Promise<void> {
-    const otpMessagePrefix ='Tu codigo de verificacion es';
-    await this.sendTextMessage(toE164, `${otpMessagePrefix}: ${code}`);
-  }
-
   async sendTextMessage(toInternational: string, message: string): Promise<void> {
     const endpoint = this.getMessagesEndpoint();
-    const cleanTo = toInternational.replace(/\D/g, '');
+    const cleanTo = this.resolveRecipient(toInternational);
     const body = {
       messaging_product: 'whatsapp',
       to: cleanTo,
@@ -31,7 +26,7 @@ export class WhatsappSenderService {
     languageCode = 'en_US',
   ): Promise<void> {
     const endpoint = this.getMessagesEndpoint();
-    const cleanTo = toInternational.replace(/\D/g, '');
+    const cleanTo = this.resolveRecipient(toInternational);
     const body = {
       messaging_product: 'whatsapp',
       to: cleanTo,
@@ -59,6 +54,19 @@ export class WhatsappSenderService {
     }
 
     return `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
+  }
+
+  private resolveRecipient(originalToInternational: string): string {
+    const testModeRaw = this.configService.get<string>('WHATSAPP_TEST_MODE');
+    const isTestMode = ['1', 'true', 'yes', 'on'].includes(
+      (testModeRaw ?? '').trim().toLowerCase(),
+    );
+
+    const resolvedNumber = isTestMode
+      ? this.configService.get<string>('WHATSAPP_TEST_PHONE_NUMBER') ?? '51923983014'
+      : originalToInternational;
+
+    return resolvedNumber.replace(/\D/g, '');
   }
 
   private async sendRequest(endpoint: string, body: object): Promise<void> {
