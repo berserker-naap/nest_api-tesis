@@ -12,11 +12,11 @@ import {
   VerifyProfilePhoneOtpDto,
 } from '../dto/profile-phone.dto';
 import { OtpVerificacionService } from './otp-verificacion.service';
-import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { ProfilePhone } from '../entities/profile-phone.entity';
 import { ProfileMeResponseDto } from '../dto/profile.dto';
 import { ProfilePhoneLookupStatus } from '../enums/profile-phone-lookup-status.enum';
 import { ProfilePhoneStatus } from '../enums/profile-phone-status.enum';
+import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 
 @Injectable()
 export class ProfilePhoneService {
@@ -123,6 +123,11 @@ export class ProfilePhoneService {
         canal: 'WHATSAPP',
         destino: internationalPhoneNumber,
       });
+      
+      await this.whatsappSenderService.sendTextMessage(
+        internationalPhoneNumber,
+        `Tu codigo de verificacion es: ${plainCode}`,
+      );
 
       const usuarioProfilePhones = await this.usuarioRepository.findOne({
         where: { id: usuarioRequest.id, activo: true, eliminado: false },

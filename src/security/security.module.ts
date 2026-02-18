@@ -97,7 +97,11 @@ import { ProfilePhoneService } from './services/profile-phone.service';
     BlobStorageService,
     WhatsappSenderService,
   ],
-  exports: [ProfilePhoneService, OtpVerificacionService, WhatsappSenderService],
+  exports: [
+    ProfilePhoneService,
+    OtpVerificacionService,
+    WhatsappSenderService,
+  ],
 
 })
 export class SecurityModule { }

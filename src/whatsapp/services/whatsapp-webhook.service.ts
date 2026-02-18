@@ -5,6 +5,7 @@ import { CrearTransaccionBaseDto } from 'src/finance/dto/transaccion.dto';
 import { TransaccionFinanceService } from 'src/finance/services/transaccion-finance.service';
 import { Usuario } from 'src/security/entities/usuario.entity';
 import { ProfilePhoneLookupStatus } from 'src/security/enums/profile-phone-lookup-status.enum';
+import { OtpVerificacionService } from 'src/security/services/otp-verificacion.service';
 import { WhatsappLinkOrchestrator } from '../orchestrators/whatsapp-link.orchestrator';
 
 @Injectable()
@@ -13,11 +14,21 @@ export class WhatsappWebhookService {
     private readonly transaccionFinanceService: TransaccionFinanceService,
     private readonly whatsappLinkOrchestrator: WhatsappLinkOrchestrator,
     private readonly whatsappSenderService: WhatsappSenderService,
-  ) {}
+    private readonly otpVerificacionService: OtpVerificacionService,
+  ) { }
 
-  verifyWebhook(mode?: string, token?: string, challenge?: string): string | null {
+  verifyWebhook(
+    mode?: string,
+    token?: string,
+    challenge?: string,
+  ): string | null {
     const expectedToken = process.env.WHATSAPP_VERIFY_TOKEN;
-    if (mode === 'subscribe' && token && expectedToken && token === expectedToken) {
+    if (
+      mode === 'subscribe' &&
+      token &&
+      expectedToken &&
+      token === expectedToken
+    ) {
       return challenge ?? '';
     }
     return null;
@@ -28,9 +39,10 @@ export class WhatsappWebhookService {
       const messages = this.extractMessages(payload);
 
       for (const item of messages) {
-        const linkedPhone = await this.whatsappLinkOrchestrator.resolveByInternationalPhone(
-          item.from,
-        );
+        const linkedPhone =
+          await this.whatsappLinkOrchestrator.resolveByInternationalPhone(
+            item.from,
+          );
 
         if (
           linkedPhone.status === ProfilePhoneLookupStatus.NOT_ASSOCIATED ||
@@ -44,13 +56,14 @@ export class WhatsappWebhookService {
         }
 
         if (linkedPhone.status === ProfilePhoneLookupStatus.PENDING) {
-          const otpCode = await this.whatsappLinkOrchestrator.createWhatsappOtp(
-            linkedPhone.usuario,
-            item.from,
-          );
+          const { plainCode } = await this.otpVerificacionService.createOtp({
+            usuario: { id: linkedPhone.usuario.id } as Usuario,
+            canal: 'WHATSAPP',
+            destino: item.from,
+          });
           await this.whatsappSenderService.sendTextMessage(
             item.from,
-            `Este es tu codigo OTP: ${otpCode}. Verificalo desde tu cuenta en la app para continuar.`,
+            `Este es tu codigo OTP: ${plainCode}. Verificalo desde tu cuenta en la app para continuar.`,
           );
           continue;
         }
@@ -119,7 +132,12 @@ export class WhatsappWebhookService {
     if (parts.length < 5) return null;
 
     const tipoRaw = parts[0].toLowerCase();
-    const tipo = tipoRaw === 'ingreso' ? 'INGRESO' : tipoRaw === 'egreso' ? 'EGRESO' : null;
+    const tipo =
+      tipoRaw === 'ingreso'
+        ? 'INGRESO'
+        : tipoRaw === 'egreso'
+          ? 'EGRESO'
+          : null;
     if (!tipo) return null;
 
     const monto = Number(parts[1]);
