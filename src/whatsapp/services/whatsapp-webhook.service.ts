@@ -3,12 +3,10 @@ import { StatusResponse } from 'src/common/dto/response.dto';
 import { CrearTransaccionBaseDto } from 'src/finance/dto/transaccion.dto';
 import { TransaccionFinanceService } from 'src/finance/services/transaccion-finance.service';
 import { Usuario } from 'src/security/entities/usuario.entity';
-import { WhatsappLinkService } from 'src/security/services/whatsapp-link.service';
 
 @Injectable()
 export class WhatsappWebhookService {
   constructor(
-    private readonly whatsappLinkService: WhatsappLinkService,
     private readonly transaccionFinanceService: TransaccionFinanceService,
   ) {}
 
@@ -25,10 +23,10 @@ export class WhatsappWebhookService {
       const messages = this.extractMessages(payload);
 
       for (const item of messages) {
-        const user = await this.whatsappLinkService.findVerifiedUserByWhatsapp(item.from);
-        if (!user) {
-          continue;
-        }
+        // const user = await this.whatsappLinkService.findVerifiedUserByWhatsapp(item.from);
+        // if (!user) {
+        //   continue;
+        // }
 
         const parsed = this.parseTextToTransaction(item.text);
         if (!parsed) {

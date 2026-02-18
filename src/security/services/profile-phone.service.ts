@@ -15,6 +15,7 @@ import { OtpVerificacionService } from './otp-verificacion.service';
 import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { ProfilePhone } from '../entities/profile-phone.entity';
 import { ProfileMeResponseDto } from '../dto/profile.dto';
+import { ProfilePhoneStatus } from '../enums/profile-phone-status.enum';
 
 @Injectable()
 export class ProfilePhoneService {
@@ -27,26 +28,94 @@ export class ProfilePhoneService {
     private readonly whatsappSenderService: WhatsappSenderService,
   ) {}
 
-    async createAndSendOtp(
+  async createAndSendOtp(
     dto: CreateProfilePhoneDto,
     usuarioRequest: Usuario,
     ip: string,
   ): Promise<
     StatusResponse<
-      (Pick<ProfileMeResponseDto, 'profilePhones'> & {
-        otp: { sent: boolean; channel: 'WHATSAPP' };
-      }) | null
+      | (Pick<ProfileMeResponseDto, 'profilePhones'> & {
+          otp: { sent: boolean; channel: 'WHATSAPP' };
+        })
+      | null
     >
   > {
     try {
-      const { usuario, internationalPhoneNumber } =
-        await this.createOrRefreshProfilePhone(
-          usuarioRequest,
-          dto.countryCode,
-          dto.phone,
-          ip,
-          dto.alias,
+      const countryCode = dto.countryCode.trim();
+      const phoneNumber = dto.phone.trim();
+      const internationalPhoneNumber = dto.internationalPhoneNumber.trim();
+
+      //VALIDAR USUARIO Y PERFIL
+      const usuario = await this.usuarioRepository.findOne({
+        where: { id: usuarioRequest.id, activo: true, eliminado: false },
+        relations: ['profile'],
+      });
+
+      if (!usuario) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      if (!usuario.profile) {
+        throw new NotFoundException('La cuenta no tiene un perfil asociado');
+      }
+
+      //VALIDAR QUE EL NUMERO NO ESTE VINCULADO A OTRO PERFIL
+      const linkedInOtherProfile = await this.profilePhoneRepository.findOne({
+        where: {
+          internationalPhoneNumber: internationalPhoneNumber,
+          activo: true,
+          eliminado: false,
+        },
+        relations: ['profile'],
+      });
+
+      if (
+        linkedInOtherProfile &&
+        linkedInOtherProfile.profile.id !== usuario.profile!.id
+      ) {
+        throw new BadRequestException(
+          'Ese numero ya esta vinculado a otro perfil',
         );
+      }
+
+      let profilePhone = await this.profilePhoneRepository.findOne({
+        where: {
+          profile: { id: usuario.profile!.id },
+          internationalPhoneNumber: internationalPhoneNumber,
+        },
+        relations: ['profile'],
+      });
+
+      if (!profilePhone) {
+        profilePhone = this.profilePhoneRepository.create({
+          profile: usuario.profile!,
+          countryCode: countryCode,
+          phoneNumber: phoneNumber,
+          internationalPhoneNumber: internationalPhoneNumber,
+          alias: dto.alias.trim() || null,
+          verified: false,
+          fechaVerificacion: null,
+          activo: true,
+          eliminado: false,
+          usuarioRegistro: usuario.login,
+          ipRegistro: ip,
+          fechaRegistro: new Date(),
+        });
+      } else {
+        profilePhone.countryCode = countryCode;
+        profilePhone.phoneNumber = phoneNumber;
+        profilePhone.internationalPhoneNumber = internationalPhoneNumber;
+        profilePhone.alias = dto.alias.trim() || profilePhone.alias || null;
+        profilePhone.verified = false;
+        profilePhone.fechaVerificacion = null;
+        profilePhone.activo = true;
+        profilePhone.eliminado = false;
+        profilePhone.usuarioModificacion = usuario.login;
+        profilePhone.ipModificacion = ip;
+        profilePhone.fechaModificacion = new Date();
+      }
+
+      await this.profilePhoneRepository.save(profilePhone);
 
       const { plainCode } = await this.otpService.createOtp({
         usuario,
@@ -54,25 +123,43 @@ export class ProfilePhoneService {
         destino: internationalPhoneNumber,
       });
 
-      await this.whatsappSenderService.sendOtp(
-        internationalPhoneNumber,
-        plainCode,
-      );
+      const usuarioProfilePhones = await this.usuarioRepository.findOne({
+        where: { id: usuarioRequest.id, activo: true, eliminado: false },
+        relations: [
+          'profile',
+          'profile.tipoDocumento',
+          'profile.profilePhones',
+        ],
+      });
 
-      const payload = await this.buildProfilePhonesResponse(usuario.profile!.id);
+      if (!usuarioProfilePhones) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
 
-      return new StatusResponse(
-        true,
-        200,
-        'Codigo OTP enviado por WhatsApp',
-        {
-          ...payload,
-          otp: {
-            sent: true,
-            channel: 'WHATSAPP',
-          },
+      const profilePhones = (usuarioProfilePhones.profile?.profilePhones ?? [])
+        .filter((item) => item.activo && !item.eliminado)
+        .sort((a, b) => b.fechaRegistro.getTime() - a.fechaRegistro.getTime());
+
+      const phones = profilePhones.map((item) => ({
+        id: item.id,
+        countryCode: item.countryCode,
+        phoneNumber: item.phoneNumber,
+        internationalPhoneNumber: item.internationalPhoneNumber,
+        alias: item.alias,
+        verified: item.verified,
+        estado: item.verified
+          ? ProfilePhoneStatus.VERIFIED
+          : ProfilePhoneStatus.PENDING,
+        fechaVerificacion: item.fechaVerificacion,
+      }));
+
+      return new StatusResponse(true, 200, 'Codigo OTP enviado por WhatsApp', {
+        profilePhones: phones,
+        otp: {
+          sent: true,
+          channel: 'WHATSAPP',
         },
-      );
+      });
     } catch (error) {
       const statusCode =
         error instanceof BadRequestException ||
@@ -89,216 +176,38 @@ export class ProfilePhoneService {
     }
   }
 
-  private async buildProfilePhonesResponse(
-    profileId: number,
-  ): Promise<Pick<ProfileMeResponseDto, 'profilePhones'>> {
-    const phones = await this.profilePhoneRepository.find({
-      where: {
-        profile: { id: profileId },
-        activo: true,
-        eliminado: false,
-      },
-      order: { fechaRegistro: 'DESC' },
-    });
-
-    return {
-      profilePhones: phones.map((item) => ({
-        id: item.id,
-        countryCode: item.countryCode,
-        phoneNumber: item.phoneNumber,
-        internationalPhoneNumber: item.internationalPhoneNumber,
-        alias: item.alias,
-        verified: item.verified,
-        fechaVerificacion: item.fechaVerificacion,
-      })),
-    };
-  }
-
-  async findMyPhones(
-    usuarioRequest: Usuario,
-  ): Promise<StatusResponse<Pick<ProfileMeResponseDto, 'profilePhones'> | null>> {
-    try {
-      const usuario = await this.getUsuarioConProfile(usuarioRequest.id);
-      const payload = await this.buildProfilePhonesResponse(usuario.profile!.id);
-      return new StatusResponse(true, 200, 'Telefonos obtenidos', payload);
-    } catch (error) {
-      const statusCode =
-        error instanceof NotFoundException ? error.getStatus() : 500;
-      const message =
-        error instanceof NotFoundException
-          ? error.message
-          : 'Error al obtener telefonos';
-      return new StatusResponse(false, statusCode, message, null);
-    }
-  }
-
-
-  private buildPhoneParts(
-    countryCode: string,
-    phone: string,
-  ): {
-    countryCode: string;
-    phoneNumber: string;
-    internationalPhoneNumber: string;
-  } {
-    const normalizedCountry = countryCode.replace(/[^\d]/g, '');
-    const normalizedPhone = phone.replace(/[^\d]/g, '');
-
-    return {
-      countryCode: `+${normalizedCountry}`,
-      phoneNumber: normalizedPhone,
-      internationalPhoneNumber: `+${normalizedCountry}${normalizedPhone}`,
-    };
-  }
-
-  private normalizeIncomingWhatsappPhone(phone: string): string {
-    const cleaned = phone.trim().replace(/[^\d+]/g, '');
-    const internationalPhoneNumber = cleaned.startsWith('+')
-      ? cleaned
-      : `+${cleaned}`;
-    if (!/^\+\d{8,19}$/.test(internationalPhoneNumber)) {
-      throw new BadRequestException('Telefono WhatsApp invalido');
-    }
-    return internationalPhoneNumber;
-  }
-
-  private async getUsuarioConProfile(usuarioId: number): Promise<Usuario> {
-    const usuario = await this.usuarioRepository.findOne({
-      where: { id: usuarioId, activo: true, eliminado: false },
-      relations: ['profile'],
-    });
-
-    if (!usuario) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
-
-    if (!usuario.profile) {
-      throw new NotFoundException('La cuenta no tiene un perfil asociado');
-    }
-
-    return usuario;
-  }
-
-  private async createOrRefreshProfilePhone(
-    usuarioRequest: Usuario,
-    countryCode: string,
-    phone: string,
-    ip: string,
-    alias?: string | null,
-  ): Promise<{
-    usuario: Usuario;
-    profilePhone: ProfilePhone;
-    internationalPhoneNumber: string;
-  }> {
-    const usuario = await this.getUsuarioConProfile(usuarioRequest.id);
-    const phoneParts = this.buildPhoneParts(countryCode, phone);
-
-    const linkedInOtherProfile = await this.profilePhoneRepository.findOne({
-      where: {
-        internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['profile'],
-    });
-
-    if (
-      linkedInOtherProfile &&
-      linkedInOtherProfile.profile.id !== usuario.profile!.id
-    ) {
-      throw new BadRequestException(
-        'Ese numero ya esta vinculado a otro perfil',
-      );
-    }
-
-    let profilePhone = await this.profilePhoneRepository.findOne({
-      where: {
-        profile: { id: usuario.profile!.id },
-        internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['profile'],
-    });
-
-    if (!profilePhone) {
-      profilePhone = this.profilePhoneRepository.create({
-        profile: usuario.profile!,
-        countryCode: phoneParts.countryCode,
-        phoneNumber: phoneParts.phoneNumber,
-        internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-        alias: alias?.trim() || null,
-        verified: false,
-        fechaVerificacion: null,
-        usuarioRegistro: usuario.login,
-        ipRegistro: ip,
-      });
-    } else {
-      profilePhone.countryCode = phoneParts.countryCode;
-      profilePhone.phoneNumber = phoneParts.phoneNumber;
-      profilePhone.alias = alias?.trim() || profilePhone.alias || null;
-      profilePhone.verified = false;
-      profilePhone.fechaVerificacion = null;
-      profilePhone.usuarioModificacion = usuario.login;
-      profilePhone.ipModificacion = ip;
-      profilePhone.fechaModificacion = new Date();
-    }
-
-    await this.profilePhoneRepository.save(profilePhone);
-    return {
-      usuario,
-      profilePhone,
-      internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-    };
-  }
-
-  private async getProfilePhoneForUsuario(
-    usuarioRequest: Usuario,
-    countryCode: string,
-    phone: string,
-  ): Promise<{
-    usuario: Usuario;
-    profilePhone: ProfilePhone;
-    internationalPhoneNumber: string;
-  }> {
-    const usuario = await this.getUsuarioConProfile(usuarioRequest.id);
-    const phoneParts = this.buildPhoneParts(countryCode, phone);
-
-    const profilePhone = await this.profilePhoneRepository.findOne({
-      where: {
-        profile: { id: usuario.profile!.id },
-        internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['profile'],
-    });
-
-    if (!profilePhone) {
-      throw new NotFoundException(
-        'No existe solicitud de enlace para ese numero',
-      );
-    }
-
-    return {
-      usuario,
-      profilePhone,
-      internationalPhoneNumber: phoneParts.internationalPhoneNumber,
-    };
-  }
-
   async verifyOtp(
     dto: VerifyProfilePhoneOtpDto,
     usuarioRequest: Usuario,
     ip: string,
   ): Promise<StatusResponse<any>> {
     try {
-      const { usuario, profilePhone, internationalPhoneNumber } =
-        await this.getProfilePhoneForUsuario(
-          usuarioRequest,
-          dto.countryCode,
-          dto.phone,
+      const internationalPhoneNumber = dto.internationalPhoneNumber.trim();
+      const usuario = await this.usuarioRepository.findOne({
+        where: { id: usuarioRequest.id, activo: true, eliminado: false },
+        relations: ['profile', 'profile.profilePhones'],
+      });
+
+      if (!usuario) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      if (!usuario.profile) {
+        throw new NotFoundException('La cuenta no tiene un perfil asociado');
+      }
+
+      const profilePhone = usuario.profile.profilePhones.find(
+        (item) =>
+          item.internationalPhoneNumber === internationalPhoneNumber &&
+          item.activo &&
+          !item.eliminado,
+      );
+
+      if (!profilePhone) {
+        throw new NotFoundException(
+          'No existe solicitud de enlace para ese numero',
         );
+      }
 
       await this.otpService.validateOtp({
         usuarioId: usuario.id,
@@ -334,31 +243,5 @@ export class ProfilePhoneService {
 
       return new StatusResponse(false, statusCode, message, null);
     }
-  }
-
-  async findVerifiedUserByWhatsapp(phone: string): Promise<Usuario | null> {
-    const normalized = this.normalizeIncomingWhatsappPhone(phone);
-    const profilePhone = await this.profilePhoneRepository.findOne({
-      where: {
-        internationalPhoneNumber: normalized,
-        verified: true,
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['profile'],
-    });
-
-    if (!profilePhone) {
-      return null;
-    }
-
-    return this.usuarioRepository.findOne({
-      where: {
-        profile: { id: profilePhone.profile.id },
-        activo: true,
-        eliminado: false,
-      },
-      relations: ['profile'],
-    });
   }
 }

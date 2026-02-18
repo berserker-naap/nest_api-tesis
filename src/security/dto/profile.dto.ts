@@ -3,6 +3,7 @@ import {
   IsArray,
   IsDate,
   IsDateString,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -11,6 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { IsNullable } from 'src/common/decorators/is-nullable.decorator';
+import { ProfilePhoneStatus } from '../enums/profile-phone-status.enum';
 import { ProfileValidationStatus } from '../enums/profile-validation-status.enum';
 
 export class ProfilePhoneMeResponseDto {
@@ -34,6 +36,11 @@ export class ProfilePhoneMeResponseDto {
   alias!: string | null;
 
   verified!: boolean;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsEnum(ProfilePhoneStatus)
+  estado!: ProfilePhoneStatus;
 
   @IsNullable()
   @Type(() => Date)

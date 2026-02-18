@@ -19,6 +19,7 @@ import {
   UpdateProfileDataDto,
 } from '../dto/profile.dto';
 import { AuthService } from 'src/auth/auth.service';
+import { ProfilePhoneStatus } from '../enums/profile-phone-status.enum';
 import { ProfileValidationStatus } from '../enums/profile-validation-status.enum';
 
 @Injectable()
@@ -81,6 +82,9 @@ export class ProfileService {
         internationalPhoneNumber: item.internationalPhoneNumber,
         alias: item.alias,
         verified: item.verified,
+        estado: item.verified
+          ? ProfilePhoneStatus.VERIFIED
+          : ProfilePhoneStatus.PENDING,
         fechaVerificacion: item.fechaVerificacion,
       }));
 
