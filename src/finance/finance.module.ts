@@ -9,6 +9,7 @@ import { Usuario } from 'src/security/entities/usuario.entity';
 import { CatalogoController } from './controllers/catalogo.controller';
 import { CategoriaFinanceController } from './controllers/categoria-finance.controller';
 import { CuentaController } from './controllers/cuenta.controller';
+import { PrincipalFinanceController } from './controllers/principal-finance.controller';
 import { TransaccionFinanceController } from './controllers/transaccion-finance.controller';
 import { CategoriaFinance } from './entities/categoria-finance.entity';
 import { Cuenta } from './entities/cuenta.entity';
@@ -20,6 +21,7 @@ import { Transaccion } from './entities/transaccion.entity';
 import { CategoriaFinanceService } from './services/categoria-finance.service';
 import { CatalogoService } from './services/catalogo.service';
 import { CuentaService } from './services/cuenta.service';
+import { PrincipalFinanceService } from './services/principal-finance.service';
 import { TransaccionFinanceService } from './services/transaccion-finance.service';
 
 @Module({
@@ -60,11 +62,13 @@ import { TransaccionFinanceService } from './services/transaccion-finance.servic
     CatalogoController,
     CuentaController,
     CategoriaFinanceController,
+    PrincipalFinanceController,
     TransaccionFinanceController,
   ],
   providers: [
     CatalogoService,
     CuentaService,
+    PrincipalFinanceService,
     CategoriaFinanceService,
     TransaccionFinanceService,
   ],
