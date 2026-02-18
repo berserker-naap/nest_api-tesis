@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsString, Length, Matches, MaxLength } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsPositive,
+  IsString,
+  Length,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 import { IsInternationalPhoneConsistent } from 'src/common/decorators/is-international-phone-consistent.decorator';
 
 export class CreateProfilePhoneDto {
@@ -45,4 +53,19 @@ export class VerifyProfilePhoneOtpDto {
   @IsString()
   @Length(6, 6)
   code!: string;
+}
+
+export class ResendProfilePhoneOtpDto {
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^\d{8,19}$/, {
+    message: 'internationalPhoneNumber debe tener solo digitos',
+  })
+  internationalPhoneNumber!: string;
+}
+
+export class RemoveProfilePhoneDto {
+  @IsInt()
+  @IsPositive()
+  idProfilePhone!: number;
 }

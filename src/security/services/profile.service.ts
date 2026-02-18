@@ -144,10 +144,6 @@ export class ProfileService {
         throw new NotFoundException('Usuario no encontrado');
       }
 
-      if (!usuario.profile) {
-        throw new NotFoundException('La cuenta no tiene un perfil asociado');
-      }
-
       const tipoDocumento = await this.multitablaRepository.findOne({
         where: {
           id: dto.idTipoDocumentoIdentidad,
@@ -159,12 +155,35 @@ export class ProfileService {
         throw new BadRequestException('Tipo de documento no encontrado');
       }
 
-      const profile = await this.profileRepository.findOne({
-        where: { id: usuario.profile.id, activo: true, eliminado: false },
-        relations: ['tipoDocumento', 'reniecData'],
-      });
-      if (!profile) {
-        throw new NotFoundException('Perfil no encontrado');
+      let profile: Profile;
+      if (usuario.profile?.id) {
+        const existingProfile = await this.profileRepository.findOne({
+          where: { id: usuario.profile.id, activo: true, eliminado: false },
+          relations: ['tipoDocumento', 'reniecData'],
+        });
+        if (!existingProfile) {
+          throw new NotFoundException('Perfil no encontrado');
+        }
+        profile = existingProfile;
+      } else {
+        profile = this.profileRepository.create({
+          nombres: dto.nombres?.trim(),
+          apellidos: dto.apellidos ? dto.apellidos.trim() : null,
+          documentoIdentidad: dto.documentoIdentidad,
+          fechaNacimiento: dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : null,
+          tipoDocumento,
+          status: ProfileValidationStatus.PENDING,
+          fechaVerificacion: null,
+          reniecData: null,
+          fotoPerfilUrl: null,
+          nombreFotoPerfil: null,
+          fechaCargaFotoPerfil: null,
+          activo: true,
+          eliminado: false,
+          usuarioRegistro: usuarioRequest.login,
+          ipRegistro: ip,
+          fechaRegistro: new Date(),
+        });
       }
 
       profile.nombres = dto.nombres?.trim();
@@ -212,7 +231,14 @@ export class ProfileService {
       profile.ipModificacion = ip;
       profile.fechaModificacion = new Date();
 
-      await this.profileRepository.save(profile);
+      const savedProfile = await this.profileRepository.save(profile);
+      if (!usuario.profile?.id) {
+        usuario.profile = savedProfile;
+        usuario.usuarioModificacion = usuarioRequest.login;
+        usuario.ipModificacion = ip;
+        usuario.fechaModificacion = new Date();
+        await this.usuarioRepository.save(usuario);
+      }
 
       return new StatusResponse(true, 200, 'Datos personales actualizados', {
         nombres: profile.nombres,
@@ -344,4 +370,6 @@ export class ProfileService {
     }
   }
 }
+
+
 

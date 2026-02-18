@@ -63,7 +63,7 @@ export class WhatsappWebhookService {
           });
           await this.whatsappSenderService.sendTextMessage(
             item.from,
-            `Este es tu codigo OTP: ${plainCode}. Verificalo desde tu cuenta en la app para continuar.`,
+            `Este es tu codigo: ${plainCode}. Verificalo desde tu cuenta en la app para continuar.`,
           );
           continue;
         }

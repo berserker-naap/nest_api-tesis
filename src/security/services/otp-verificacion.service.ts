@@ -79,7 +79,7 @@ export class OtpVerificacionService {
     if (hash !== otp.codigoHash) {
       otp.attempts += 1;
       await this.otpRepository.save(otp);
-      throw new BadRequestException('Codigo OTP incorrecto');
+      throw new BadRequestException('Codigo incorrecto');
     }
 
     otp.fechaUso = new Date();
