@@ -94,7 +94,7 @@ export class ProfilePhoneService {
           phoneNumber: phoneNumber,
           internationalPhoneNumber: internationalPhoneNumber,
           alias: dto.alias.trim() || null,
-          validacionEstado: ProfilePhoneStatus.PENDING,
+          status: ProfilePhoneStatus.PENDING,
           fechaVerificacion: null,
           activo: true,
           eliminado: false,
@@ -107,7 +107,7 @@ export class ProfilePhoneService {
         profilePhone.phoneNumber = phoneNumber;
         profilePhone.internationalPhoneNumber = internationalPhoneNumber;
         profilePhone.alias = dto.alias.trim() || profilePhone.alias || null;
-        profilePhone.validacionEstado = ProfilePhoneStatus.PENDING;
+        profilePhone.status = ProfilePhoneStatus.PENDING;
         profilePhone.fechaVerificacion = null;
         profilePhone.activo = true;
         profilePhone.eliminado = false;
@@ -147,8 +147,8 @@ export class ProfilePhoneService {
         phoneNumber: item.phoneNumber,
         internationalPhoneNumber: item.internationalPhoneNumber,
         alias: item.alias,
-        validacionEstado:
-          item.validacionEstado ?? ProfilePhoneStatus.PENDING,
+        status:
+          item.status ?? ProfilePhoneStatus.PENDING,
         fechaVerificacion: item.fechaVerificacion,
       }));
 
@@ -215,7 +215,7 @@ export class ProfilePhoneService {
         code: dto.code,
       });
 
-      profilePhone.validacionEstado = ProfilePhoneStatus.VERIFIED;
+      profilePhone.status = ProfilePhoneStatus.VERIFIED;
       profilePhone.fechaVerificacion = new Date();
       profilePhone.usuarioModificacion = usuario.login;
       profilePhone.ipModificacion = ip;
@@ -259,7 +259,7 @@ export class ProfilePhoneService {
     const profilePhone = await this.profilePhoneRepository.findOne({
       where: {
         internationalPhoneNumber: numero,
-        validacionEstado: ProfilePhoneStatus.VERIFIED,
+        status: ProfilePhoneStatus.VERIFIED,
         activo: true,
         eliminado: false,
       },
@@ -270,7 +270,7 @@ export class ProfilePhoneService {
       const pendingProfilePhone = await this.profilePhoneRepository.findOne({
         where: {
           internationalPhoneNumber: numero,
-          validacionEstado: ProfilePhoneStatus.PENDING,
+          status: ProfilePhoneStatus.PENDING,
           activo: true,
           eliminado: false,
         },
@@ -325,3 +325,4 @@ export class ProfilePhoneService {
     };
   }
 }
+

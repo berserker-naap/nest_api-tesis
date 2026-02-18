@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsString, Length, Matches, MaxLength } from 'class-validator';
-import { IsInternationalPhoneConsistent } from '../validators/is-international-phone-consistent.decorator';
+import { IsInternationalPhoneConsistent } from 'src/common/decorators/is-international-phone-consistent.decorator';
 
 export class CreateProfilePhoneDto {
   @IsString()

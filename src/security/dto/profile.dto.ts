@@ -1,4 +1,4 @@
-﻿import { Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDate,
@@ -38,7 +38,7 @@ export class ProfilePhoneMeResponseDto {
   @IsString()
   @IsNotEmpty()
   @IsEnum(ProfilePhoneStatus)
-  validacionEstado!: ProfilePhoneStatus;
+  status!: ProfilePhoneStatus;
 
   @IsNullable()
   @Type(() => Date)
@@ -124,10 +124,11 @@ export class ProfileMeResponseDto {
 
   @IsString()
   @IsNotEmpty()
-  validacionEstado!: ProfileValidationStatus;
+  status!: ProfileValidationStatus;
 
   @ValidateNested({ each: true })
   @IsArray()
   @Type(() => ProfilePhoneMeResponseDto)
   profilePhones?: ProfilePhoneMeResponseDto[] | [];
 }
+

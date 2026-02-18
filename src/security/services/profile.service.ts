@@ -1,4 +1,4 @@
-Ôªøimport {
+import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -81,7 +81,7 @@ export class ProfileService {
         phoneNumber: item.phoneNumber,
         internationalPhoneNumber: item.internationalPhoneNumber,
         alias: item.alias,
-        validacionEstado: item.validacionEstado ?? ProfilePhoneStatus.PENDING,
+        status: item.status ?? ProfilePhoneStatus.PENDING,
         fechaVerificacion: item.fechaVerificacion,
       }));
 
@@ -105,8 +105,8 @@ export class ProfileService {
                     valor: usuario.profile.tipoDocumento.valor,
                   }
                 : null,
-              validacionEstado:
-                usuario.profile.validacionEstado ??
+              status:
+                usuario.profile.status ??
                 ProfileValidationStatus.PENDING,
               profilePhones: phones,
             }
@@ -130,7 +130,7 @@ export class ProfileService {
         | 'documentoIdentidad'
         | 'fechaNacimiento'
         | 'tipoDocumento'
-        | 'validacionEstado'
+        | 'status'
       > | null
     >
   > {
@@ -179,7 +179,7 @@ export class ProfileService {
         const reniecIdentity =
           await this.authService.resolveReniecIdentity(documento);
         if (!reniecIdentity) {
-          profile.validacionEstado = ProfileValidationStatus.FAILED;
+          profile.status = ProfileValidationStatus.FAILED;
           profile.fechaVerificacion = null;
           profile.reniecData = null;
         } else {
@@ -191,7 +191,7 @@ export class ProfileService {
               eliminado: false,
             },
           });
-          profile.validacionEstado = this.authService.resolveValidationStatus(
+          profile.status = this.authService.resolveValidationStatus(
             tipoDocumento.id,
             profile.nombres,
             profile.apellidos,
@@ -200,11 +200,11 @@ export class ProfileService {
           profile.fechaVerificacion = new Date();
         }
       } else if (tipoDocumento.id === 3) {
-        profile.validacionEstado = ProfileValidationStatus.FAILED;
+        profile.status = ProfileValidationStatus.FAILED;
         profile.fechaVerificacion = null;
         profile.reniecData = null;
       } else {
-        profile.validacionEstado = ProfileValidationStatus.PENDING;
+        profile.status = ProfileValidationStatus.PENDING;
         profile.fechaVerificacion = null;
         profile.reniecData = null;
       }
@@ -224,7 +224,7 @@ export class ProfileService {
           nombre: tipoDocumento.nombre,
           valor: tipoDocumento.valor,
         },
-        validacionEstado: profile.validacionEstado,
+        status: profile.status,
       });
     } catch (error) {
       const statusCode =
@@ -288,7 +288,7 @@ export class ProfileService {
       if (file.size > this.maxProfilePhotoSizeBytes) {
         const maxSizeMb = this.maxProfilePhotoSizeBytes / (1024 * 1024);
         throw new BadRequestException(
-          `La imagen supera el tama√±o m√°ximo permitido (${maxSizeMb}MB)`,
+          `La imagen supera el tamaÒo m·ximo permitido (${maxSizeMb}MB)`,
         );
       }
 
@@ -344,3 +344,4 @@ export class ProfileService {
     }
   }
 }
+

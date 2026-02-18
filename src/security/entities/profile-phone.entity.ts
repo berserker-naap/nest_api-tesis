@@ -13,7 +13,7 @@ import { ProfilePhoneStatus } from '../enums/profile-phone-status.enum';
 
 @Entity('PROFILE_PHONE')
 @Unique('UQ_PROFILE_PHONE_INTERNATIONAL_PHONE', ['internationalPhoneNumber'])
-@Index('IDX_PROFILE_PHONE_STATUS', ['internationalPhoneNumber', 'validacionEstado'])
+@Index('IDX_PROFILE_PHONE_STATUS', ['internationalPhoneNumber', 'status'])
 export class ProfilePhone extends Audit {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -36,7 +36,7 @@ export class ProfilePhone extends Audit {
     length: 20,
     default: ProfilePhoneStatus.PENDING,
   })
-  validacionEstado!: ProfilePhoneStatus;
+  status!: ProfilePhoneStatus;
 
   @Column({ type: 'datetime', nullable: true })
   fechaVerificacion!: Date | null;
@@ -44,3 +44,4 @@ export class ProfilePhone extends Audit {
   @Column({ type: 'nvarchar', length: 50, nullable: true })
   alias!: string | null;
 }
+

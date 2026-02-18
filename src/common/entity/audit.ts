@@ -2,35 +2,35 @@ import { Column } from 'typeorm';
 
 export abstract class Audit {
   @Column({ default: true })
-  activo: boolean;
+  activo!: boolean;
 
   @Column({ default: false })
-  eliminado: boolean;
+  eliminado!: boolean;
 
   @Column({ type: 'nvarchar', length: 50, nullable: true })
-  ipRegistro: string;
+  ipRegistro!: string;
 
   @Column({ type: 'datetime', default: () => 'GETDATE()' })
-  fechaRegistro: Date;
+  fechaRegistro!: Date;
 
   @Column({ type: 'nvarchar', length: 100, nullable: true })
-  usuarioRegistro: string;
+  usuarioRegistro!: string;
 
   @Column({ type: 'nvarchar', length: 50, nullable: true })
-  ipModificacion: string;
+  ipModificacion!: string;
 
   @Column({ type: 'datetime', nullable: true })
-  fechaModificacion: Date;
+  fechaModificacion!: Date;
 
   @Column({ type: 'nvarchar', length: 100, nullable: true })
-  usuarioModificacion: string;
+  usuarioModificacion!: string;
 
   @Column({ type: 'nvarchar', length: 50, nullable: true })
-  ipEliminacion: string;
+  ipEliminacion!: string;
 
   @Column({ type: 'datetime', nullable: true })
-  fechaEliminacion: Date;
+  fechaEliminacion!: Date;
 
   @Column({ type: 'nvarchar', length: 100, nullable: true })
-  usuarioEliminacion: string;
+  usuarioEliminacion!: string;
 }

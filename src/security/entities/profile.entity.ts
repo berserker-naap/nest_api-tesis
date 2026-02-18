@@ -51,7 +51,7 @@ export class Profile extends Audit {
     length: 20,
     default: ProfileValidationStatus.PENDING,
   })
-  validacionEstado!: ProfileValidationStatus;
+  status!: ProfileValidationStatus;
 
   @OneToOne(() => ReniecData, (reniecData) => reniecData.profile, { nullable: true })
   @JoinColumn({ name: 'idReniecData' })
@@ -60,3 +60,4 @@ export class Profile extends Audit {
   @OneToMany(() => ProfilePhone, (profilePhone) => profilePhone.profile)
   profilePhones!: ProfilePhone[];
 }
+

@@ -156,14 +156,14 @@ export class AuthService {
           );
         }
 
-        profileSaved.validacionEstado = this.resolveValidationStatus(
+        profileSaved.status = this.resolveValidationStatus(
           profileDto.idTipoDocumentoIdentidad,
           profileDto.nombres,
           profileDto.apellidos ?? null,
           validacionDocumento.reniecIdentity ?? null,
         );
         profileSaved.fechaVerificacion =
-          profileSaved.validacionEstado === ProfileValidationStatus.PENDING
+          profileSaved.status === ProfileValidationStatus.PENDING
             ? null
             : new Date();
         profileSaved.reniecData = validacionDocumento.reniecDataId
@@ -180,7 +180,7 @@ export class AuthService {
           tipoDocumento,
           documentoIdentidad,
           fechaNacimiento: null,
-          validacionEstado: this.resolveValidationStatus(
+          status: this.resolveValidationStatus(
             profileDto.idTipoDocumentoIdentidad,
             profileDto.nombres,
             profileDto.apellidos ?? null,
@@ -633,6 +633,7 @@ export class AuthService {
   }
 
 }
+
 
 
 
