@@ -38,6 +38,7 @@ export class BalanceAccountService {
         monedaSimbolo: cuenta.moneda.simbolo,
         tipoCuenta: cuenta.tipoCuenta.nombre,
         entidadFinanciera: cuenta.entidadFinanciera?.nombre ?? null,
+        entidadFinancieraIconoUrl: cuenta.entidadFinanciera?.iconoUrl ?? null,
       }));
 
       const saldoPorTipoCuentaMap = new Map<string, BalanceAccountTipoCuentaResumenDto>();

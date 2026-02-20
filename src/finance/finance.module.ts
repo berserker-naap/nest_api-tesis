@@ -12,6 +12,7 @@ import { CuentaController } from './controllers/cuenta.controller';
 import { EntidadFinancieraController } from './controllers/entidad-financiera.controller';
 import { MonedaController } from './controllers/moneda.controller';
 import { SubcategoriaFinanceController } from './controllers/subcategoria-finance.controller';
+import { TipoCambioDataController } from './controllers/tipo-cambio-data.controller';
 import { TipoCuentaController } from './controllers/tipo-cuenta.controller';
 import { TransaccionFinanceController } from './controllers/transaccion-finance.controller';
 import { CategoriaFinance } from './entities/categoria-finance.entity';
@@ -19,6 +20,7 @@ import { Cuenta } from './entities/cuenta.entity';
 import { EntidadFinanciera } from './entities/entidad-financiera.entity';
 import { Moneda } from './entities/moneda.entity';
 import { SubcategoriaFinance } from './entities/subcategoria-finance.entity';
+import { TipoCambioData } from './entities/tipo-cambio-data.entity';
 import { TipoCuenta } from './entities/tipo-cuenta.entity';
 import { Transaccion } from './entities/transaccion.entity';
 import { FinanceSeeder } from './seeders/finance.seeder';
@@ -28,6 +30,7 @@ import { CuentaService } from './services/cuenta.service';
 import { EntidadFinancieraService } from './services/entidad-financiera.service';
 import { MonedaService } from './services/moneda.service';
 import { SubcategoriaFinanceService } from './services/subcategoria-finance.service';
+import { TipoCambioDataService } from './services/tipo-cambio-data.service';
 import { TipoCuentaService } from './services/tipo-cuenta.service';
 import { TransaccionFinanceService } from './services/transaccion-finance.service';
 
@@ -38,6 +41,7 @@ import { TransaccionFinanceService } from './services/transaccion-finance.servic
       Usuario,
       Moneda,
       TipoCuenta,
+      TipoCambioData,
       EntidadFinanciera,
       CategoriaFinance,
       SubcategoriaFinance,
@@ -68,6 +72,7 @@ import { TransaccionFinanceService } from './services/transaccion-finance.servic
   controllers: [
     MonedaController,
     TipoCuentaController,
+    TipoCambioDataController,
     EntidadFinancieraController,
     CuentaController,
     CategoriaFinanceController,
@@ -79,6 +84,7 @@ import { TransaccionFinanceService } from './services/transaccion-finance.servic
     FinanceSeeder,
     MonedaService,
     TipoCuentaService,
+    TipoCambioDataService,
     EntidadFinancieraService,
     CuentaService,
     BalanceAccountService,

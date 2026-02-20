@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CategoriaFinance } from '../entities/categoria-finance.entity';
 import { EntidadFinanciera } from '../entities/entidad-financiera.entity';
 import { Moneda } from '../entities/moneda.entity';
@@ -28,18 +28,23 @@ export class FinanceSeeder implements OnModuleInit {
   ];
 
   private readonly tiposCuentaSeed: Pick<TipoCuenta, 'nombre' | 'naturaleza'>[] = [
-    { nombre: 'Cuenta Sueldo', naturaleza: 'ACTIVO' },
-    { nombre: 'Ahorros', naturaleza: 'ACTIVO' },
     { nombre: 'Efectivo', naturaleza: 'ACTIVO' },
+    { nombre: 'Tarjeta Debito', naturaleza: 'ACTIVO' },
+    { nombre: 'Cuenta Sueldo', naturaleza: 'ACTIVO' },
     { nombre: 'Tarjeta Credito', naturaleza: 'PASIVO' },
+    { nombre: 'Deudas por Pagar', naturaleza: 'PASIVO' },
+    { nombre: 'Deudas por Cobrar', naturaleza: 'ACTIVO' },
   ];
 
   private readonly entidadesSeed: Pick<EntidadFinanciera, 'nombre' | 'tipo' | 'iconoUrl'>[] = [
-    { nombre: 'BCP', tipo: 'BANCO', iconoUrl: null },
-    { nombre: 'BBVA', tipo: 'BANCO', iconoUrl: null },
-    { nombre: 'Interbank', tipo: 'BANCO', iconoUrl: null },
-    { nombre: 'Yape', tipo: 'BILLETERA', iconoUrl: null },
-    { nombre: 'Plin', tipo: 'BILLETERA', iconoUrl: null },
+    { nombre: 'BCP', tipo: 'BANCO', iconoUrl: 'bcp.png' },
+    { nombre: 'BBVA', tipo: 'BANCO', iconoUrl: 'bbva.png' },
+    { nombre: 'Interbank', tipo: 'BANCO', iconoUrl: 'interbank.png' },
+    { nombre: 'Scotiabank', tipo: 'BANCO', iconoUrl: 'scotiabank.png' },
+    { nombre: 'Pichincha', tipo: 'BANCO', iconoUrl: 'pichincha.png' },
+    { nombre: 'Caja Arequipa', tipo: 'CAJA', iconoUrl: 'caja-arequipa.png' },
+    { nombre: 'Caja Los Andes', tipo: 'CAJA', iconoUrl: 'caja-los-andes.png' },
+    { nombre: 'Lemon Cash', tipo: 'BILLETERA', iconoUrl: 'lemon-cash.png' },
   ];
 
   private readonly categoriasSeed: Array<
@@ -100,31 +105,8 @@ export class FinanceSeeder implements OnModuleInit {
       );
     }
 
-    const tiposCuenta = await this.tipoCuentaRepository.find();
-    if (!tiposCuenta.length) {
-      await this.tipoCuentaRepository.save(
-        this.tiposCuentaSeed.map((item) =>
-          this.tipoCuentaRepository.create({
-            ...item,
-            usuarioRegistro: 'SYSTEM',
-            ipRegistro: '127.0.0.1',
-          }),
-        ),
-      );
-    }
-
-    const entidades = await this.entidadFinancieraRepository.find();
-    if (!entidades.length) {
-      await this.entidadFinancieraRepository.save(
-        this.entidadesSeed.map((item) =>
-          this.entidadFinancieraRepository.create({
-            ...item,
-            usuarioRegistro: 'SYSTEM',
-            ipRegistro: '127.0.0.1',
-          }),
-        ),
-      );
-    }
+    await this.syncTiposCuenta();
+    await this.syncEntidadesFinancieras();
 
     const categorias = await this.categoriaRepository.find();
     if (!categorias.length) {
@@ -162,5 +144,82 @@ export class FinanceSeeder implements OnModuleInit {
     }
 
     this.initialized = true;
+  }
+
+  private async syncTiposCuenta(): Promise<void> {
+    const system = { usuarioRegistro: 'SYSTEM', ipRegistro: '127.0.0.1' };
+    const existentes = await this.tipoCuentaRepository.find();
+    const mapa = new Map(existentes.map((item) => [item.nombre, item]));
+    const nombresSeed = this.tiposCuentaSeed.map((item) => item.nombre);
+
+    for (const item of this.tiposCuentaSeed) {
+      const found = mapa.get(item.nombre);
+      if (found) {
+        await this.tipoCuentaRepository.update(found.id, {
+          naturaleza: item.naturaleza,
+          activo: true,
+          eliminado: false,
+          ...system,
+        });
+        continue;
+      }
+
+      await this.tipoCuentaRepository.save(
+        this.tipoCuentaRepository.create({
+          ...item,
+          ...system,
+        }),
+      );
+    }
+
+    const idsDesactivar = existentes
+      .filter((item) => !nombresSeed.includes(item.nombre))
+      .map((item) => item.id);
+
+    if (idsDesactivar.length) {
+      await this.tipoCuentaRepository.update(
+        { id: In(idsDesactivar) },
+        { activo: false, usuarioRegistro: system.usuarioRegistro, ipRegistro: system.ipRegistro },
+      );
+    }
+  }
+
+  private async syncEntidadesFinancieras(): Promise<void> {
+    const system = { usuarioRegistro: 'SYSTEM', ipRegistro: '127.0.0.1' };
+    const existentes = await this.entidadFinancieraRepository.find();
+    const mapa = new Map(existentes.map((item) => [item.nombre, item]));
+    const nombresSeed = this.entidadesSeed.map((item) => item.nombre);
+
+    for (const item of this.entidadesSeed) {
+      const found = mapa.get(item.nombre);
+      if (found) {
+        await this.entidadFinancieraRepository.update(found.id, {
+          tipo: item.tipo,
+          iconoUrl: item.iconoUrl,
+          activo: true,
+          eliminado: false,
+          ...system,
+        });
+        continue;
+      }
+
+      await this.entidadFinancieraRepository.save(
+        this.entidadFinancieraRepository.create({
+          ...item,
+          ...system,
+        }),
+      );
+    }
+
+    const idsDesactivar = existentes
+      .filter((item) => !nombresSeed.includes(item.nombre))
+      .map((item) => item.id);
+
+    if (idsDesactivar.length) {
+      await this.entidadFinancieraRepository.update(
+        { id: In(idsDesactivar) },
+        { activo: false, usuarioRegistro: system.usuarioRegistro, ipRegistro: system.ipRegistro },
+      );
+    }
   }
 }

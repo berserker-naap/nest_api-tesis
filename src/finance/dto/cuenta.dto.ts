@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
+  Min,
   IsNumber,
   IsOptional,
   IsString,
@@ -28,6 +29,7 @@ export class CrearCuentaDto {
   alias!: string;
 
   @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @Type(() => Number)
   saldoInicial!: number;
 

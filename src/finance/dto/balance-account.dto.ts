@@ -6,6 +6,7 @@ export class BalanceAccountCuentaResumenDto {
   monedaSimbolo!: string;
   tipoCuenta!: string;
   entidadFinanciera!: string | null;
+  entidadFinancieraIconoUrl!: string | null;
 }
 
 export class BalanceAccountTipoCuentaResumenDto {
