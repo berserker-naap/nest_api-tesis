@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
+import { QueryFailedError } from 'typeorm';
 import { Repository } from 'typeorm';
 import { TipoCambioDataResponseDto } from '../dto/tipo-cambio.dto';
 import { TipoCambioData } from '../entities/tipo-cambio-data.entity';
@@ -94,6 +95,7 @@ export class TipoCambioDataService {
           activo: true,
           eliminado: false,
         },
+        order: { id: 'DESC' },
       });
 
       if (existente) {
@@ -128,8 +130,23 @@ export class TipoCambioDataService {
         ipRegistro: '127.0.0.1',
       });
 
-      const saved = await this.tipoCambioRepository.save(created);
-      return new StatusResponse(true, 200, 'Tipo de cambio obtenido desde API y cacheado', this.toResponse(saved, false));
+      try {
+        const saved = await this.tipoCambioRepository.save(created);
+        return new StatusResponse(true, 200, 'Tipo de cambio obtenido desde API y cacheado', this.toResponse(saved, false));
+      } catch (error) {
+        if (this.isDuplicateUniqueError(error)) {
+          const existingAfterConflict = await this.findExistingWithRetry(fechaConsulta);
+          if (existingAfterConflict) {
+            return new StatusResponse(
+              true,
+              200,
+              'Tipo de cambio obtenido desde cache',
+              this.toResponse(existingAfterConflict, true),
+            );
+          }
+        }
+        throw error;
+      }
     } catch (error) {
       console.error('Error al obtener tipo de cambio:', error);
       return new StatusResponse(false, 500, 'Error al obtener tipo de cambio', null);
@@ -163,7 +180,6 @@ export class TipoCambioDataService {
     const url = new URL(endpointBase);
     url.searchParams.set('access_key', apiKey);
     url.searchParams.set('symbols', `${this.monedaOrigen},${this.monedaDestino}`);
-    url.searchParams.set('base', this.monedaOrigen);
 
     const response = await fetch(url.toString());
     if (!response.ok) {
@@ -223,5 +239,38 @@ export class TipoCambioDataService {
 
   private isValidDate(value: string): boolean {
     return /^\d{4}-\d{2}-\d{2}$/.test(value);
+  }
+
+  private isDuplicateUniqueError(error: unknown): boolean {
+    if (!(error instanceof QueryFailedError)) {
+      return false;
+    }
+    const driverError = error.driverError as { number?: number; message?: string } | undefined;
+    const message = String(driverError?.message ?? '');
+    return driverError?.number === 2627 || driverError?.number === 2601 || message.includes('UQ_TIPO_CAMBIO_DATA_FECHA_PAR');
+  }
+
+  private async findExistingWithRetry(fechaConsulta: string): Promise<TipoCambioData | null> {
+    for (let i = 0; i < 5; i++) {
+      const existing = await this.tipoCambioRepository.findOne({
+        where: {
+          fechaConsulta,
+          monedaOrigen: this.monedaOrigen,
+          monedaDestino: this.monedaDestino,
+          activo: true,
+          eliminado: false,
+        },
+        order: { id: 'DESC' },
+      });
+      if (existing) {
+        return existing;
+      }
+      await this.sleep(120);
+    }
+    return null;
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

@@ -1,8 +1,7 @@
 import { Audit } from 'src/common/entity/audit';
-import { Column, Entity, Index, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('TIPO_CAMBIO_DATA')
-@Unique('UQ_TIPO_CAMBIO_DATA_FECHA_PAR', ['fechaConsulta', 'monedaOrigen', 'monedaDestino'])
 @Index('IDX_TIPO_CAMBIO_DATA_FECHA', ['fechaConsulta'])
 export class TipoCambioData extends Audit {
   @PrimaryGeneratedColumn()
