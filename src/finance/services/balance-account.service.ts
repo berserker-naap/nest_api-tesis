@@ -3,20 +3,22 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { Repository } from 'typeorm';
 import {
-  PrincipalCuentaResumenDto,
-  PrincipalResumenResponseDto,
-  PrincipalTipoCuentaResumenDto,
-} from '../dto/principal.dto';
+  BalanceAccountCuentaResumenDto,
+  BalanceAccountResumenResponseDto,
+  BalanceAccountTipoCuentaResumenDto,
+} from '../dto/balance-account.dto';
 import { Cuenta } from '../entities/cuenta.entity';
 
 @Injectable()
-export class PrincipalFinanceService {
+export class BalanceAccountService {
   constructor(
     @InjectRepository(Cuenta)
     private readonly cuentaRepository: Repository<Cuenta>,
   ) {}
 
-  async getResumen(idUsuario: number): Promise<StatusResponse<PrincipalResumenResponseDto | any>> {
+  async getResumen(
+    idUsuario: number,
+  ): Promise<StatusResponse<BalanceAccountResumenResponseDto | any>> {
     try {
       const cuentas = await this.cuentaRepository.find({
         where: {
@@ -28,7 +30,7 @@ export class PrincipalFinanceService {
         order: { id: 'DESC' },
       });
 
-      const cuentasResumen: PrincipalCuentaResumenDto[] = cuentas.map((cuenta) => ({
+      const cuentasResumen: BalanceAccountCuentaResumenDto[] = cuentas.map((cuenta) => ({
         id: cuenta.id,
         alias: cuenta.alias,
         saldoActual: Number(cuenta.saldoActual),
@@ -38,7 +40,7 @@ export class PrincipalFinanceService {
         entidadFinanciera: cuenta.entidadFinanciera?.nombre ?? null,
       }));
 
-      const saldoPorTipoCuentaMap = new Map<string, PrincipalTipoCuentaResumenDto>();
+      const saldoPorTipoCuentaMap = new Map<string, BalanceAccountTipoCuentaResumenDto>();
       for (const cuenta of cuentasResumen) {
         const key = `${cuenta.tipoCuenta}|${cuenta.monedaCodigo}`;
         const current = saldoPorTipoCuentaMap.get(key);
@@ -64,7 +66,7 @@ export class PrincipalFinanceService {
         .filter((cuenta) => cuenta.monedaCodigo === 'USD')
         .reduce((acc, item) => acc + item.saldoActual, 0);
 
-      return new StatusResponse(true, 200, 'Resumen principal obtenido', {
+      return new StatusResponse(true, 200, 'Resumen de balance account obtenido', {
         hasAccounts: cuentasResumen.length > 0,
         totalAccounts: cuentasResumen.length,
         totalSaldoPen: Number(totalSaldoPen.toFixed(2)),
@@ -75,8 +77,13 @@ export class PrincipalFinanceService {
         ),
       });
     } catch (error) {
-      console.error('Error al obtener resumen principal:', error);
-      return new StatusResponse(false, 500, 'Error al obtener resumen principal', error);
+      console.error('Error al obtener resumen de balance account:', error);
+      return new StatusResponse(
+        false,
+        500,
+        'Error al obtener resumen de balance account',
+        error,
+      );
     }
   }
 }

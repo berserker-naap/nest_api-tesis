@@ -8,6 +8,7 @@ import { RouterModule } from '@nestjs/core';
 import { Usuario } from 'src/security/entities/usuario.entity';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import { MultitablaController } from './controllers/multitabla.controller';
+import { BusinessparamSeeder } from './seeders/businessparam.seeder';
 import { MultitablaService } from './services/multitabla.service';
 
 @Module({
@@ -40,6 +41,7 @@ import { MultitablaService } from './services/multitabla.service';
     MultitablaController,
   ],
   providers: [
+    BusinessparamSeeder,
     MultitablaService,
   ],
 

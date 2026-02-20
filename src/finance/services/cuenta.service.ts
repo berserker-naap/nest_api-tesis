@@ -13,7 +13,6 @@ import { EntidadFinanciera } from '../entities/entidad-financiera.entity';
 import { Moneda } from '../entities/moneda.entity';
 import { TipoCuenta } from '../entities/tipo-cuenta.entity';
 import { Transaccion } from '../entities/transaccion.entity';
-import { CatalogoService } from './catalogo.service';
 
 @Injectable()
 export class CuentaService {
@@ -31,7 +30,6 @@ export class CuentaService {
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
     private readonly dataSource: DataSource,
-    private readonly catalogoService: CatalogoService,
   ) {}
 
   private toResponseDto(cuenta: Cuenta): CuentaResponseDto {
@@ -96,8 +94,6 @@ export class CuentaService {
     await queryRunner.startTransaction();
 
     try {
-      await this.catalogoService.ensureCatalogosBase();
-
       const usuario = await queryRunner.manager.findOne(Usuario, {
         where: { id: idUsuario, activo: true, eliminado: false },
       });

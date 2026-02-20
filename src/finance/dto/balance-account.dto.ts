@@ -1,4 +1,4 @@
-export class PrincipalCuentaResumenDto {
+export class BalanceAccountCuentaResumenDto {
   id!: number;
   alias!: string;
   saldoActual!: number;
@@ -8,7 +8,7 @@ export class PrincipalCuentaResumenDto {
   entidadFinanciera!: string | null;
 }
 
-export class PrincipalTipoCuentaResumenDto {
+export class BalanceAccountTipoCuentaResumenDto {
   tipoCuenta!: string;
   monedaCodigo!: string;
   monedaSimbolo!: string;
@@ -16,11 +16,11 @@ export class PrincipalTipoCuentaResumenDto {
   saldoTotal!: number;
 }
 
-export class PrincipalResumenResponseDto {
+export class BalanceAccountResumenResponseDto {
   hasAccounts!: boolean;
   totalAccounts!: number;
   totalSaldoPen!: number;
   totalSaldoUsd!: number;
-  cuentas!: PrincipalCuentaResumenDto[];
-  saldoPorTipoCuenta!: PrincipalTipoCuentaResumenDto[];
+  cuentas!: BalanceAccountCuentaResumenDto[];
+  saldoPorTipoCuenta!: BalanceAccountTipoCuentaResumenDto[];
 }

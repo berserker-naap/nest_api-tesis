@@ -36,6 +36,7 @@ import { BlobStorageService } from 'src/common/services/blob-storage.service';
 import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { ProfilePhone } from './entities/profile-phone.entity';
 import { ProfilePhoneService } from './services/profile-phone.service';
+import { SecuritySeeder } from './seeders/security.seeder';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { ProfilePhoneService } from './services/profile-phone.service';
     ProfileController,
   ],
   providers: [
+    SecuritySeeder,
     AccionService,
     ModuloService,
     OpcionService,

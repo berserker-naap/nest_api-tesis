@@ -6,10 +6,13 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from 'src/auth/auth.module';
 import { Usuario } from 'src/security/entities/usuario.entity';
-import { CatalogoController } from './controllers/catalogo.controller';
+import { BalanceAccountController } from './controllers/balance-account.controller';
 import { CategoriaFinanceController } from './controllers/categoria-finance.controller';
 import { CuentaController } from './controllers/cuenta.controller';
-import { PrincipalFinanceController } from './controllers/principal-finance.controller';
+import { EntidadFinancieraController } from './controllers/entidad-financiera.controller';
+import { MonedaController } from './controllers/moneda.controller';
+import { SubcategoriaFinanceController } from './controllers/subcategoria-finance.controller';
+import { TipoCuentaController } from './controllers/tipo-cuenta.controller';
 import { TransaccionFinanceController } from './controllers/transaccion-finance.controller';
 import { CategoriaFinance } from './entities/categoria-finance.entity';
 import { Cuenta } from './entities/cuenta.entity';
@@ -18,10 +21,14 @@ import { Moneda } from './entities/moneda.entity';
 import { SubcategoriaFinance } from './entities/subcategoria-finance.entity';
 import { TipoCuenta } from './entities/tipo-cuenta.entity';
 import { Transaccion } from './entities/transaccion.entity';
+import { FinanceSeeder } from './seeders/finance.seeder';
 import { CategoriaFinanceService } from './services/categoria-finance.service';
-import { CatalogoService } from './services/catalogo.service';
+import { BalanceAccountService } from './services/balance-account.service';
 import { CuentaService } from './services/cuenta.service';
-import { PrincipalFinanceService } from './services/principal-finance.service';
+import { EntidadFinancieraService } from './services/entidad-financiera.service';
+import { MonedaService } from './services/moneda.service';
+import { SubcategoriaFinanceService } from './services/subcategoria-finance.service';
+import { TipoCuentaService } from './services/tipo-cuenta.service';
 import { TransaccionFinanceService } from './services/transaccion-finance.service';
 
 @Module({
@@ -59,17 +66,24 @@ import { TransaccionFinanceService } from './services/transaccion-finance.servic
     ]),
   ],
   controllers: [
-    CatalogoController,
+    MonedaController,
+    TipoCuentaController,
+    EntidadFinancieraController,
     CuentaController,
     CategoriaFinanceController,
-    PrincipalFinanceController,
+    SubcategoriaFinanceController,
+    BalanceAccountController,
     TransaccionFinanceController,
   ],
   providers: [
-    CatalogoService,
+    FinanceSeeder,
+    MonedaService,
+    TipoCuentaService,
+    EntidadFinancieraService,
     CuentaService,
-    PrincipalFinanceService,
+    BalanceAccountService,
     CategoriaFinanceService,
+    SubcategoriaFinanceService,
     TransaccionFinanceService,
   ],
   exports: [TransaccionFinanceService],
