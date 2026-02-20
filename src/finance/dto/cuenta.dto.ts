@@ -39,12 +39,20 @@ export class CrearCuentaDto {
   @IsString()
   @MaxLength(255)
   descripcionApertura?: string;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Type(() => Number)
+  lineaCredito?: number | null;
 }
 
 export class CuentaResponseDto {
   id!: number;
   alias!: string;
   saldoActual!: number;
+  lineaCredito!: number | null;
+  esTarjetaCredito!: boolean;
   moneda!: {
     id: number;
     codigo: string;

@@ -33,11 +33,28 @@ export class CuentaService {
     private readonly dataSource: DataSource,
   ) {}
 
+  private isTipoCuentaTarjetaCredito(nombreTipoCuenta: string): boolean {
+    const normalized = (nombreTipoCuenta ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .trim();
+    return normalized.includes('TARJETA') && normalized.includes('CREDITO');
+  }
+
   private toResponseDto(cuenta: Cuenta): CuentaResponseDto {
+    const esTarjetaCredito = this.isTipoCuentaTarjetaCredito(
+      cuenta.tipoCuenta.nombre,
+    );
     return {
       id: cuenta.id,
       alias: cuenta.alias,
       saldoActual: Number(cuenta.saldoActual),
+      lineaCredito:
+        cuenta.lineaCredito !== null && cuenta.lineaCredito !== undefined
+          ? Number(cuenta.lineaCredito)
+          : null,
+      esTarjetaCredito,
       moneda: {
         id: cuenta.moneda.id,
         codigo: cuenta.moneda.codigo,
@@ -123,6 +140,30 @@ export class CuentaService {
         where: { id: dto.idTipoCuenta, activo: true, eliminado: false },
       });
       if (!tipoCuenta) throw new NotFoundException('Tipo de cuenta no encontrado');
+      const esTarjetaCredito = this.isTipoCuentaTarjetaCredito(tipoCuenta.nombre);
+      const montoInicial = Number(dto.saldoInicial ?? 0);
+
+      let lineaCreditoCuenta: number | null = null;
+      let saldoInicialCuenta = montoInicial;
+      if (esTarjetaCredito) {
+        if (dto.lineaCredito === null || dto.lineaCredito === undefined) {
+          throw new BadRequestException(
+            'La linea de credito es requerida para tarjeta de credito',
+          );
+        }
+        const lineaCredito = Number(dto.lineaCredito);
+        if (lineaCredito <= 0) {
+          throw new BadRequestException('La linea de credito debe ser mayor a 0');
+        }
+        if (montoInicial > lineaCredito) {
+          throw new BadRequestException(
+            'El monto inicial no puede ser mayor a la linea de credito',
+          );
+        }
+        lineaCreditoCuenta = Number(lineaCredito.toFixed(2));
+        // Para tarjetas de credito, saldoActual representa disponible.
+        saldoInicialCuenta = Number((lineaCredito - montoInicial).toFixed(2));
+      }
 
       let entidadFinanciera: EntidadFinanciera | null = null;
       if (dto.idEntidadFinanciera) {
@@ -145,7 +186,8 @@ export class CuentaService {
         tipoCuenta,
         entidadFinanciera,
         alias: dto.alias,
-        saldoActual: dto.saldoInicial,
+        saldoActual: saldoInicialCuenta,
+        lineaCredito: lineaCreditoCuenta,
         usuarioRegistro,
         ipRegistro: ip,
       });
@@ -158,7 +200,7 @@ export class CuentaService {
         tipo: TipoTransaccion.AJUSTE,
         categoria: null,
         subcategoria: null,
-        monto: dto.saldoInicial,
+        monto: montoInicial,
         fecha: new Date(),
         concepto: 'Apertura de cuenta',
         descripcion:

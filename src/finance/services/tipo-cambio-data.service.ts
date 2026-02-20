@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
-import { QueryFailedError } from 'typeorm';
 import { Repository } from 'typeorm';
 import { TipoCambioDataResponseDto } from '../dto/tipo-cambio.dto';
 import { TipoCambioData } from '../entities/tipo-cambio-data.entity';
@@ -34,7 +33,7 @@ export class TipoCambioDataService {
     if (!this.isValidDate(fecha)) {
       return new StatusResponse(false, 400, 'Formato de fecha invalido. Usa YYYY-MM-DD.', null);
     }
-    return this.getOrCreateByFecha(fecha);
+    return this.getOrCreateByFecha(this.normalizeIsoDate(fecha));
   }
 
   async getHistorico(
@@ -75,7 +74,7 @@ export class TipoCambioDataService {
         true,
         200,
         'Historico de tipo de cambio obtenido',
-        rows.map((row) => this.toResponse(row, true)),
+        rows.map((row) => this.toResponse(row)),
       );
     } catch (error) {
       console.error('Error al obtener historico de tipo de cambio:', error);
@@ -87,27 +86,19 @@ export class TipoCambioDataService {
     fechaConsulta: string,
   ): Promise<StatusResponse<TipoCambioDataResponseDto | null>> {
     try {
-      const existente = await this.tipoCambioRepository.findOne({
-        where: {
-          fechaConsulta,
-          monedaOrigen: this.monedaOrigen,
-          monedaDestino: this.monedaDestino,
-          activo: true,
-          eliminado: false,
-        },
-        order: { id: 'DESC' },
-      });
+      const fechaNormalizada = this.normalizeIsoDate(fechaConsulta);
+      const existente = await this.findLatestByFecha(fechaNormalizada);
 
       if (existente) {
-        return new StatusResponse(true, 200, 'Tipo de cambio obtenido desde cache', this.toResponse(existente, true));
+        return new StatusResponse(true, 200, 'Tipo de cambio obtenido desde cache', this.toResponse(existente));
       }
 
       const hoyLima = this.getTodayLima();
-      if (fechaConsulta !== hoyLima) {
+      if (fechaNormalizada !== hoyLima) {
         return new StatusResponse(
           false,
           404,
-          `No existe tipo de cambio cacheado para ${fechaConsulta}.`,
+          `No existe tipo de cambio cacheado para ${fechaNormalizada}.`,
           null,
         );
       }
@@ -116,7 +107,7 @@ export class TipoCambioDataService {
       const penUsd = Number((1 / external.tasaUsdPen).toFixed(6));
 
       const created = this.tipoCambioRepository.create({
-        fechaConsulta,
+        fechaConsulta: fechaNormalizada,
         monedaOrigen: this.monedaOrigen,
         monedaDestino: this.monedaDestino,
         tasaOrigenADestino: Number(external.tasaUsdPen.toFixed(6)),
@@ -130,43 +121,27 @@ export class TipoCambioDataService {
         ipRegistro: '127.0.0.1',
       });
 
-      try {
-        const saved = await this.tipoCambioRepository.save(created);
-        return new StatusResponse(true, 200, 'Tipo de cambio obtenido desde API y cacheado', this.toResponse(saved, false));
-      } catch (error) {
-        if (this.isDuplicateUniqueError(error)) {
-          const existingAfterConflict = await this.findExistingWithRetry(fechaConsulta);
-          if (existingAfterConflict) {
-            return new StatusResponse(
-              true,
-              200,
-              'Tipo de cambio obtenido desde cache',
-              this.toResponse(existingAfterConflict, true),
-            );
-          }
-        }
-        throw error;
-      }
+      const saved = await this.tipoCambioRepository.save(created);
+      return new StatusResponse(
+        true,
+        200,
+        'Tipo de cambio obtenido desde API y cacheado',
+        this.toResponse(saved),
+      );
     } catch (error) {
       console.error('Error al obtener tipo de cambio:', error);
       return new StatusResponse(false, 500, 'Error al obtener tipo de cambio', null);
     }
   }
 
-  private toResponse(entity: TipoCambioData, desdeCache: boolean): TipoCambioDataResponseDto {
+  private toResponse(entity: TipoCambioData): TipoCambioDataResponseDto {
     return {
-      id: entity.id,
       fechaConsulta: entity.fechaConsulta,
       monedaOrigen: entity.monedaOrigen,
       monedaDestino: entity.monedaDestino,
       tasaOrigenADestino: Number(entity.tasaOrigenADestino),
       tasaDestinoAOrigen: Number(entity.tasaDestinoAOrigen),
-      fuente: entity.fuente,
       proveedorBase: entity.proveedorBase,
-      fechaProveedor: entity.fechaProveedor,
-      fechaHoraProveedor: entity.fechaHoraProveedor,
-      fechaRegistro: entity.fechaRegistro,
-      desdeCache,
     };
   }
 
@@ -228,49 +203,40 @@ export class TipoCambioDataService {
   }
 
   private getTodayLima(): string {
-    const formatted = new Intl.DateTimeFormat('en-CA', {
+    const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/Lima',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    }).format(new Date());
-    return formatted;
+    }).formatToParts(new Date());
+
+    const year = parts.find((part) => part.type === 'year')?.value;
+    const month = parts.find((part) => part.type === 'month')?.value;
+    const day = parts.find((part) => part.type === 'day')?.value;
+    if (!year || !month || !day) {
+      throw new Error('No se pudo resolver la fecha de Lima.');
+    }
+
+    return `${year}-${month}-${day}`;
   }
 
   private isValidDate(value: string): boolean {
     return /^\d{4}-\d{2}-\d{2}$/.test(value);
   }
 
-  private isDuplicateUniqueError(error: unknown): boolean {
-    if (!(error instanceof QueryFailedError)) {
-      return false;
-    }
-    const driverError = error.driverError as { number?: number; message?: string } | undefined;
-    const message = String(driverError?.message ?? '');
-    return driverError?.number === 2627 || driverError?.number === 2601 || message.includes('UQ_TIPO_CAMBIO_DATA_FECHA_PAR');
+  private normalizeIsoDate(value: string): string {
+    return value.trim();
   }
 
-  private async findExistingWithRetry(fechaConsulta: string): Promise<TipoCambioData | null> {
-    for (let i = 0; i < 5; i++) {
-      const existing = await this.tipoCambioRepository.findOne({
-        where: {
-          fechaConsulta,
-          monedaOrigen: this.monedaOrigen,
-          monedaDestino: this.monedaDestino,
-          activo: true,
-          eliminado: false,
-        },
-        order: { id: 'DESC' },
-      });
-      if (existing) {
-        return existing;
-      }
-      await this.sleep(120);
-    }
-    return null;
-  }
-
-  private async sleep(ms: number): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, ms));
+  private async findLatestByFecha(fechaConsulta: string): Promise<TipoCambioData | null> {
+    return this.tipoCambioRepository
+      .createQueryBuilder('tc')
+      .where('CONVERT(varchar(10), tc.fechaConsulta, 23) = :fechaConsulta', { fechaConsulta })
+      .andWhere('tc.activo = :activo', { activo: true })
+      .andWhere('tc.eliminado = :eliminado', { eliminado: false })
+      .andWhere('tc.monedaOrigen = :origen', { origen: this.monedaOrigen })
+      .andWhere('tc.monedaDestino = :destino', { destino: this.monedaDestino })
+      .orderBy('tc.id', 'DESC')
+      .getOne();
   }
 }

@@ -4,6 +4,7 @@ import { Usuario } from 'src/security/entities/usuario.entity';
 import {
   CrearEgresoDto,
   CrearIngresoDto,
+  CrearTransferenciaDto,
   FiltroTransaccionesDto,
 } from '../dto/transaccion.dto';
 import { TransaccionFinanceService } from '../services/transaccion-finance.service';
@@ -31,6 +32,15 @@ export class TransaccionFinanceController {
     @GetClientIp() ip: string,
   ) {
     return this.transaccionFinanceService.createIngreso(dto, usuario, ip);
+  }
+
+  @Post('transferencia')
+  createTransferencia(
+    @Body() dto: CrearTransferenciaDto,
+    @GetUsuario() usuario: Usuario,
+    @GetClientIp() ip: string,
+  ) {
+    return this.transaccionFinanceService.createTransferencia(dto, usuario, ip);
   }
 
   @Get()

@@ -12,6 +12,7 @@ import {
   CrearEgresoDto,
   FiltroTransaccionesDto,
   CrearIngresoDto,
+  CrearTransferenciaDto,
   CrearTransaccionBaseDto,
 } from '../dto/transaccion.dto';
 import { TipoCategoriaFinance } from '../enum/categoria-finance.enum';
@@ -68,6 +69,143 @@ export class TransaccionFinanceService {
       TipoTransaccion.INGRESO,
       OrigenTransaccion.MANUAL,
     );
+  }
+
+  async createTransferencia(
+    dto: CrearTransferenciaDto,
+    usuario: Usuario,
+    ip: string,
+  ): Promise<StatusResponse<any>> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      if (!dto.monto || dto.monto <= 0) {
+        throw new BadRequestException('El monto debe ser mayor a 0');
+      }
+
+      if (dto.idCuentaOrigen === dto.idCuentaDestino) {
+        throw new BadRequestException(
+          'La cuenta origen y destino deben ser diferentes',
+        );
+      }
+
+      const cuentaOrigen = await queryRunner.manager.findOne(Cuenta, {
+        where: {
+          id: dto.idCuentaOrigen,
+          usuario: { id: usuario.id },
+          activo: true,
+          eliminado: false,
+        },
+        relations: ['usuario'],
+      });
+      if (!cuentaOrigen) {
+        throw new NotFoundException(
+          'La cuenta origen no existe o no pertenece al usuario',
+        );
+      }
+
+      const cuentaDestino = await queryRunner.manager.findOne(Cuenta, {
+        where: {
+          id: dto.idCuentaDestino,
+          usuario: { id: usuario.id },
+          activo: true,
+          eliminado: false,
+        },
+        relations: ['usuario'],
+      });
+      if (!cuentaDestino) {
+        throw new NotFoundException(
+          'La cuenta destino no existe o no pertenece al usuario',
+        );
+      }
+
+      const fechaTransaccion = this.resolveTransactionDate(dto.fecha);
+      const monto = Number(dto.monto);
+      const concepto = dto.concepto.trim();
+      const nota = dto.nota?.trim() || null;
+
+      const salida = queryRunner.manager.create(Transaccion, {
+        usuario,
+        cuenta: cuentaOrigen,
+        tipo: TipoTransaccion.EGRESO,
+        categoria: null,
+        subcategoria: null,
+        fecha: fechaTransaccion,
+        concepto,
+        descripcion: `Transferencia a ${cuentaDestino.alias}`,
+        monto,
+        comprobanteUrl: null,
+        nota,
+        externalMessageId: null,
+        origen: OrigenTransaccion.MANUAL,
+        usuarioRegistro: usuario.login,
+        ipRegistro: ip,
+      });
+
+      const entrada = queryRunner.manager.create(Transaccion, {
+        usuario,
+        cuenta: cuentaDestino,
+        tipo: TipoTransaccion.INGRESO,
+        categoria: null,
+        subcategoria: null,
+        fecha: fechaTransaccion,
+        concepto,
+        descripcion: `Transferencia desde ${cuentaOrigen.alias}`,
+        monto,
+        comprobanteUrl: null,
+        nota,
+        externalMessageId: null,
+        origen: OrigenTransaccion.MANUAL,
+        usuarioRegistro: usuario.login,
+        ipRegistro: ip,
+      });
+
+      const savedSalida = await queryRunner.manager.save(Transaccion, salida);
+      const savedEntrada = await queryRunner.manager.save(Transaccion, entrada);
+
+      cuentaOrigen.saldoActual = Number(
+        (Number(cuentaOrigen.saldoActual) - monto).toFixed(2),
+      );
+      cuentaOrigen.usuarioModificacion = usuario.login;
+      cuentaOrigen.ipModificacion = ip;
+      cuentaOrigen.fechaModificacion = new Date();
+
+      cuentaDestino.saldoActual = Number(
+        (Number(cuentaDestino.saldoActual) + monto).toFixed(2),
+      );
+      cuentaDestino.usuarioModificacion = usuario.login;
+      cuentaDestino.ipModificacion = ip;
+      cuentaDestino.fechaModificacion = new Date();
+
+      await queryRunner.manager.save(Cuenta, cuentaOrigen);
+      await queryRunner.manager.save(Cuenta, cuentaDestino);
+
+      await queryRunner.commitTransaction();
+
+      return new StatusResponse(true, 201, 'Transferencia registrada', {
+        idTransaccionSalida: savedSalida.id,
+        idTransaccionEntrada: savedEntrada.id,
+        idCuentaOrigen: cuentaOrigen.id,
+        idCuentaDestino: cuentaDestino.id,
+        monto,
+        fecha: fechaTransaccion,
+        saldoOrigen: Number(cuentaOrigen.saldoActual),
+        saldoDestino: Number(cuentaDestino.saldoActual),
+      });
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      console.error('Error al registrar transferencia:', error);
+      return new StatusResponse(
+        false,
+        500,
+        'Error al registrar transferencia',
+        error,
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async createFromWhatsapp(

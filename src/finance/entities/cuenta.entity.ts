@@ -44,6 +44,9 @@ export class Cuenta extends Audit {
   @Column({ type: 'decimal', precision: 18, scale: 2 })
   saldoActual!: number;
 
+  @Column({ type: 'decimal', precision: 18, scale: 2, nullable: true })
+  lineaCredito!: number | null;
+
   @OneToMany(() => Transaccion, (transaccion) => transaccion.cuenta)
   transacciones!: Transaccion[];
 }

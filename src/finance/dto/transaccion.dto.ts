@@ -55,6 +55,34 @@ export class CrearEgresoDto extends CrearTransaccionBaseDto {}
 
 export class CrearIngresoDto extends CrearTransaccionBaseDto {}
 
+export class CrearTransferenciaDto {
+  @Type(() => Number)
+  @IsInt()
+  idCuentaOrigen!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  idCuentaDestino!: number;
+
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  monto!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(250)
+  concepto!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  nota?: string | null;
+
+  @IsOptional()
+  @IsDateString()
+  fecha?: string;
+}
+
 export class FiltroTransaccionesDto {
   @IsOptional()
   @IsString()
