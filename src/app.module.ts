@@ -6,6 +6,8 @@ import { SecurityModule } from './security/security.module';
 import { BusinessparamModule } from './businessparam/businessparam.module';
 import { FinanceModule } from './finance/finance.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { AssistantModule } from './assistant/assistant.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
     BusinessparamModule,
     FinanceModule,
     WhatsappModule,
+    AssistantModule,
+    AnalyticsModule,
   ],
   controllers: [],
   providers: [],

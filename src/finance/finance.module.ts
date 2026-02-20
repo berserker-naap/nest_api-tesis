@@ -92,6 +92,10 @@ import { TransaccionFinanceService } from './services/transaccion-finance.servic
     SubcategoriaFinanceService,
     TransaccionFinanceService,
   ],
-  exports: [TransaccionFinanceService],
+  exports: [
+    TransaccionFinanceService,
+    BalanceAccountService,
+    TipoCambioDataService,
+  ],
 })
 export class FinanceModule {}
