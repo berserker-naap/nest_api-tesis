@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { BlobStorageService } from 'src/common/services/blob-storage.service';
 import { UploadedFile } from 'src/common/types/uploaded-file.type';
+import { formatDateOnly, parseDateOnly } from 'src/common/utils/date-only.util';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import { ProfilePhone } from '../entities/profile-phone.entity';
 import { Profile } from '../entities/profile.entity';
@@ -97,7 +98,7 @@ export class ProfileService {
               fotoPerfilUrl: await this.resolvePhotoUrl(usuario.profile),
               nombreFotoPerfil: usuario.profile.nombreFotoPerfil,
               fechaCargaFotoPerfil: usuario.profile.fechaCargaFotoPerfil,
-              fechaNacimiento: usuario.profile.fechaNacimiento,
+              fechaNacimiento: formatDateOnly(usuario.profile.fechaNacimiento),
               tipoDocumento: usuario.profile.tipoDocumento
                 ? {
                     id: usuario.profile.tipoDocumento.id,
@@ -170,7 +171,7 @@ export class ProfileService {
           nombres: dto.nombres?.trim(),
           apellidos: dto.apellidos ? dto.apellidos.trim() : null,
           documentoIdentidad: dto.documentoIdentidad,
-          fechaNacimiento: dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : null,
+          fechaNacimiento: dto.fechaNacimiento ? parseDateOnly(dto.fechaNacimiento) : null,
           tipoDocumento,
           status: ProfileValidationStatus.PENDING,
           fechaVerificacion: null,
@@ -190,7 +191,7 @@ export class ProfileService {
       profile.apellidos = dto.apellidos ? dto.apellidos?.trim() : null;
       profile.documentoIdentidad = dto.documentoIdentidad;
       profile.fechaNacimiento = dto.fechaNacimiento
-        ? new Date(dto.fechaNacimiento)
+        ? parseDateOnly(dto.fechaNacimiento)
         : null;
       profile.tipoDocumento = tipoDocumento;
       const documento = (dto.documentoIdentidad ?? '').trim();
@@ -244,7 +245,7 @@ export class ProfileService {
         nombres: profile.nombres,
         apellidos: profile.apellidos,
         documentoIdentidad: profile.documentoIdentidad,
-        fechaNacimiento: profile.fechaNacimiento,
+        fechaNacimiento: formatDateOnly(profile.fechaNacimiento),
         tipoDocumento: {
           id: tipoDocumento.id,
           nombre: tipoDocumento.nombre,
@@ -370,6 +371,7 @@ export class ProfileService {
     }
   }
 }
+
 
 
 

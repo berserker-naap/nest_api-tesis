@@ -115,9 +115,8 @@ export class ProfileMeResponseDto {
   fechaCargaFotoPerfil!: Date | null;
 
   @IsNullable()
-  @Type(() => Date)
-  @IsDate()
-  fechaNacimiento!: Date | null;
+  @IsDateString()
+  fechaNacimiento!: string | null;
 
   @IsNullable()
   tipoDocumento!: ProfileTipoDocumentoResponseDto | null;
@@ -131,4 +130,3 @@ export class ProfileMeResponseDto {
   @Type(() => ProfilePhoneMeResponseDto)
   profilePhones?: ProfilePhoneMeResponseDto[] | [];
 }
-

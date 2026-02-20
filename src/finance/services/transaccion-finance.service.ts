@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
+import { parseDateOnly } from 'src/common/utils/date-only.util';
 import { Usuario } from 'src/security/entities/usuario.entity';
 import { DataSource, Repository } from 'typeorm';
 import {
@@ -283,7 +284,7 @@ export class TransaccionFinanceService {
         tipo,
         categoria,
         subcategoria,
-        fecha: dto.fecha ?? new Date(),
+        fecha: this.resolveTransactionDate(dto.fecha),
         concepto: dto.concepto,
         descripcion: dto.concepto,
         monto: dto.monto,
@@ -327,5 +328,26 @@ export class TransaccionFinanceService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  private resolveTransactionDate(fecha?: string): Date {
+    if (!fecha) {
+      return new Date();
+    }
+
+    const raw = String(fecha).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      try {
+        return parseDateOnly(raw);
+      } catch {
+        throw new BadRequestException('Fecha invalida');
+      }
+    }
+
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException('Fecha invalida');
+    }
+    return parsed;
   }
 }

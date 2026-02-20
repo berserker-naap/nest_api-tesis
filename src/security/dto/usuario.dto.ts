@@ -7,7 +7,7 @@ import {
   ValidateNested,
   IsInt,
   MinLength,
-  IsDate,
+  IsDateString,
   MaxLength,
   Matches,
 } from 'class-validator';
@@ -134,9 +134,8 @@ export class CreateProfileDto {
   documentoIdentidad!: string | null;
 
   @IsNullable()
-  @Type(() => Date)
-  @IsDate()
-  fechaNacimiento!: Date | null;
+  @IsDateString()
+  fechaNacimiento!: string | null;
 }
 
 
@@ -170,9 +169,8 @@ export class ProfileResponseDto {
   documentoIdentidad!: string | null;
 
   @IsNullable()
-  @Type(() => Date)
-  @IsDate()
-  fechaNacimiento!: Date | null;
+  @IsDateString()
+  fechaNacimiento!: string | null;
 
   @IsNullable()
   tipoDocumento!: ProfileTipoDocumentoResponseDto | null;

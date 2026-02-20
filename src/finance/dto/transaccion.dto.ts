@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsDateString,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -46,8 +47,8 @@ export class CrearTransaccionBaseDto {
   nota?: string | null;
 
   @IsOptional()
-  @Type(() => Date)
-  fecha?: Date;
+  @IsDateString()
+  fecha?: string;
 }
 
 export class CrearEgresoDto extends CrearTransaccionBaseDto {}

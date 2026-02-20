@@ -15,6 +15,7 @@ import { Usuario } from '../entities/usuario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
+import { formatDateOnly, parseDateOnly } from 'src/common/utils/date-only.util';
 import { Profile } from '../entities/profile.entity';
 import { UsuarioRol } from '../entities/usuario-rol.entity';
 import { Rol } from '../entities/rol.entity';
@@ -59,7 +60,7 @@ export class UsuarioService {
             nombres: usuario.profile.nombres,
             apellidos: usuario.profile.apellidos,
             documentoIdentidad: usuario.profile.documentoIdentidad,
-            fechaNacimiento: usuario.profile.fechaNacimiento,
+            fechaNacimiento: formatDateOnly(usuario.profile.fechaNacimiento),
             tipoDocumento: usuario.profile.tipoDocumento
               ? {
                 id: usuario.profile.tipoDocumento.id,
@@ -107,7 +108,12 @@ export class UsuarioService {
           throw new BadRequestException('Tipo de documento no encontrado');
 
         profile = queryRunner.manager.create(Profile, {
-          ...dto.profile,
+          nombres: dto.profile.nombres,
+          apellidos: dto.profile.apellidos,
+          documentoIdentidad: dto.profile.documentoIdentidad,
+          fechaNacimiento: dto.profile.fechaNacimiento
+            ? parseDateOnly(dto.profile.fechaNacimiento)
+            : null,
           tipoDocumento,
           usuarioRegistro,
           ipRegistro: ip,
@@ -165,7 +171,7 @@ export class UsuarioService {
             nombres: usuarioCompleto.profile.nombres,
             apellidos: usuarioCompleto.profile.apellidos,
             documentoIdentidad: usuarioCompleto.profile.documentoIdentidad,
-            fechaNacimiento: usuarioCompleto.profile.fechaNacimiento,
+            fechaNacimiento: formatDateOnly(usuarioCompleto.profile.fechaNacimiento),
             tipoDocumento: usuarioCompleto.profile.tipoDocumento
               ? {
                 id: usuarioCompleto.profile.tipoDocumento.id,
@@ -231,7 +237,12 @@ export class UsuarioService {
           throw new BadRequestException('Tipo de documento no encontrado');
 
         profile = queryRunner.manager.create(Profile, {
-          ...dto.profile,
+          nombres: dto.profile.nombres,
+          apellidos: dto.profile.apellidos,
+          documentoIdentidad: dto.profile.documentoIdentidad,
+          fechaNacimiento: dto.profile.fechaNacimiento
+            ? parseDateOnly(dto.profile.fechaNacimiento)
+            : null,
           tipoDocumento,
           usuarioRegistro: usuarioModificacion,
           ipRegistro: ip,
@@ -300,7 +311,7 @@ export class UsuarioService {
               nombres: usuarioCompleto.profile.nombres,
               apellidos: usuarioCompleto.profile.apellidos,
               documentoIdentidad: usuarioCompleto.profile.documentoIdentidad,
-              fechaNacimiento: usuarioCompleto.profile.fechaNacimiento,
+              fechaNacimiento: formatDateOnly(usuarioCompleto.profile.fechaNacimiento),
               tipoDocumento: usuarioCompleto.profile.tipoDocumento
                 ? {
                   id: usuarioCompleto.profile.tipoDocumento.id,
@@ -352,7 +363,7 @@ export class UsuarioService {
             nombres: usuario.profile.nombres,
             apellidos: usuario.profile.apellidos,
             documentoIdentidad: usuario.profile.documentoIdentidad,
-            fechaNacimiento: usuario.profile.fechaNacimiento,
+            fechaNacimiento: formatDateOnly(usuario.profile.fechaNacimiento),
             tipoDocumento: usuario.profile.tipoDocumento
               ? {
                 id: usuario.profile.tipoDocumento.id,
@@ -526,7 +537,7 @@ export class UsuarioService {
             nombres: usuarioCompleto.profile.nombres,
             apellidos: usuarioCompleto.profile.apellidos,
             documentoIdentidad: usuarioCompleto.profile.documentoIdentidad,
-            fechaNacimiento: usuarioCompleto.profile.fechaNacimiento,
+            fechaNacimiento: formatDateOnly(usuarioCompleto.profile.fechaNacimiento),
             tipoDocumento: usuarioCompleto.profile.tipoDocumento
               ? {
                 id: usuarioCompleto.profile.tipoDocumento.id,
@@ -672,6 +683,7 @@ export class UsuarioService {
 
 
 }
+
 
 
 
