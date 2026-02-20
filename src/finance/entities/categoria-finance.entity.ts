@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { SubcategoriaFinance } from './subcategoria-finance.entity';
 import { Transaccion } from './transaccion.entity';
+import { TipoCategoriaFinance } from '../enum/categoria-finance.enum';
 
 @Entity('CATEGORIA_FINANCE')
 export class CategoriaFinance extends Audit {
@@ -17,7 +18,7 @@ export class CategoriaFinance extends Audit {
   id!: number;
 
   @Column({ type: 'nvarchar', length: 20 })
-  tipo!: 'INGRESO' | 'EGRESO';
+  tipo!: TipoCategoriaFinance;
 
   @Column({ type: 'nvarchar', length: 80 })
   nombre!: string;

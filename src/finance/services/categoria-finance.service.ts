@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { Repository } from 'typeorm';
+import { CategoriaFinanceResponseDto } from '../dto/categoria-finance.dto';
+import { TipoCategoriaFinance } from '../enum/categoria-finance.enum';
 import { CategoriaFinance } from '../entities/categoria-finance.entity';
 import { FinanceSeeder } from '../seeders/finance.seeder';
 
@@ -17,7 +19,9 @@ export class CategoriaFinanceService {
     await this.financeSeeder.ensureBaseData();
   }
 
-  async findCategorias(tipo?: 'INGRESO' | 'EGRESO'): Promise<StatusResponse<any>> {
+  async findCategorias(
+    tipo?: TipoCategoriaFinance,
+  ): Promise<StatusResponse<CategoriaFinanceResponseDto[] | any>> {
     try {
       await this.ensureCategoriasBase();
       const categorias = await this.categoriaRepository.find({
@@ -29,7 +33,16 @@ export class CategoriaFinanceService {
         order: { orden: 'ASC', id: 'ASC' },
       });
 
-      return new StatusResponse(true, 200, 'Categorias obtenidas', categorias);
+      const data: CategoriaFinanceResponseDto[] = categorias.map((item) => ({
+        id: item.id,
+        tipo: item.tipo,
+        nombre: item.nombre,
+        icono: item.icono,
+        colorHex: item.colorHex,
+        orden: item.orden,
+      }));
+
+      return new StatusResponse(true, 200, 'Categorias obtenidas', data);
     } catch (error) {
       console.error('Error al obtener categorias:', error);
       return new StatusResponse(false, 500, 'Error al obtener categorias', error);

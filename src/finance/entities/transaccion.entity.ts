@@ -11,6 +11,7 @@ import {
 import { Cuenta } from './cuenta.entity';
 import { CategoriaFinance } from './categoria-finance.entity';
 import { SubcategoriaFinance } from './subcategoria-finance.entity';
+import { OrigenTransaccion, TipoTransaccion } from '../enum/transaccion.enum';
 
 @Entity('TRANSACCION')
 @Index('IDX_TRANSACCION_CUENTA_FECHA', ['cuenta', 'fecha'])
@@ -32,7 +33,7 @@ export class Transaccion extends Audit {
   cuenta!: Cuenta;
 
   @Column({ type: 'nvarchar', length: 20 })
-  tipo!: 'INGRESO' | 'EGRESO' | 'TRANSFERENCIA' | 'AJUSTE';
+  tipo!: TipoTransaccion;
 
   @ManyToOne(() => CategoriaFinance, { nullable: true })
   @JoinColumn({ name: 'idCategoria' })
@@ -64,5 +65,5 @@ export class Transaccion extends Audit {
   externalMessageId!: string | null;
 
   @Column({ type: 'nvarchar', length: 20 })
-  origen!: 'APERTURA' | 'MANUAL' | 'IMPORTACION';
+  origen!: OrigenTransaccion;
 }

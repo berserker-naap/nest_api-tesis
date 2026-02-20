@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { Repository } from 'typeorm';
+import { SubcategoriaFinanceResponseDto } from '../dto/categoria-finance.dto';
 import { CategoriaFinance } from '../entities/categoria-finance.entity';
 import { SubcategoriaFinance } from '../entities/subcategoria-finance.entity';
 import { CategoriaFinanceService } from './categoria-finance.service';
@@ -16,7 +17,9 @@ export class SubcategoriaFinanceService {
     private readonly categoriaFinanceService: CategoriaFinanceService,
   ) {}
 
-  async findByCategoria(idCategoria: number): Promise<StatusResponse<any>> {
+  async findByCategoria(
+    idCategoria: number,
+  ): Promise<StatusResponse<SubcategoriaFinanceResponseDto[] | any>> {
     try {
       await this.categoriaFinanceService.ensureCategoriasBase();
 
@@ -33,11 +36,16 @@ export class SubcategoriaFinanceService {
           activo: true,
           eliminado: false,
         },
-        relations: ['categoria'],
         order: { orden: 'ASC', id: 'ASC' },
       });
 
-      return new StatusResponse(true, 200, 'Subcategorias obtenidas', subcategorias);
+      const data: SubcategoriaFinanceResponseDto[] = subcategorias.map((item) => ({
+        id: item.id,
+        nombre: item.nombre,
+        orden: item.orden,
+      }));
+
+      return new StatusResponse(true, 200, 'Subcategorias obtenidas', data);
     } catch (error) {
       console.error('Error al obtener subcategorias:', error);
       return new StatusResponse(false, 500, 'Error al obtener subcategorias', error);

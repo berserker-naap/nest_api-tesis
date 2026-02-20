@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Cuenta } from './cuenta.entity';
 import { Usuario } from 'src/security/entities/usuario.entity';
+import { NaturalezaTipoCuenta } from '../enum/tipo-cuenta.enum';
 
 @Entity('TIPO_CUENTA')
 export class TipoCuenta extends Audit {
@@ -19,7 +20,7 @@ export class TipoCuenta extends Audit {
   nombre!: string;
 
   @Column({ type: 'nvarchar', length: 20 })
-  naturaleza!: 'ACTIVO' | 'PASIVO';
+  naturaleza!: NaturalezaTipoCuenta;
 
   @ManyToOne(() => Usuario, { nullable: true })
   @JoinColumn({ name: 'idUsuario' })

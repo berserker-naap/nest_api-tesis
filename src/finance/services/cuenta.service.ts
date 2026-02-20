@@ -8,6 +8,7 @@ import { StatusResponse } from 'src/common/dto/response.dto';
 import { Usuario } from 'src/security/entities/usuario.entity';
 import { DataSource, Repository } from 'typeorm';
 import { CrearCuentaDto, CuentaResponseDto } from '../dto/cuenta.dto';
+import { OrigenTransaccion, TipoTransaccion } from '../enum/transaccion.enum';
 import { Cuenta } from '../entities/cuenta.entity';
 import { EntidadFinanciera } from '../entities/entidad-financiera.entity';
 import { Moneda } from '../entities/moneda.entity';
@@ -154,7 +155,7 @@ export class CuentaService {
       const transaccionApertura = queryRunner.manager.create(Transaccion, {
         usuario,
         cuenta: savedCuenta,
-        tipo: 'AJUSTE',
+        tipo: TipoTransaccion.AJUSTE,
         categoria: null,
         subcategoria: null,
         monto: dto.saldoInicial,
@@ -166,7 +167,7 @@ export class CuentaService {
         comprobanteUrl: null,
         nota: null,
         externalMessageId: null,
-        origen: 'APERTURA',
+        origen: OrigenTransaccion.APERTURA,
         usuarioRegistro,
         ipRegistro: ip,
       });

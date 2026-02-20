@@ -8,6 +8,8 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
+import { TipoEntidadFinanciera } from '../enum/entidad-financiera.enum';
+import { NaturalezaTipoCuenta } from '../enum/tipo-cuenta.enum';
 
 export class CrearCuentaDto {
   @IsInt()
@@ -52,12 +54,12 @@ export class CuentaResponseDto {
   tipoCuenta!: {
     id: number;
     nombre: string;
-    naturaleza: 'ACTIVO' | 'PASIVO';
+    naturaleza: NaturalezaTipoCuenta;
   };
   entidadFinanciera!: {
     id: number;
     nombre: string;
-    tipo: 'BANCO' | 'CAJA' | 'BILLETERA';
+    tipo: TipoEntidadFinanciera;
     iconoUrl: string | null;
   } | null;
 }

@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { CrearTransaccionBaseDto } from 'src/finance/dto/transaccion.dto';
+import {
+  TipoTransaccion,
+  TipoTransaccionOperativa,
+} from 'src/finance/enum/transaccion.enum';
 import { TransaccionFinanceService } from 'src/finance/services/transaccion-finance.service';
 import { Usuario } from 'src/security/entities/usuario.entity';
 import { ProfilePhoneLookupStatus } from 'src/security/enums/profile-phone-lookup-status.enum';
@@ -124,7 +128,7 @@ export class WhatsappWebhookService {
   }
 
   private parseTextToTransaction(text: string): {
-    tipo: 'INGRESO' | 'EGRESO';
+    tipo: TipoTransaccionOperativa;
     dto: CrearTransaccionBaseDto;
   } | null {
     const cleaned = text.trim().replace(/\s+/g, ' ');
@@ -134,9 +138,9 @@ export class WhatsappWebhookService {
     const tipoRaw = parts[0].toLowerCase();
     const tipo =
       tipoRaw === 'ingreso'
-        ? 'INGRESO'
+        ? TipoTransaccion.INGRESO
         : tipoRaw === 'egreso'
-          ? 'EGRESO'
+          ? TipoTransaccion.EGRESO
           : null;
     if (!tipo) return null;
 

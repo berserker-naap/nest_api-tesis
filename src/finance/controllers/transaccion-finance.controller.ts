@@ -1,7 +1,11 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { Auth, GetClientIp, GetUsuario } from 'src/auth/decorators';
 import { Usuario } from 'src/security/entities/usuario.entity';
-import { CrearEgresoDto, CrearIngresoDto } from '../dto/transaccion.dto';
+import {
+  CrearEgresoDto,
+  CrearIngresoDto,
+  FiltroTransaccionesDto,
+} from '../dto/transaccion.dto';
 import { TransaccionFinanceService } from '../services/transaccion-finance.service';
 
 @Controller('transacciones')
@@ -27,5 +31,21 @@ export class TransaccionFinanceController {
     @GetClientIp() ip: string,
   ) {
     return this.transaccionFinanceService.createIngreso(dto, usuario, ip);
+  }
+
+  @Get()
+  findAll(
+    @Query() query: FiltroTransaccionesDto,
+    @GetUsuario() usuario: Usuario,
+  ) {
+    return this.transaccionFinanceService.findAll(query, usuario);
+  }
+
+  @Get(':id')
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUsuario() usuario: Usuario,
+  ) {
+    return this.transaccionFinanceService.findOneById(id, usuario);
   }
 }

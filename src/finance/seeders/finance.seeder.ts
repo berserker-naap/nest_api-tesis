@@ -1,6 +1,9 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { TipoCategoriaFinance } from '../enum/categoria-finance.enum';
+import { TipoEntidadFinanciera } from '../enum/entidad-financiera.enum';
+import { NaturalezaTipoCuenta } from '../enum/tipo-cuenta.enum';
 import { CategoriaFinance } from '../entities/categoria-finance.entity';
 import { EntidadFinanciera } from '../entities/entidad-financiera.entity';
 import { Moneda } from '../entities/moneda.entity';
@@ -28,44 +31,98 @@ export class FinanceSeeder implements OnModuleInit {
   ];
 
   private readonly tiposCuentaSeed: Pick<TipoCuenta, 'nombre' | 'naturaleza'>[] = [
-    { nombre: 'Efectivo', naturaleza: 'ACTIVO' },
-    { nombre: 'Tarjeta Debito', naturaleza: 'ACTIVO' },
-    { nombre: 'Cuenta Sueldo', naturaleza: 'ACTIVO' },
-    { nombre: 'Tarjeta Credito', naturaleza: 'PASIVO' },
-    { nombre: 'Deudas por Pagar', naturaleza: 'PASIVO' },
-    { nombre: 'Deudas por Cobrar', naturaleza: 'ACTIVO' },
+    { nombre: 'Efectivo', naturaleza: NaturalezaTipoCuenta.ACTIVO },
+    { nombre: 'Tarjeta Debito', naturaleza: NaturalezaTipoCuenta.ACTIVO },
+    { nombre: 'Cuenta Sueldo', naturaleza: NaturalezaTipoCuenta.ACTIVO },
+    { nombre: 'Tarjeta Credito', naturaleza: NaturalezaTipoCuenta.PASIVO },
+    { nombre: 'Deudas por Pagar', naturaleza: NaturalezaTipoCuenta.PASIVO },
+    { nombre: 'Deudas por Cobrar', naturaleza: NaturalezaTipoCuenta.ACTIVO },
   ];
 
   private readonly entidadesSeed: Pick<EntidadFinanciera, 'nombre' | 'tipo' | 'iconoUrl'>[] = [
-    { nombre: 'BCP', tipo: 'BANCO', iconoUrl: 'bcp.png' },
-    { nombre: 'BBVA', tipo: 'BANCO', iconoUrl: 'bbva.png' },
-    { nombre: 'Interbank', tipo: 'BANCO', iconoUrl: 'interbank.png' },
-    { nombre: 'Scotiabank', tipo: 'BANCO', iconoUrl: 'scotiabank.png' },
-    { nombre: 'Pichincha', tipo: 'BANCO', iconoUrl: 'pichincha.png' },
-    { nombre: 'Caja Arequipa', tipo: 'CAJA', iconoUrl: 'caja-arequipa.png' },
-    { nombre: 'Caja Los Andes', tipo: 'CAJA', iconoUrl: 'caja-los-andes.png' },
-    { nombre: 'Lemon Cash', tipo: 'BILLETERA', iconoUrl: 'lemon-cash.png' },
+    { nombre: 'BCP', tipo: TipoEntidadFinanciera.BANCO, iconoUrl: 'bcp.png' },
+    { nombre: 'BBVA', tipo: TipoEntidadFinanciera.BANCO, iconoUrl: 'bbva.png' },
+    { nombre: 'Interbank', tipo: TipoEntidadFinanciera.BANCO, iconoUrl: 'interbank.png' },
+    { nombre: 'Scotiabank', tipo: TipoEntidadFinanciera.BANCO, iconoUrl: 'scotiabank.png' },
+    { nombre: 'Pichincha', tipo: TipoEntidadFinanciera.BANCO, iconoUrl: 'pichincha.png' },
+    { nombre: 'Caja Arequipa', tipo: TipoEntidadFinanciera.CAJA, iconoUrl: 'caja-arequipa.png' },
+    { nombre: 'Caja Los Andes', tipo: TipoEntidadFinanciera.CAJA, iconoUrl: 'caja-los-andes.png' },
+    { nombre: 'Lemon Cash', tipo: TipoEntidadFinanciera.BILLETERA, iconoUrl: 'lemon-cash.png' },
   ];
 
   private readonly categoriasSeed: Array<
     Pick<CategoriaFinance, 'tipo' | 'nombre' | 'icono' | 'colorHex' | 'orden'>
   > = [
-    { tipo: 'EGRESO', nombre: 'Gastos', icono: null, colorHex: '#64748b', orden: 1 },
-    { tipo: 'EGRESO', nombre: 'Educacion', icono: null, colorHex: '#2563eb', orden: 2 },
-    { tipo: 'EGRESO', nombre: 'Inversion', icono: null, colorHex: '#16a34a', orden: 3 },
-    { tipo: 'EGRESO', nombre: 'Salud', icono: null, colorHex: '#dc2626', orden: 4 },
-    { tipo: 'EGRESO', nombre: 'Alimentacion', icono: null, colorHex: '#f59e0b', orden: 5 },
-    { tipo: 'EGRESO', nombre: 'Transporte', icono: null, colorHex: '#0891b2', orden: 6 },
-    { tipo: 'EGRESO', nombre: 'Hogar', icono: null, colorHex: '#7c3aed', orden: 7 },
     {
-      tipo: 'EGRESO',
+      tipo: TipoCategoriaFinance.EGRESO,
+      nombre: 'Gastos',
+      icono: null,
+      colorHex: '#64748b',
+      orden: 1,
+    },
+    {
+      tipo: TipoCategoriaFinance.EGRESO,
+      nombre: 'Educacion',
+      icono: null,
+      colorHex: '#2563eb',
+      orden: 2,
+    },
+    {
+      tipo: TipoCategoriaFinance.EGRESO,
+      nombre: 'Inversion',
+      icono: null,
+      colorHex: '#16a34a',
+      orden: 3,
+    },
+    {
+      tipo: TipoCategoriaFinance.EGRESO,
+      nombre: 'Salud',
+      icono: null,
+      colorHex: '#dc2626',
+      orden: 4,
+    },
+    {
+      tipo: TipoCategoriaFinance.EGRESO,
+      nombre: 'Alimentacion',
+      icono: null,
+      colorHex: '#f59e0b',
+      orden: 5,
+    },
+    {
+      tipo: TipoCategoriaFinance.EGRESO,
+      nombre: 'Transporte',
+      icono: null,
+      colorHex: '#0891b2',
+      orden: 6,
+    },
+    {
+      tipo: TipoCategoriaFinance.EGRESO,
+      nombre: 'Hogar',
+      icono: null,
+      colorHex: '#7c3aed',
+      orden: 7,
+    },
+    {
+      tipo: TipoCategoriaFinance.EGRESO,
       nombre: 'Entretenimiento',
       icono: null,
       colorHex: '#db2777',
       orden: 8,
     },
-    { tipo: 'INGRESO', nombre: 'Sueldo', icono: null, colorHex: '#059669', orden: 100 },
-    { tipo: 'INGRESO', nombre: 'Ingreso Extra', icono: null, colorHex: '#0284c7', orden: 101 },
+    {
+      tipo: TipoCategoriaFinance.INGRESO,
+      nombre: 'Sueldo',
+      icono: null,
+      colorHex: '#059669',
+      orden: 100,
+    },
+    {
+      tipo: TipoCategoriaFinance.INGRESO,
+      nombre: 'Ingreso Extra',
+      icono: null,
+      colorHex: '#0284c7',
+      orden: 101,
+    },
   ];
 
   private readonly subcategoriasSeed: Record<string, string[]> = {
