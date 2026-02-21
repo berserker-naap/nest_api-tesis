@@ -34,6 +34,8 @@ import { ProfileService } from './services/profile.service';
 import { ReniecData } from './entities/reniec-data.entity';
 import { BlobStorageService } from 'src/common/services/blob-storage.service';
 import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
+import { WhatsappMessageLogService } from 'src/common/services/whatsapp-message-log.service';
+import { WhatsappMessageLog } from 'src/security/entities/whatsapp-message-log.entity';
 import { ProfilePhone } from './entities/profile-phone.entity';
 import { ProfilePhoneService } from './services/profile-phone.service';
 import { SecuritySeeder } from './seeders/security.seeder';
@@ -53,7 +55,9 @@ import { SecuritySeeder } from './seeders/security.seeder';
       UsuarioRol,
       Usuario,
       ProfilePhone,
-      OtpVerificacion]),
+      OtpVerificacion,
+      WhatsappMessageLog,
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -97,11 +101,13 @@ import { SecuritySeeder } from './seeders/security.seeder';
     ProfileService,
     ProfilePhoneService,
     BlobStorageService,
+    WhatsappMessageLogService,
     WhatsappSenderService,
   ],
   exports: [
     ProfilePhoneService,
     OtpVerificacionService,
+    WhatsappMessageLogService,
     WhatsappSenderService,
   ],
 

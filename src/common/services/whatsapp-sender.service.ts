@@ -1,11 +1,28 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { WhatsappMessageLogService } from './whatsapp-message-log.service';
+
+export type WhatsappSendLogMeta = {
+  providerMessageId?: string | null;
+  inboundMessageId?: string | null;
+  idUsuario?: number | null;
+  usuarioLogin?: string | null;
+  idTransaccion?: number | null;
+  ip?: string | null;
+};
 
 @Injectable()
 export class WhatsappSenderService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly whatsappMessageLogService: WhatsappMessageLogService,
+  ) {}
 
-  async sendTextMessage(toInternational: string, message: string): Promise<void> {
+  async sendTextMessage(
+    toInternational: string,
+    message: string,
+    meta?: WhatsappSendLogMeta,
+  ): Promise<void> {
     const endpoint = this.getMessagesEndpoint();
     const cleanTo = this.resolveRecipient(toInternational);
     const body = {
@@ -17,13 +34,42 @@ export class WhatsappSenderService {
       },
     };
 
-    await this.sendRequest(endpoint, body);
+    try {
+      const providerMessageId = await this.sendRequest(endpoint, body);
+      await this.whatsappMessageLogService.logOutgoing({
+        status: 'SENT',
+        phone: cleanTo,
+        providerMessageId: providerMessageId ?? meta?.providerMessageId ?? null,
+        idUsuario: meta?.idUsuario ?? null,
+        usuarioLogin: meta?.usuarioLogin ?? null,
+        idTransaccion: meta?.idTransaccion ?? null,
+        text: message,
+        payload: body,
+        detail: meta?.inboundMessageId ?? null,
+        ip: meta?.ip ?? null,
+      });
+    } catch (error) {
+      await this.whatsappMessageLogService.logOutgoing({
+        status: 'FAILED',
+        phone: cleanTo,
+        providerMessageId: meta?.providerMessageId ?? null,
+        idUsuario: meta?.idUsuario ?? null,
+        usuarioLogin: meta?.usuarioLogin ?? null,
+        idTransaccion: meta?.idTransaccion ?? null,
+        text: message,
+        payload: body,
+        detail: error instanceof Error ? error.message : 'error_no_controlado',
+        ip: meta?.ip ?? null,
+      });
+      throw error;
+    }
   }
 
   async sendTemplateMessage(
     toInternational: string,
     templateName: string,
     languageCode = 'en_US',
+    meta?: WhatsappSendLogMeta,
   ): Promise<void> {
     const endpoint = this.getMessagesEndpoint();
     const cleanTo = this.resolveRecipient(toInternational);
@@ -39,7 +85,36 @@ export class WhatsappSenderService {
       },
     };
 
-    await this.sendRequest(endpoint, body);
+    const templateSummary = `[template:${templateName}|lang:${languageCode}]`;
+    try {
+      const providerMessageId = await this.sendRequest(endpoint, body);
+      await this.whatsappMessageLogService.logOutgoing({
+        status: 'SENT',
+        phone: cleanTo,
+        providerMessageId: providerMessageId ?? meta?.providerMessageId ?? null,
+        idUsuario: meta?.idUsuario ?? null,
+        usuarioLogin: meta?.usuarioLogin ?? null,
+        idTransaccion: meta?.idTransaccion ?? null,
+        text: templateSummary,
+        payload: body,
+        detail: meta?.inboundMessageId ?? null,
+        ip: meta?.ip ?? null,
+      });
+    } catch (error) {
+      await this.whatsappMessageLogService.logOutgoing({
+        status: 'FAILED',
+        phone: cleanTo,
+        providerMessageId: meta?.providerMessageId ?? null,
+        idUsuario: meta?.idUsuario ?? null,
+        usuarioLogin: meta?.usuarioLogin ?? null,
+        idTransaccion: meta?.idTransaccion ?? null,
+        text: templateSummary,
+        payload: body,
+        detail: error instanceof Error ? error.message : 'error_no_controlado',
+        ip: meta?.ip ?? null,
+      });
+      throw error;
+    }
   }
 
   private getMessagesEndpoint(): string {
@@ -69,7 +144,10 @@ export class WhatsappSenderService {
     return resolvedNumber.replace(/\D/g, '');
   }
 
-  private async sendRequest(endpoint: string, body: object): Promise<void> {
+  private async sendRequest(
+    endpoint: string,
+    body: object,
+  ): Promise<string | null> {
     const accessToken = this.configService.get<string>('WHATSAPP_ACCESS_TOKEN');
     if (!accessToken) {
       throw new InternalServerErrorException(
@@ -88,8 +166,17 @@ export class WhatsappSenderService {
     if (!response.ok) {
       const detail = await response.text();
       throw new InternalServerErrorException(
-        `No se pudo enviar OTP por WhatsApp. Detalle: ${detail}`,
+        `No se pudo enviar mensaje por WhatsApp. Detalle: ${detail}`,
       );
+    }
+
+    try {
+      const payload = (await response.json()) as {
+        messages?: Array<{ id?: string }>;
+      };
+      return payload?.messages?.[0]?.id ?? null;
+    } catch {
+      return null;
     }
   }
 }
