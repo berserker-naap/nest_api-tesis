@@ -3,6 +3,7 @@ import { StatusResponse } from 'src/common/dto/response.dto';
 import { WhatsappMessageLogService } from 'src/common/services/whatsapp-message-log.service';
 import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { TransaccionFinanceService } from 'src/finance/services/transaccion-finance.service';
+import { MessagingPushService } from 'src/messaging/services/messaging-push.service';
 import { Usuario } from 'src/security/entities/usuario.entity';
 import { ProfilePhoneLookupStatus } from 'src/security/enums/profile-phone-lookup-status.enum';
 import { OtpVerificacionService } from 'src/security/services/otp-verificacion.service';
@@ -38,6 +39,7 @@ export class WhatsappWebhookService {
 
   constructor(
     private readonly transaccionFinanceService: TransaccionFinanceService,
+    private readonly messagingPushService: MessagingPushService,
     private readonly whatsappLinkOrchestrator: WhatsappLinkOrchestrator,
     private readonly whatsappSenderService: WhatsappSenderService,
     private readonly whatsappMessageLogService: WhatsappMessageLogService,
@@ -253,6 +255,9 @@ export class WhatsappWebhookService {
       saldoActual?: number;
       tipo?: string;
     };
+    const isAlreadyProcessed = String(result.message ?? '')
+      .trim()
+      .toLowerCase() === 'mensaje ya procesado';
 
     await this.sendReply(
       item.from,
@@ -267,6 +272,9 @@ export class WhatsappWebhookService {
         idTransaccion: payload.idTransaccion ?? null,
       },
     );
+    if (!isAlreadyProcessed) {
+      await this.sendMovementPushNotification(user, payload, item.from);
+    }
     this.scheduleNoReplyClose(item.from, user);
   }
 
@@ -314,6 +322,7 @@ export class WhatsappWebhookService {
         idTransaccion: transferData.idTransaccionSalida ?? null,
       },
     );
+    await this.sendTransferPushNotification(user, transferData, item.from);
     this.scheduleNoReplyClose(item.from, user);
   }
 
@@ -348,6 +357,119 @@ export class WhatsappWebhookService {
       idTransaccion: extra?.idTransaccion ?? null,
       ip: toInternational,
     });
+  }
+
+  private async sendMovementPushNotification(
+    usuario: Usuario,
+    payload: {
+      idTransaccion?: number;
+      monto?: number;
+      saldoActual?: number;
+      tipo?: string;
+    },
+    ip: string,
+  ): Promise<void> {
+    const tipo = String(payload.tipo ?? 'MOVIMIENTO').trim().toUpperCase();
+    const title =
+      tipo === 'INGRESO'
+        ? 'Ingreso registrado desde WhatsApp'
+        : 'Egreso registrado desde WhatsApp';
+    const messageParts = [
+      typeof payload.monto === 'number'
+        ? `Monto S/ ${Number(payload.monto).toFixed(2)}`
+        : null,
+      payload.idTransaccion ? `ID ${payload.idTransaccion}` : null,
+      typeof payload.saldoActual === 'number'
+        ? `Saldo S/ ${Number(payload.saldoActual).toFixed(2)}`
+        : null,
+    ].filter(Boolean);
+    const message =
+      messageParts.length > 0
+        ? messageParts.join(' | ')
+        : 'Se registro un movimiento desde WhatsApp.';
+
+    await this.safeSendPush(
+      usuario,
+      ip,
+      title,
+      message,
+      '/tabs/movimientos',
+      {
+        tipo: 'TRANSACCION_WHATSAPP',
+        subtipo: tipo,
+        idTransaccion: payload.idTransaccion ?? '',
+      },
+    );
+  }
+
+  private async sendTransferPushNotification(
+    usuario: Usuario,
+    payload: {
+      idTransaccionSalida?: number;
+      idTransaccionEntrada?: number;
+      monto?: number;
+      idCuentaOrigen?: number;
+      idCuentaDestino?: number;
+    },
+    ip: string,
+  ): Promise<void> {
+    const messageParts = [
+      typeof payload.monto === 'number'
+        ? `Monto S/ ${Number(payload.monto).toFixed(2)}`
+        : null,
+      payload.idCuentaOrigen && payload.idCuentaDestino
+        ? `Cuenta ${payload.idCuentaOrigen} -> ${payload.idCuentaDestino}`
+        : null,
+      payload.idTransaccionSalida
+        ? `Salida ID ${payload.idTransaccionSalida}`
+        : null,
+    ].filter(Boolean);
+    const message =
+      messageParts.length > 0
+        ? messageParts.join(' | ')
+        : 'Se registro una transferencia desde WhatsApp.';
+
+    await this.safeSendPush(
+      usuario,
+      ip,
+      'Transferencia registrada desde WhatsApp',
+      message,
+      '/tabs/movimientos',
+      {
+        tipo: 'TRANSFERENCIA_WHATSAPP',
+        idTransaccionSalida: payload.idTransaccionSalida ?? '',
+        idTransaccionEntrada: payload.idTransaccionEntrada ?? '',
+      },
+    );
+  }
+
+  private async safeSendPush(
+    usuario: Usuario,
+    ip: string,
+    title: string,
+    message: string,
+    deepLink: string,
+    variables?: Record<string, string | number | boolean | null>,
+  ): Promise<void> {
+    try {
+      const result = await this.messagingPushService.sendTemplate(
+        {
+          tagExpression: `user:${usuario.id}`,
+          title,
+          message,
+          deepLink,
+          variables,
+        },
+        usuario,
+        ip,
+      );
+
+      if (!result.ok) {
+        console.error('Push post-WhatsApp no enviado:', result.message);
+      }
+    } catch (error) {
+      console.error('Error enviando push post-WhatsApp:', error);
+    }
   }
 
   private extractMessages(payload: any): IncomingWhatsappMessage[] {
@@ -389,4 +511,3 @@ export class WhatsappWebhookService {
     return Math.max(min, Math.min(max, Math.floor(parsed)));
   }
 }
-

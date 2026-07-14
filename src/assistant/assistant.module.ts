@@ -6,6 +6,8 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from 'src/auth/auth.module';
 import { FinanceModule } from 'src/finance/finance.module';
+import { CategoriaFinance } from 'src/finance/entities/categoria-finance.entity';
+import { SubcategoriaFinance } from 'src/finance/entities/subcategoria-finance.entity';
 import { Transaccion } from 'src/finance/entities/transaccion.entity';
 import { AssistantController } from './controllers/assistant.controller';
 import { AssistantMessage } from './entities/assistant-message.entity';
@@ -20,7 +22,13 @@ import { AssistantResponsePolicyService } from './services/assistant-response-po
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([AssistantSession, AssistantMessage, Transaccion]),
+    TypeOrmModule.forFeature([
+      AssistantSession,
+      AssistantMessage,
+      Transaccion,
+      CategoriaFinance,
+      SubcategoriaFinance,
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

@@ -1,0 +1,1551 @@
+{
+  "info": {
+    "_postman_id": "5f3f9cc6-3f3f-4d55-9d34-api-tesis-postamn",
+    "name": "API TESIS - postamn",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Coleccion de Postman para probar los endpoints principales de api-tesis."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "token", "value": "" },
+    { "key": "usuarioId", "value": "1" },
+    { "key": "rolId", "value": "1" },
+    { "key": "moduloId", "value": "1" },
+    { "key": "opcionId", "value": "1" },
+    { "key": "accionId", "value": "1" },
+    { "key": "multitablaId", "value": "1" },
+    { "key": "categoriaId", "value": "1" },
+    { "key": "transaccionId", "value": "1" },
+    { "key": "sessionId", "value": "1" },
+    { "key": "numeroDocumento", "value": "12345678" },
+    { "key": "fecha", "value": "2026-07-13" },
+    { "key": "desde", "value": "2026-07-01" },
+    { "key": "hasta", "value": "2026-07-13" },
+    { "key": "limit", "value": "20" },
+    { "key": "countryCode", "value": "+51" },
+    { "key": "phone", "value": "999888777" },
+    { "key": "internationalPhoneNumber", "value": "51999888777" },
+    { "key": "otpCode", "value": "123456" },
+    { "key": "verifyToken", "value": "mi_verify_token" },
+    { "key": "challenge", "value": "challenge-demo" },
+    { "key": "profilePhotoPath", "value": "C:/temp/profile.jpg" },
+    { "key": "installationId", "value": "android-device-001" },
+    { "key": "pushChannel", "value": "fcm-device-token-demo" },
+    { "key": "pushTag", "value": "user:1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let data = {};",
+                  "try { data = pm.response.json(); } catch (e) {}",
+                  "const token = data?.data?.token || data?.token || data?.session?.token || '';",
+                  "if (token) { pm.collectionVariables.set('token', token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"login\":\"admin@tesis.com\",\"password\":\"Admin123*\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Check Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/auth/check-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "check-status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Single",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"login\":\"nuevo@tesis.com\",\"password\":\"Admin123*\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register-single",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register-single"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register External",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"login\":\"externo@tesis.com\",\"password\":\"Admin123*\",\"profile\":{\"nombres\":\"Juan\",\"apellidos\":\"Perez\",\"idTipoDocumentoIdentidad\":1,\"documentoIdentidad\":\"12345678\"}}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register-external",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register-external"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validar DNI",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/auth/validar-dni/{{numeroDocumento}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "validar-dni", "{{numeroDocumento}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Security",
+      "item": [
+        {
+          "name": "Usuarios",
+          "item": [
+            {
+              "name": "Listar Usuarios",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/usuario",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "usuario"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Obtener Usuario",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/usuario/{{usuarioId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "usuario", "{{usuarioId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Crear Usuario",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"login\":\"usuario@tesis.com\",\"password\":\"Admin123*\",\"profile\":{\"nombres\":\"Maria\",\"apellidos\":\"Lopez\",\"idTipoDocumentoIdentidad\":1,\"documentoIdentidad\":\"45678912\",\"fechaNacimiento\":\"1995-05-10\"},\"roles\":[{\"id\":1,\"nombre\":\"ADMIN\"}]}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/usuario",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "usuario"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar Usuario",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"login\":\"usuario.actualizado@tesis.com\",\"password\":\"Admin123*\",\"profile\":{\"nombres\":\"Maria\",\"apellidos\":\"Lopez Diaz\",\"idTipoDocumentoIdentidad\":1,\"documentoIdentidad\":\"45678912\",\"fechaNacimiento\":\"1995-05-10\"},\"roles\":[{\"id\":1,\"nombre\":\"ADMIN\"}]}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/usuario/{{usuarioId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "usuario", "{{usuarioId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar Credenciales",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"login\":\"admin@tesis.com\",\"currentPassword\":\"Admin123*\",\"password\":\"Admin456*\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/usuario/credentials",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "usuario", "credentials"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Usuario",
+              "request": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/security/usuario/{{usuarioId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "usuario", "{{usuarioId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Usuarios",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "[2,3]",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/usuario/delete-all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "usuario", "delete-all"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar Roles Usuario",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"roles\":[{\"id\":1},{\"id\":2}]}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/usuario/{{usuarioId}}/roles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "usuario", "{{usuarioId}}", "roles"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Reset Password Usuario",
+              "request": {
+                "method": "PUT",
+                "url": {
+                  "raw": "{{baseUrl}}/security/usuario/{{usuarioId}}/reset-password",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "usuario", "{{usuarioId}}", "reset-password"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Roles",
+          "item": [
+            {
+              "name": "Listar Roles",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/rol",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "rol"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Obtener Rol",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/rol/{{rolId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "rol", "{{rolId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Crear Rol",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"nombre\":\"ADMIN\",\"descripcion\":\"Rol administrador\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/rol",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "rol"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar Rol",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"nombre\":\"ADMIN\",\"descripcion\":\"Rol administrador actualizado\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/rol/{{rolId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "rol", "{{rolId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Rol",
+              "request": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/security/rol/{{rolId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "rol", "{{rolId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Roles",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "[2,3]",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/rol/delete-all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "rol", "delete-all"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Permisos",
+          "item": [
+            {
+              "name": "Permisos por Rol",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/permiso/rol/{{rolId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "permiso", "rol", "{{rolId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar Permisos Rol",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "[{\"idRol\":1,\"idOpcion\":1,\"idAccion\":1,\"isAsignado\":true}]",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/permiso/rol",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "permiso", "rol"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Modulos",
+          "item": [
+            {
+              "name": "Listar Modulos",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/modulo",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "modulo"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Obtener Modulo",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/modulo/{{moduloId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "modulo", "{{moduloId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Crear Modulo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"nombre\":\"Seguridad\",\"icono\":\"shield\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/modulo",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "modulo"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar Modulo",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"nombre\":\"Seguridad\",\"icono\":\"shield-lock\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/modulo/{{moduloId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "modulo", "{{moduloId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Modulo",
+              "request": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/security/modulo/{{moduloId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "modulo", "{{moduloId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Modulos",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "[2,3]",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/modulo/delete-all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "modulo", "delete-all"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Opciones",
+          "item": [
+            {
+              "name": "Listar Opciones",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/opcion",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "opcion"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Obtener Opcion",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/opcion/{{opcionId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "opcion", "{{opcionId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Crear Opcion",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"idModulo\":1,\"nombre\":\"Usuarios\",\"path\":\"/security/usuarios\",\"isVisibleNavegacion\":true}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/opcion",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "opcion"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar Opcion",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"idModulo\":1,\"nombre\":\"Usuarios\",\"path\":\"/security/usuarios\",\"isVisibleNavegacion\":true}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/opcion/{{opcionId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "opcion", "{{opcionId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Opcion",
+              "request": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/security/opcion/{{opcionId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "opcion", "{{opcionId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Opciones",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "[2,3]",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/opcion/delete-all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "opcion", "delete-all"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Acciones",
+          "item": [
+            {
+              "name": "Listar Acciones",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/accion",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "accion"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Obtener Accion",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/accion/{{accionId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "accion", "{{accionId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Crear Accion",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"nombre\":\"VER\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/accion",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "accion"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar Accion",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"nombre\":\"EDITAR\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/accion/{{accionId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "accion", "{{accionId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Accion",
+              "request": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/security/accion/{{accionId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "accion", "{{accionId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Acciones",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "[2,3]",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/accion/delete-all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "accion", "delete-all"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Profile",
+          "item": [
+            {
+              "name": "Mi Perfil",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/security/profile/me",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "profile", "me"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar Datos Perfil",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"nombres\":\"Juan\",\"apellidos\":\"Perez Soto\",\"idTipoDocumentoIdentidad\":1,\"documentoIdentidad\":\"12345678\",\"fechaNacimiento\":\"1990-01-15\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/profile/data",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "profile", "data"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar Foto Perfil",
+              "request": {
+                "method": "PATCH",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": "{{profilePhotoPath}}"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/profile/photo",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "profile", "photo"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Profile Phones",
+          "item": [
+            {
+              "name": "Agregar Telefono",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"countryCode\":\"{{countryCode}}\",\"phone\":\"{{phone}}\",\"internationalPhoneNumber\":\"{{internationalPhoneNumber}}\",\"alias\":\"Personal\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/profile/phones/add",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "profile", "phones", "add"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Verificar OTP",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"internationalPhoneNumber\":\"{{internationalPhoneNumber}}\",\"code\":\"{{otpCode}}\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/profile/phones/verify",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "profile", "phones", "verify"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Reenviar OTP",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"internationalPhoneNumber\":\"{{internationalPhoneNumber}}\"}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/profile/phones/resend",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "profile", "phones", "resend"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar Telefono",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"idProfilePhone\":1}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/security/profile/phones/remove",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["security", "profile", "phones", "remove"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Businessparam",
+      "item": [
+        {
+          "name": "Listar Multitablas",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/businessparam/multitabla",
+              "host": ["{{baseUrl}}"],
+              "path": ["businessparam", "multitabla"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Multitabla",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/businessparam/multitabla/{{multitablaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["businessparam", "multitabla", "{{multitablaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Multitabla",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nombre\":\"TIPO_DOCUMENTO\",\"valor\":null,\"valor2\":null,\"items\":[{\"nombre\":\"DNI\",\"valor\":\"DNI\",\"valor2\":null},{\"nombre\":\"CE\",\"valor\":\"CE\",\"valor2\":null}]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/businessparam/multitabla",
+              "host": ["{{baseUrl}}"],
+              "path": ["businessparam", "multitabla"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Multitabla",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nombre\":\"TIPO_DOCUMENTO\",\"valor\":null,\"valor2\":null,\"items\":[{\"id\":1,\"nombre\":\"DNI\",\"valor\":\"DNI\",\"valor2\":null},{\"nombre\":\"PASAPORTE\",\"valor\":\"PAS\",\"valor2\":null}]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/businessparam/multitabla/{{multitablaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["businessparam", "multitabla", "{{multitablaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar Multitabla",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/businessparam/multitabla/{{multitablaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["businessparam", "multitabla", "{{multitablaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar Multitablas",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[2,3]",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/businessparam/multitabla/delete-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["businessparam", "multitabla", "delete-all"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Finance",
+      "item": [
+        {
+          "name": "Listar Monedas",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/monedas",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "monedas"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Tipos Cuenta",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/tipos-cuenta",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "tipos-cuenta"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Entidades Financieras",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/entidades-financieras",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "entidades-financieras"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Categorias",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/categorias?tipo=EGRESO",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "categorias"],
+              "query": [
+                { "key": "tipo", "value": "EGRESO" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Subcategorias por Categoria",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/subcategorias/categoria/{{categoriaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "subcategorias", "categoria", "{{categoriaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Cuentas",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/cuentas",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "cuentas"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Cuenta",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"idMoneda\":1,\"idTipoCuenta\":1,\"idEntidadFinanciera\":1,\"alias\":\"Cuenta sueldo\",\"saldoInicial\":1500.00,\"descripcionApertura\":\"Saldo inicial\",\"lineaCredito\":5000}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/cuentas",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "cuentas"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resumen Balance",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/balance-account/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "balance-account", "summary"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Egreso",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"idCuenta\":1,\"idCategoria\":1,\"idSubcategoria\":1,\"monto\":55.9,\"concepto\":\"Supermercado\",\"nota\":\"Compra semanal\",\"fecha\":\"2026-07-13\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/transacciones/egreso",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "transacciones", "egreso"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Ingreso",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"idCuenta\":1,\"idCategoria\":2,\"idSubcategoria\":null,\"monto\":2500.0,\"concepto\":\"Sueldo\",\"nota\":\"Planilla julio\",\"fecha\":\"2026-07-13\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/transacciones/ingreso",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "transacciones", "ingreso"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Transferencia",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"idCuentaOrigen\":1,\"idCuentaDestino\":2,\"monto\":300.0,\"concepto\":\"Transferencia interna\",\"nota\":\"Movimiento entre cuentas\",\"fecha\":\"2026-07-13\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/transacciones/transferencia",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "transacciones", "transferencia"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Transacciones",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/transacciones?search=super&tipo=EGRESO&limit={{limit}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "transacciones"],
+              "query": [
+                { "key": "search", "value": "super" },
+                { "key": "tipo", "value": "EGRESO" },
+                { "key": "limit", "value": "{{limit}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Transaccion",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/transacciones/{{transaccionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "transacciones", "{{transaccionId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tipo Cambio Hoy",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/tipo-cambio/today",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "tipo-cambio", "today"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tipo Cambio por Fecha",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/tipo-cambio?fecha={{fecha}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "tipo-cambio"],
+              "query": [
+                { "key": "fecha", "value": "{{fecha}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Historico Tipo Cambio",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/tipo-cambio/historico?desde={{desde}}&hasta={{hasta}}&limit=30",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "tipo-cambio", "historico"],
+              "query": [
+                { "key": "desde", "value": "{{desde}}" },
+                { "key": "hasta", "value": "{{hasta}}" },
+                { "key": "limit", "value": "30" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assistant",
+      "item": [
+        {
+          "name": "Crear Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"titulo\":\"Analisis de gastos julio\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/assistant/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["assistant", "sessions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Sessions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/assistant/sessions?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["assistant", "sessions"],
+              "query": [
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Mensajes Session",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/assistant/sessions/{{sessionId}}/messages?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["assistant", "sessions", "{{sessionId}}", "messages"],
+              "query": [
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"sessionId\":1,\"message\":\"Cuanto gaste en comida entre 2026-07-01 y 2026-07-13 desde mi cuenta sueldo?\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/assistant/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["assistant", "chat"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Messaging",
+      "item": [
+        {
+          "name": "Send Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"to\":[\"destino@correo.com\"],\"subject\":\"Prueba Azure Email\",\"plainText\":\"Correo de prueba desde api-tesis\",\"html\":\"<strong>Correo de prueba desde api-tesis</strong>\",\"replyTo\":\"no-reply@correo.com\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/email/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "email", "send"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Template Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"to\":[\"destino@correo.com\"],\"templateCode\":\"WELCOME\",\"variables\":{\"nombre\":\"Juan\",\"appName\":\"API TESIS\"}}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/email/send-template",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "email", "send-template"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Push Installations",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/push/installations",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "push", "installations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upsert Push Installation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"platform\":\"FCMV1\",\"pushChannel\":\"{{pushChannel}}\",\"tags\":[\"{{pushTag}}\",\"news\"],\"enableDefaultTemplate\":true}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/push/installations/{{installationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "push", "installations", "{{installationId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Push Installation",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/push/installations/{{installationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "push", "installations", "{{installationId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Template Push",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"installationId\":\"{{installationId}}\",\"title\":\"Hola\",\"message\":\"Push de prueba desde api-tesis\",\"deepLink\":\"/home\",\"variables\":{\"extra\":\"demo\"}}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/push/send-template",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "push", "send-template"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Native Push",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"platform\":\"FCMV1\",\"installationId\":\"{{installationId}}\",\"title\":\"Hola\",\"message\":\"Push nativo de prueba\",\"deepLink\":\"/movimientos\",\"data\":{\"tipo\":\"demo\"}}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/push/send-native",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "push", "send-native"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Dashboard Insights",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/dashboard/insights",
+              "host": ["{{baseUrl}}"],
+              "path": ["analytics", "dashboard", "insights"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "WhatsApp",
+      "item": [
+        {
+          "name": "Verify Webhook",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/integrations/whatsapp/webhook?hub.mode=subscribe&hub.verify_token={{verifyToken}}&hub.challenge={{challenge}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "whatsapp", "webhook"],
+              "query": [
+                { "key": "hub.mode", "value": "subscribe" },
+                { "key": "hub.verify_token", "value": "{{verifyToken}}" },
+                { "key": "hub.challenge", "value": "{{challenge}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Process Webhook",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"entry\":[]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integrations/whatsapp/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "whatsapp", "webhook"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Test Send Message",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"to\":\"51999888777\",\"message\":\"Hola desde Postman\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integrations/whatsapp/test/send-message",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "whatsapp", "test", "send-message"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Test Send Template",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"to\":\"51999888777\",\"templateName\":\"hello_world\",\"languageCode\":\"en_US\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integrations/whatsapp/test/send-template",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "whatsapp", "test", "send-template"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

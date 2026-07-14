@@ -16,6 +16,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { formatDateOnly, parseDateOnly } from 'src/common/utils/date-only.util';
+import { normalizeLogin } from 'src/common/utils/login.util';
 import { Profile } from '../entities/profile.entity';
 import { UsuarioRol } from '../entities/usuario-rol.entity';
 import { Rol } from '../entities/rol.entity';
@@ -40,6 +41,10 @@ export class UsuarioService {
     private readonly authService: AuthService,
     private readonly dataSource: DataSource,
   ) { }
+
+  private normalizeLoginValue(value: string): string {
+    return normalizeLogin(value);
+  }
 
   async findAll(): Promise<StatusResponse<UsuarioResponseDto[] | any>> {
     try {
@@ -93,6 +98,19 @@ export class UsuarioService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      const loginNormalizado = this.normalizeLoginValue(dto.login);
+      const usuarioConMismoLogin = await queryRunner.manager
+        .getRepository(Usuario)
+        .createQueryBuilder('usuario')
+        .where('LOWER(usuario.login) = :login', { login: loginNormalizado })
+        .andWhere('usuario.activo = :activo', { activo: true })
+        .andWhere('usuario.eliminado = :eliminado', { eliminado: false })
+        .getOne();
+
+      if (usuarioConMismoLogin) {
+        throw new BadRequestException('Ya existe un usuario con ese login');
+      }
+
       let profile;
       if (dto.idProfile) {
         profile = await queryRunner.manager.findOne(Profile, {
@@ -126,7 +144,7 @@ export class UsuarioService {
       }
 
       const usuario = queryRunner.manager.create(Usuario, {
-        login: dto.login,
+        login: loginNormalizado,
         password: bcrypt.hashSync(dto.password, 10),
         profile,
         usuarioRegistro,
@@ -219,6 +237,23 @@ export class UsuarioService {
         throw new NotFoundException('Usuario no encontrado');
       }
 
+      const loginNormalizado = dto.login
+        ? this.normalizeLoginValue(dto.login)
+        : usuarioExistente.login;
+
+      const usuarioConMismoLogin = await queryRunner.manager
+        .getRepository(Usuario)
+        .createQueryBuilder('usuario')
+        .where('LOWER(usuario.login) = :login', { login: loginNormalizado })
+        .andWhere('usuario.activo = :activo', { activo: true })
+        .andWhere('usuario.eliminado = :eliminado', { eliminado: false })
+        .andWhere('usuario.id <> :id', { id })
+        .getOne();
+
+      if (usuarioConMismoLogin) {
+        throw new BadRequestException('Ya existe un usuario con ese login');
+      }
+
       // 2. Manejo de persona
       let profile = usuarioExistente.profile;
 
@@ -251,7 +286,7 @@ export class UsuarioService {
       }
 
       // 3. Actualizar usuario
-      usuarioExistente.login = dto.login ?? usuarioExistente.login;
+      usuarioExistente.login = loginNormalizado;
       usuarioExistente.profile = profile;
       usuarioExistente.usuarioModificacion = usuarioModificacion;
       usuarioExistente.ipModificacion = ip;
@@ -643,10 +678,13 @@ export class UsuarioService {
         throw new BadRequestException('La contrasena actual es incorrecta');
       }
 
-      const loginNormalizado = dto.login.trim().toLowerCase();
-      const usuarioConMismoLogin = await this.usuarioRepository.findOne({
-        where: { login: loginNormalizado, activo: true, eliminado: false },
-      });
+      const loginNormalizado = this.normalizeLoginValue(dto.login);
+      const usuarioConMismoLogin = await this.usuarioRepository
+        .createQueryBuilder('usuario')
+        .where('LOWER(usuario.login) = :login', { login: loginNormalizado })
+        .andWhere('usuario.activo = :activo', { activo: true })
+        .andWhere('usuario.eliminado = :eliminado', { eliminado: false })
+        .getOne();
 
       if (usuarioConMismoLogin && usuarioConMismoLogin.id !== usuario.id) {
         throw new BadRequestException('El correo ingresado ya se encuentra en uso');

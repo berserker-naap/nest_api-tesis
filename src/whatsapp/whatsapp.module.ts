@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RouterModule } from '@nestjs/core';
 import { FinanceModule } from 'src/finance/finance.module';
+import { MessagingModule } from 'src/messaging/messaging.module';
 import { SecurityModule } from 'src/security/security.module';
 import { WhatsappTestController } from './controllers/whatsapp-test.controller';
 import { WhatsappWebhookController } from './controllers/whatsapp-webhook.controller';
@@ -14,6 +15,7 @@ import { WhatsappWebhookService } from './services/whatsapp-webhook.service';
   imports: [
     SecurityModule,
     FinanceModule,
+    MessagingModule,
     RouterModule.register([
       {
         path: 'integrations/whatsapp',
