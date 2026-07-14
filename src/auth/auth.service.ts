@@ -22,6 +22,7 @@ import {
 } from './dto/auth.dto';
 import { ReniecExternalResponseDto } from './dto/reniec-external-response.dto';
 import { StatusResponse } from 'src/common/dto/response.dto';
+import { normalizeLogin } from 'src/common/utils/login.util';
 import { Permiso } from 'src/security/entities/permiso.entity';
 import { UsuarioRol } from 'src/security/entities/usuario-rol.entity';
 import { Rol } from 'src/security/entities/rol.entity';
@@ -58,6 +59,28 @@ export class AuthService {
     private readonly dataSource: DataSource,
   ) { }
 
+  private normalizeLoginValue(value: string): string {
+    return normalizeLogin(value);
+  }
+
+  private async findActiveUsuarioByNormalizedLogin(
+    login: string,
+    manager?: EntityManager,
+  ): Promise<Usuario | null> {
+    const repository = manager
+      ? manager.getRepository(Usuario)
+      : this.usuarioRepository;
+
+    return repository
+      .createQueryBuilder('usuario')
+      .where('LOWER(usuario.login) = :login', {
+        login: this.normalizeLoginValue(login),
+      })
+      .andWhere('usuario.activo = :activo', { activo: true })
+      .andWhere('usuario.eliminado = :eliminado', { eliminado: false })
+      .getOne();
+  }
+
 
   async create(
     registerUsuarioRequestDto: RegisterUsuarioRequestDto,
@@ -65,9 +88,16 @@ export class AuthService {
   ): Promise<StatusResponse<SessionResponseDto | null>> {
     try {
       const { password: passwordDto, ...usuarioData } = registerUsuarioRequestDto;
+      const login = this.normalizeLoginValue(usuarioData.login);
+
+      const usuarioExistente = await this.findActiveUsuarioByNormalizedLogin(login);
+      if (usuarioExistente) {
+        throw new BadRequestException('Ya existe un usuario con ese login');
+      }
 
       const entity = this.usuarioRepository.create({
         ...usuarioData,
+        login,
         password: bcrypt.hashSync(passwordDto, 10),
       });
 
@@ -100,11 +130,15 @@ export class AuthService {
     await queryRunner.startTransaction();
 
     try {
+      const loginNormalizado = this.normalizeLoginValue(
+        registerUsuarioRequestDto.login,
+      );
       const { profile: profileDto } = registerUsuarioRequestDto;
 
-      const usuarioExistente = await queryRunner.manager.findOne(Usuario, {
-        where: { login: registerUsuarioRequestDto.login, activo: true, eliminado: false },
-      });
+      const usuarioExistente = await this.findActiveUsuarioByNormalizedLogin(
+        loginNormalizado,
+        queryRunner.manager,
+      );
       if (usuarioExistente) {
         throw new BadRequestException('Usted ya cuenta con una cuenta activa, si no recuerda su contraseña porfavor dele clic a olvide mi contraseña');
       }
@@ -169,7 +203,7 @@ export class AuthService {
         profileSaved.reniecData = validacionDocumento.reniecDataId
           ? ({ id: validacionDocumento.reniecDataId } as ReniecData)
           : null;
-        profileSaved.usuarioModificacion = registerUsuarioRequestDto.login;
+        profileSaved.usuarioModificacion = loginNormalizado;
         profileSaved.ipModificacion = ip;
         profileSaved.fechaModificacion = new Date();
         profileSaved = await queryRunner.manager.save(Profile, profileSaved);
@@ -191,16 +225,16 @@ export class AuthService {
           reniecData: validacionDocumento.reniecDataId
             ? ({ id: validacionDocumento.reniecDataId } as ReniecData)
             : null,
-          usuarioRegistro: registerUsuarioRequestDto.login,
+          usuarioRegistro: loginNormalizado,
           ipRegistro: ip,
         });
         profileSaved = await queryRunner.manager.save(Profile, profile);
       }
 
       const usuarioEntity = queryRunner.manager.create(Usuario, {
-        login: registerUsuarioRequestDto.login,
+        login: loginNormalizado,
         profile: profileSaved,
-        usuarioRegistro: registerUsuarioRequestDto.login,
+        usuarioRegistro: loginNormalizado,
         ipRegistro: ip,
         password: bcrypt.hashSync(registerUsuarioRequestDto.password, 10),
       });
@@ -223,7 +257,7 @@ export class AuthService {
       const usuarioRol = queryRunner.manager.create(UsuarioRol, {
         usuario,
         rol: rolCliente,
-        usuarioRegistro: registerUsuarioRequestDto.login,
+        usuarioRegistro: loginNormalizado,
         ipRegistro: ip,
       });
       await queryRunner.manager.save(UsuarioRol, usuarioRol);
@@ -491,13 +525,25 @@ export class AuthService {
 
   async login(loginRequestDto: LoginRequestDto): Promise<StatusResponse<SessionResponseDto | null>> {
     try {
-      const { login, password } = loginRequestDto;
+      const password = loginRequestDto.password;
+      const login = this.normalizeLoginValue(loginRequestDto.login);
 
-      const usuario = await this.usuarioRepository.findOne({
-        where: { login },
-        relations: { roles: { rol: true } },
-        select: { id: true, login: true, password: true },
-      });
+      const usuario = await this.usuarioRepository
+        .createQueryBuilder('usuario')
+        .leftJoinAndSelect('usuario.roles', 'usuarioRol')
+        .leftJoinAndSelect('usuarioRol.rol', 'rol')
+        .where('LOWER(usuario.login) = :login', { login })
+        .andWhere('usuario.activo = :activo', { activo: true })
+        .andWhere('usuario.eliminado = :eliminado', { eliminado: false })
+        .select([
+          'usuario.id',
+          'usuario.login',
+          'usuario.password',
+          'usuarioRol.id',
+          'rol.id',
+          'rol.nombre',
+        ])
+        .getOne();
 
       if (!usuario || !bcrypt.compareSync(password, usuario.password)) {
         return new StatusResponse(false, 401, 'Credenciales no válidas', null);

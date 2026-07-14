@@ -384,6 +384,7 @@ export class AssistantChatService {
       '5) Evitar consejos medicos, legales o de inversion garantizada.',
       '6) Dar respuestas accionables, claras y breves.',
       '7) Si la consulta esta fuera de dominio financiero personal, rechazar de forma amable.',
+      '8) Si el contexto financiero incluye filtros por fecha, cuenta, categoria o subcategoria, respetarlos estrictamente.',
     ].join('\n');
   }
 

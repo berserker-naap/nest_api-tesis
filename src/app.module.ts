@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
@@ -8,10 +9,17 @@ import { FinanceModule } from './finance/finance.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { AssistantModule } from './assistant/assistant.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { ServiceErrorLog } from './common/entity/service-error-log.entity';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { RequestContextService } from './common/services/request-context.service';
+import { ServiceErrorInstrumentationService } from './common/services/service-error-instrumentation.service';
+import { ServiceErrorLogService } from './common/services/service-error-log.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    DiscoveryModule,
     TypeOrmModule.forRoot({
       type: 'mssql',
       host: process.env.DB_HOST,
@@ -27,15 +35,22 @@ import { AnalyticsModule } from './analytics/analytics.module';
         connectTimeout: 30000,
       },
     }),
+    TypeOrmModule.forFeature([ServiceErrorLog]),
     AuthModule,
     SecurityModule,
     BusinessparamModule,
     FinanceModule,
     WhatsappModule,
+    MessagingModule,
     AssistantModule,
     AnalyticsModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    RequestContextService,
+    ServiceErrorLogService,
+    ServiceErrorInstrumentationService,
+    AllExceptionsFilter,
+  ],
 })
 export class AppModule {}
