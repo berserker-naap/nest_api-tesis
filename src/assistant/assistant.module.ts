@@ -35,7 +35,7 @@ import { AssistantResponsePolicyService } from './services/assistant-response-po
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         return {
-          secret: configService.get('JWT_SECRET'),
+          secret: configService.getOrThrow<string>('JWT_SECRET'),
           signOptions: {
             expiresIn: '2h',
           },
