@@ -20,9 +20,10 @@ async function bootstrap() {
   const allowedOrigins = new Set(toListEnv(process.env.CORS_ALLOWED_ORIGINS));
   const allowNoOrigin = toBooleanEnv(process.env.CORS_ALLOW_NO_ORIGIN, true);
   const trustProxy = toBooleanEnv(process.env.APP_TRUST_PROXY, isProduction);
+  const expressApp = app.getHttpAdapter().getInstance();
 
   app.setGlobalPrefix(globalPrefix);
-  app.set('trust proxy', trustProxy);
+  expressApp.set('trust proxy', trustProxy);
   app.use((req, _res, next) => requestContextService.runWithRequest(req, next));
 
   app.enableCors({
