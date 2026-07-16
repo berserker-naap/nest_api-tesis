@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { RequestContextService } from './common/services/request-context.service';
 import {
-  isProductionEnv,
+  normalizeAppEnvironment,
   toBooleanEnv,
   toListEnv,
 } from './common/utils/env.util';
@@ -13,9 +13,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
   const requestContextService = app.get(RequestContextService);
-  const isProduction = isProductionEnv(
+  const appEnvironment = normalizeAppEnvironment(
     process.env.APP_ENV ?? process.env.NODE_ENV,
   );
+  const isProduction = appEnvironment === 'production';
   const globalPrefix = process.env.API_PREFIX?.trim() || 'api';
   const allowedOrigins = new Set(toListEnv(process.env.CORS_ALLOWED_ORIGINS));
   const allowNoOrigin = toBooleanEnv(process.env.CORS_ALLOW_NO_ORIGIN, true);
@@ -54,7 +55,7 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
   logger.log(
-    `App running on port ${process.env.PORT ?? 3000} with prefix ${globalPrefix}`,
+    `App running in ${appEnvironment} on port ${process.env.PORT ?? 3000} with prefix ${globalPrefix}`,
   );
 }
 

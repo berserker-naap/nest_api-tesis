@@ -500,7 +500,7 @@ export class AuthService {
     idTipoDocumentoIdentidad: number,
     numeroDocumento: string,
   ): Promise<Record<string, any> | null> {
-    const apiKey = process.env.DECOLECTA_API_KEY || 'sk_13282.jT3rl2hFseTS9MjrCBHjUReRIuqklcRD';
+    const apiKey = process.env.DECOLECTA_API_KEY?.trim();
     const headers: Record<string, string> = {};
     if (apiKey) {
       headers.Authorization = `Bearer ${apiKey}`;
