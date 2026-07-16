@@ -11,6 +11,8 @@ import { CategoriaFinanceController } from './controllers/categoria-finance.cont
 import { CuentaController } from './controllers/cuenta.controller';
 import { EntidadFinancieraController } from './controllers/entidad-financiera.controller';
 import { MonedaController } from './controllers/moneda.controller';
+import { PresupuestoCategoriaController } from './controllers/presupuesto-categoria.controller';
+import { PlanificacionFinancieraController } from './controllers/planificacion-financiera.controller';
 import { SubcategoriaFinanceController } from './controllers/subcategoria-finance.controller';
 import { TipoCambioDataController } from './controllers/tipo-cambio-data.controller';
 import { TipoCuentaController } from './controllers/tipo-cuenta.controller';
@@ -19,6 +21,9 @@ import { CategoriaFinance } from './entities/categoria-finance.entity';
 import { Cuenta } from './entities/cuenta.entity';
 import { EntidadFinanciera } from './entities/entidad-financiera.entity';
 import { Moneda } from './entities/moneda.entity';
+import { PresupuestoCategoria } from './entities/presupuesto-categoria.entity';
+import { MetaAhorro } from './entities/meta-ahorro.entity';
+import { PagoRecurrente } from './entities/pago-recurrente.entity';
 import { SubcategoriaFinance } from './entities/subcategoria-finance.entity';
 import { TipoCambioData } from './entities/tipo-cambio-data.entity';
 import { TipoCuenta } from './entities/tipo-cuenta.entity';
@@ -29,6 +34,8 @@ import { BalanceAccountService } from './services/balance-account.service';
 import { CuentaService } from './services/cuenta.service';
 import { EntidadFinancieraService } from './services/entidad-financiera.service';
 import { MonedaService } from './services/moneda.service';
+import { PresupuestoCategoriaService } from './services/presupuesto-categoria.service';
+import { PlanificacionFinancieraService } from './services/planificacion-financiera.service';
 import { SubcategoriaFinanceService } from './services/subcategoria-finance.service';
 import { TipoCambioDataService } from './services/tipo-cambio-data.service';
 import { TipoCuentaService } from './services/tipo-cuenta.service';
@@ -47,6 +54,9 @@ import { TransaccionFinanceService } from './services/transaccion-finance.servic
       SubcategoriaFinance,
       Cuenta,
       Transaccion,
+      PresupuestoCategoria,
+      MetaAhorro,
+      PagoRecurrente,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -54,7 +64,7 @@ import { TransaccionFinanceService } from './services/transaccion-finance.servic
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         return {
-          secret: configService.get('JWT_SECRET'),
+          secret: configService.getOrThrow<string>('JWT_SECRET'),
           signOptions: {
             expiresIn: '2h',
           },
@@ -79,6 +89,8 @@ import { TransaccionFinanceService } from './services/transaccion-finance.servic
     SubcategoriaFinanceController,
     BalanceAccountController,
     TransaccionFinanceController,
+    PresupuestoCategoriaController,
+    PlanificacionFinancieraController,
   ],
   providers: [
     FinanceSeeder,
@@ -91,6 +103,8 @@ import { TransaccionFinanceService } from './services/transaccion-finance.servic
     CategoriaFinanceService,
     SubcategoriaFinanceService,
     TransaccionFinanceService,
+    PresupuestoCategoriaService,
+    PlanificacionFinancieraService,
   ],
   exports: [
     TransaccionFinanceService,

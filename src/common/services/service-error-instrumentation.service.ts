@@ -68,14 +68,16 @@ export class ServiceErrorInstrumentationService implements OnModuleInit {
     serviceName: string,
     methodName: string,
   ): (...args: unknown[]) => unknown {
-    return (...args: unknown[]) => {
+    const instrumentationService = this;
+
+    return function (this: unknown, ...args: unknown[]) {
       try {
-        const result = original(...args);
+        const result = original.apply(this, args);
 
         if (result && typeof (result as Promise<unknown>).then === 'function') {
           return (result as Promise<unknown>)
             .then(async (resolved) => {
-              await this.logHandledFailure(
+              await instrumentationService.logHandledFailure(
                 resolved,
                 moduleName,
                 serviceName,
@@ -85,7 +87,7 @@ export class ServiceErrorInstrumentationService implements OnModuleInit {
               return resolved;
             })
             .catch(async (error) => {
-              await this.logThrownError(
+              await instrumentationService.logThrownError(
                 error,
                 moduleName,
                 serviceName,
@@ -96,7 +98,7 @@ export class ServiceErrorInstrumentationService implements OnModuleInit {
             });
         }
 
-        void this.logHandledFailure(
+        void instrumentationService.logHandledFailure(
           result,
           moduleName,
           serviceName,
@@ -105,7 +107,7 @@ export class ServiceErrorInstrumentationService implements OnModuleInit {
         );
         return result;
       } catch (error) {
-        void this.logThrownError(
+        void instrumentationService.logThrownError(
           error,
           moduleName,
           serviceName,

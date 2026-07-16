@@ -14,6 +14,7 @@ import {
 
 interface AnalyticsTxPayload {
   id: number;
+  idCategoria: number | null;
   fecha: string;
   monto: number;
   tipo: string;
@@ -72,7 +73,9 @@ export class DashboardAnalyticsService {
     usuario: Usuario,
   ): Promise<StatusResponse<DashboardAnalyticsResponseDto>> {
     const rows = await this.loadTransactions(usuario.id);
-    const payload = rows.map((item) => this.toPayload(item));
+    const payload = rows
+      .map((item) => this.toPayload(item))
+      .filter((item) => item.monedaCodigo === 'PEN');
 
     const fallbackPrediction = this.buildFallbackPrediction(payload);
     const fallbackAnomalies = this.buildFallbackAnomalies(payload);
@@ -110,23 +113,70 @@ export class DashboardAnalyticsService {
     const from = rows.at(-1)?.fecha ?? new Date();
     const to = rows[0]?.fecha ?? new Date();
 
+    const categoryIdByName = this.categoryIdMap(payload);
+    const transactionById = new Map(payload.map((item) => [item.id, item]));
+    const predictionItems = (prediction.items ?? []).map((item) => ({
+      ...item,
+      idCategoria: categoryIdByName.get(this.normalizeCategory(item.categoriaNombre)) ?? null,
+    }));
+    const anomalyItems = (anomalies.items ?? []).map((item) => {
+      const transaction = item.idTransaccion ? transactionById.get(item.idTransaccion) : undefined;
+      return {
+        ...item,
+        idCategoria:
+          transaction?.idCategoria ??
+          categoryIdByName.get(this.normalizeCategory(item.categoriaNombre)) ??
+          null,
+        monedaCodigo: transaction?.monedaCodigo ?? 'PEN',
+        monedaSimbolo: 'S/',
+      };
+    });
+    const segmentClusters = (segmentation.clusters ?? []).map((cluster) => ({
+      ...cluster,
+      categoriasDominantesDetalle: (cluster.categoriasDominantes ?? []).map((nombre) => ({
+        idCategoria: categoryIdByName.get(this.normalizeCategory(nombre)) ?? null,
+        nombre,
+      })),
+    }));
+    const rising = [...predictionItems]
+      .filter((item) => item.tendencia === 'UP')
+      .sort((a, b) => b.montoPredicho - a.montoPredicho)[0] ?? null;
+    const savingBase = [...predictionItems].sort((a, b) => b.montoPredicho - a.montoPredicho)[0] ?? null;
+
     const data: DashboardAnalyticsResponseDto = {
       periodoInicio: this.toDateOnlyIso(from),
       periodoFin: this.toDateOnlyIso(to),
       cantidadTransacciones: payload.length,
+      monedaCodigo: 'PEN',
+      monedaSimbolo: 'S/',
+      resumenAccionable: {
+        totalPredicho: Number(
+          predictionItems.reduce((sum, item) => sum + Number(item.montoPredicho || 0), 0).toFixed(2),
+        ),
+        categoriaMayorCrecimiento: rising
+          ? { idCategoria: rising.idCategoria, nombre: rising.categoriaNombre }
+          : null,
+        oportunidadAhorro: savingBase
+          ? {
+              idCategoria: savingBase.idCategoria,
+              nombre: savingBase.categoriaNombre,
+              montoEstimado: Number((savingBase.montoPredicho * 0.15).toFixed(2)),
+            }
+          : null,
+      },
       prediccion: {
         proximoMes: prediction.proximoMes,
-        items: prediction.items ?? [],
+        items: predictionItems,
         fuente: prediction.fuente,
       },
       anomalias: {
         total: Number(anomalies.total ?? (anomalies.items?.length ?? 0)),
-        items: anomalies.items ?? [],
+        items: anomalyItems,
         fuente: anomalies.fuente,
       },
       segmentacion: {
         perfil: segmentation.perfil,
-        clusters: segmentation.clusters ?? [],
+        clusters: segmentClusters,
         fuente: segmentation.fuente,
       },
       metadata: {
@@ -165,6 +215,7 @@ export class DashboardAnalyticsService {
   private toPayload(item: Transaccion): AnalyticsTxPayload {
     return {
       id: Number(item.id),
+      idCategoria: item.categoria?.id ?? null,
       fecha: item.fecha instanceof Date ? item.fecha.toISOString() : String(item.fecha),
       monto: Number(item.monto ?? 0),
       tipo: item.tipo,
@@ -204,20 +255,38 @@ export class DashboardAnalyticsService {
     items: DashboardPredictionItemDto[];
   } {
     const egresos = rows.filter((item) => item.tipo === 'EGRESO' && item.monto > 0);
-    const perCategory = new Map<string, number[]>();
+    const perCategory = new Map<string, Map<string, number>>();
     for (const item of egresos) {
       const key = item.categoriaNombre || 'SIN_CATEGORIA';
-      const list = perCategory.get(key) ?? [];
-      list.push(item.monto);
-      perCategory.set(key, list.slice(0, 6));
+      const month = item.fecha.slice(0, 7);
+      const monthly = perCategory.get(key) ?? new Map<string, number>();
+      monthly.set(month, (monthly.get(month) ?? 0) + item.monto);
+      perCategory.set(key, monthly);
     }
 
     const items: DashboardPredictionItemDto[] = Array.from(perCategory.entries())
-      .map(([categoria, montos]) => {
-        const avg = montos.reduce((sum, x) => sum + x, 0) / Math.max(montos.length, 1);
+      .map(([categoria, monthly]) => {
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const allMonths = Array.from(monthly.entries()).sort(([a], [b]) => b.localeCompare(a));
+        const completedMonths = allMonths.filter(([month]) => month !== currentMonth);
+        const montos = (completedMonths.length > 0 ? completedMonths : allMonths)
+          .slice(0, 6)
+          .map(([, amount]) => amount);
+        const weighted = montos.reduce(
+          (result, amount, index) => {
+            const weight = montos.length - index;
+            return {
+              total: result.total + amount * weight,
+              weights: result.weights + weight,
+            };
+          },
+          { total: 0, weights: 0 },
+        );
+        const avg = weighted.total / Math.max(weighted.weights, 1);
         const trend = this.detectTrend(montos);
         const confianza = Number(Math.min(0.85, 0.45 + montos.length * 0.07).toFixed(2));
         return {
+          idCategoria: null,
           categoriaNombre: categoria,
           montoPredicho: Number(avg.toFixed(2)),
           confianza,
@@ -257,12 +326,15 @@ export class DashboardAnalyticsService {
         const score = std > 0 ? Number(((item.monto - mean) / std).toFixed(3)) : 0;
         return {
           idTransaccion: item.id,
+          idCategoria: item.idCategoria,
           fecha: item.fecha,
           monto: Number(item.monto.toFixed(2)),
           categoriaNombre: item.categoriaNombre,
           score,
           severidad: score > 3 ? 'ALTA' : score > 2.5 ? 'MEDIA' : 'BAJA',
           motivo: 'Monto superior a patron historico',
+          monedaCodigo: item.monedaCodigo,
+          monedaSimbolo: item.monedaCodigo === 'PEN' ? 'S/' : '$',
         } satisfies DashboardAnomalyItemDto;
       });
 
@@ -309,6 +381,7 @@ export class DashboardAnalyticsService {
         (essential.length > 0 ? essentialTotal / essential.length : 0).toFixed(2),
       ),
       categoriasDominantes: this.topCategories(essential, 3),
+      categoriasDominantesDetalle: [],
     };
 
     const discretionary = egresos.filter((item) => !essential.includes(item));
@@ -325,6 +398,7 @@ export class DashboardAnalyticsService {
         ).toFixed(2),
       ),
       categoriasDominantes: this.topCategories(discretionary, 3),
+      categoriasDominantesDetalle: [],
     };
 
     return {
@@ -394,6 +468,18 @@ export class DashboardAnalyticsService {
       return 'DOWN';
     }
     return 'STABLE';
+  }
+
+  private categoryIdMap(rows: AnalyticsTxPayload[]): Map<string, number> {
+    const map = new Map<string, number>();
+    for (const item of rows) {
+      if (item.idCategoria) map.set(this.normalizeCategory(item.categoriaNombre), item.idCategoria);
+    }
+    return map;
+  }
+
+  private normalizeCategory(value: string): string {
+    return (value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
   }
 
   private getNextMonthLabel(): string {

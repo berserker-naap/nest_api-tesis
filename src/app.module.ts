@@ -15,6 +15,15 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { RequestContextService } from './common/services/request-context.service';
 import { ServiceErrorInstrumentationService } from './common/services/service-error-instrumentation.service';
 import { ServiceErrorLogService } from './common/services/service-error-log.service';
+import {
+  isProductionEnv,
+  toBooleanEnv,
+  toNumberEnv,
+} from './common/utils/env.util';
+
+const isProduction = isProductionEnv(
+  process.env.APP_ENV ?? process.env.NODE_ENV,
+);
 
 @Module({
   imports: [
@@ -23,16 +32,21 @@ import { ServiceErrorLogService } from './common/services/service-error-log.serv
     TypeOrmModule.forRoot({
       type: 'mssql',
       host: process.env.DB_HOST,
+      port: toNumberEnv(process.env.DB_PORT, 1433),
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
-      requestTimeout: 30000,
+      synchronize: toBooleanEnv(process.env.DB_SYNCHRONIZE, false),
+      logging: toBooleanEnv(process.env.DB_LOGGING, false),
+      requestTimeout: toNumberEnv(process.env.DB_REQUEST_TIMEOUT_MS, 30000),
       options: {
-        encrypt: true,
-        trustServerCertificate: true,
-        connectTimeout: 30000,
+        encrypt: toBooleanEnv(process.env.DB_ENCRYPT, true),
+        trustServerCertificate: toBooleanEnv(
+          process.env.DB_TRUST_SERVER_CERTIFICATE,
+          !isProduction,
+        ),
+        connectTimeout: toNumberEnv(process.env.DB_CONNECT_TIMEOUT_MS, 30000),
       },
     }),
     TypeOrmModule.forFeature([ServiceErrorLog]),

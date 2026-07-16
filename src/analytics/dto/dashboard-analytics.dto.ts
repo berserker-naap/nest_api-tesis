@@ -1,4 +1,5 @@
 export interface DashboardPredictionItemDto {
+  idCategoria: number | null;
   categoriaNombre: string;
   montoPredicho: number;
   confianza: number;
@@ -7,12 +8,20 @@ export interface DashboardPredictionItemDto {
 
 export interface DashboardAnomalyItemDto {
   idTransaccion: number | null;
+  idCategoria: number | null;
   fecha: string;
   monto: number;
   categoriaNombre: string;
   score: number;
   severidad: 'ALTA' | 'MEDIA' | 'BAJA';
   motivo: string;
+  monedaCodigo: string;
+  monedaSimbolo: string;
+}
+
+export interface DashboardDominantCategoryDto {
+  idCategoria: number | null;
+  nombre: string;
 }
 
 export interface DashboardSegmentClusterDto {
@@ -20,6 +29,7 @@ export interface DashboardSegmentClusterDto {
   participacion: number;
   montoPromedio: number;
   categoriasDominantes: string[];
+  categoriasDominantesDetalle: DashboardDominantCategoryDto[];
 }
 
 export interface DashboardSegmentProfileDto {
@@ -32,6 +42,13 @@ export interface DashboardAnalyticsResponseDto {
   periodoInicio: string;
   periodoFin: string;
   cantidadTransacciones: number;
+  monedaCodigo: string;
+  monedaSimbolo: string;
+  resumenAccionable: {
+    totalPredicho: number;
+    categoriaMayorCrecimiento: DashboardDominantCategoryDto | null;
+    oportunidadAhorro: (DashboardDominantCategoryDto & { montoEstimado: number }) | null;
+  };
   prediccion: {
     proximoMes: string;
     items: DashboardPredictionItemDto[];

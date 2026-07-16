@@ -34,10 +34,8 @@ import { ReniecData } from 'src/security/entities/reniec-data.entity';
       imports: [ ConfigModule ],
       inject: [ ConfigService ],
       useFactory: ( configService: ConfigService ) => {
-        console.log('JWT Secret', configService.get('JWT_SECRET') )
-        console.log('JWT SECRET', process.env.JWT_SECRET)
         return {
-          secret: configService.get('JWT_SECRET'),
+          secret: configService.getOrThrow<string>('JWT_SECRET'),
           signOptions: {
             expiresIn:'2h'
           }

@@ -7,7 +7,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StatusResponse } from 'src/common/dto/response.dto';
 import { Usuario } from 'src/security/entities/usuario.entity';
 import { DataSource, Repository } from 'typeorm';
-import { CrearCuentaDto, CuentaResponseDto } from '../dto/cuenta.dto';
+import {
+  ConfigurarFechasTarjetaDto,
+  CrearCuentaDto,
+  CuentaResponseDto,
+} from '../dto/cuenta.dto';
 import { OrigenTransaccion, TipoTransaccion } from '../enum/transaccion.enum';
 import { Cuenta } from '../entities/cuenta.entity';
 import { EntidadFinanciera } from '../entities/entidad-financiera.entity';
@@ -54,6 +58,9 @@ export class CuentaService {
         cuenta.lineaCredito !== null && cuenta.lineaCredito !== undefined
           ? Number(cuenta.lineaCredito)
           : null,
+      diaCierre: cuenta.diaCierre ?? null,
+      diaPago: cuenta.diaPago ?? null,
+      proximaFechaPago: this.getNextDayOfMonth(cuenta.diaPago),
       esTarjetaCredito,
       moneda: {
         id: cuenta.moneda.id,
@@ -188,6 +195,8 @@ export class CuentaService {
         alias: dto.alias,
         saldoActual: saldoInicialCuenta,
         lineaCredito: lineaCreditoCuenta,
+        diaCierre: esTarjetaCredito ? dto.diaCierre ?? null : null,
+        diaPago: esTarjetaCredito ? dto.diaPago ?? null : null,
         usuarioRegistro,
         ipRegistro: ip,
       });
@@ -206,7 +215,6 @@ export class CuentaService {
         descripcion:
           dto.descripcionApertura ??
           'Registro de apertura de cuenta con saldo inicial',
-        comprobanteUrl: null,
         nota: null,
         externalMessageId: null,
         origen: OrigenTransaccion.APERTURA,
@@ -240,6 +248,81 @@ export class CuentaService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async configurarFechasTarjeta(
+    idCuenta: number,
+    dto: ConfigurarFechasTarjetaDto,
+    usuario: Usuario,
+    ip: string,
+  ): Promise<StatusResponse<CuentaResponseDto | any>> {
+    try {
+      const cuenta = await this.cuentaRepository.findOne({
+        where: {
+          id: idCuenta,
+          usuario: { id: usuario.id },
+          activo: true,
+          eliminado: false,
+        },
+        relations: ['usuario', 'moneda', 'tipoCuenta', 'entidadFinanciera'],
+      });
+      if (!cuenta) {
+        throw new NotFoundException('La cuenta no existe o no pertenece al usuario');
+      }
+      if (!this.isTipoCuentaTarjetaCredito(cuenta.tipoCuenta.nombre)) {
+        throw new BadRequestException('La cuenta seleccionada no es una tarjeta de credito');
+      }
+
+      cuenta.diaCierre = dto.diaCierre;
+      cuenta.diaPago = dto.diaPago;
+      cuenta.usuarioModificacion = usuario.login;
+      cuenta.ipModificacion = ip;
+      cuenta.fechaModificacion = new Date();
+      const saved = await this.cuentaRepository.save(cuenta);
+
+      return new StatusResponse(
+        true,
+        200,
+        'Fechas de tarjeta actualizadas',
+        this.toResponseDto(saved),
+      );
+    } catch (error) {
+      const message =
+        error instanceof BadRequestException || error instanceof NotFoundException
+          ? error.message
+          : 'Error al actualizar las fechas de la tarjeta';
+      return new StatusResponse(false, 500, message, null);
+    }
+  }
+
+  private getNextDayOfMonth(day: number | null | undefined): string | null {
+    if (!day) return null;
+    const now = new Date();
+    let year = now.getFullYear();
+    let month = now.getMonth();
+    let candidate = this.createClampedDate(year, month, day);
+    const today = new Date(year, month, now.getDate());
+    if (candidate < today) {
+      month += 1;
+      if (month > 11) {
+        month = 0;
+        year += 1;
+      }
+      candidate = this.createClampedDate(year, month, day);
+    }
+    return this.toDateOnly(candidate);
+  }
+
+  private createClampedDate(year: number, month: number, day: number): Date {
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    return new Date(year, month, Math.min(day, lastDay));
+  }
+
+  private toDateOnly(value: Date): string {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
 

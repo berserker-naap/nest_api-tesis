@@ -47,6 +47,12 @@ export class Cuenta extends Audit {
   @Column({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   lineaCredito!: number | null;
 
+  @Column({ type: 'tinyint', nullable: true })
+  diaCierre!: number | null;
+
+  @Column({ type: 'tinyint', nullable: true })
+  diaPago!: number | null;
+
   @OneToMany(() => Transaccion, (transaccion) => transaccion.cuenta)
   transacciones!: Transaccion[];
 }
