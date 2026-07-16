@@ -16,18 +16,25 @@ import { RequestContextService } from './common/services/request-context.service
 import { ServiceErrorInstrumentationService } from './common/services/service-error-instrumentation.service';
 import { ServiceErrorLogService } from './common/services/service-error-log.service';
 import {
-  isProductionEnv,
+  normalizeAppEnvironment,
   toBooleanEnv,
   toNumberEnv,
 } from './common/utils/env.util';
+import { validateEnvironment } from './config/environment.validation';
 
-const isProduction = isProductionEnv(
+const appEnvironment = normalizeAppEnvironment(
   process.env.APP_ENV ?? process.env.NODE_ENV,
 );
+const isProduction = appEnvironment === 'production';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      ignoreEnvFile: isProduction,
+      envFilePath: '.env',
+      validate: validateEnvironment,
+    }),
     DiscoveryModule,
     TypeOrmModule.forRoot({
       type: 'mssql',
@@ -37,7 +44,8 @@ const isProduction = isProductionEnv(
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: toBooleanEnv(process.env.DB_SYNCHRONIZE, false),
+      synchronize:
+        !isProduction && toBooleanEnv(process.env.DB_SYNCHRONIZE, false),
       logging: toBooleanEnv(process.env.DB_LOGGING, false),
       requestTimeout: toNumberEnv(process.env.DB_REQUEST_TIMEOUT_MS, 30000),
       options: {

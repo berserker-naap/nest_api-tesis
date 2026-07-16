@@ -27,3 +27,21 @@ export function toListEnv(value: string | undefined): string[] {
 export function isProductionEnv(value: string | undefined): boolean {
   return ['production', 'prod'].includes(String(value ?? '').trim().toLowerCase());
 }
+
+export type AppEnvironment = 'development' | 'test' | 'production';
+
+export function normalizeAppEnvironment(
+  value: string | undefined,
+): AppEnvironment {
+  const normalized = String(value ?? '').trim().toLowerCase();
+
+  if (isProductionEnv(normalized)) {
+    return 'production';
+  }
+
+  if (normalized === 'test') {
+    return 'test';
+  }
+
+  return 'development';
+}

@@ -3,6 +3,11 @@
 
 name: Build and deploy Node.js app to Azure Web App - api-tesisunt
 
+env:
+  APP_ENV: production
+  NODE_ENV: production
+  DB_SYNCHRONIZE: 'false'
+
 on:
   push:
     branches:
@@ -23,11 +28,17 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm install, build, and test
-        run: |
-          npm install
-          npm run build --if-present
-          npm run test -- --passWithNoTests
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production artifact
+        run: npm run build:prod
+
+      - name: Run tests
+        env:
+          APP_ENV: test
+          NODE_ENV: test
+        run: npm run test -- --passWithNoTests --runInBand
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
