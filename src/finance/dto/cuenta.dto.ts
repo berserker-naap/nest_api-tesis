@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  Max,
 } from 'class-validator';
 import { TipoEntidadFinanciera } from '../enum/entidad-financiera.enum';
 import { NaturalezaTipoCuenta } from '../enum/tipo-cuenta.enum';
@@ -45,6 +46,34 @@ export class CrearCuentaDto {
   @Min(0.01)
   @Type(() => Number)
   lineaCredito?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  @Type(() => Number)
+  diaCierre?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  @Type(() => Number)
+  diaPago?: number | null;
+}
+
+export class ConfigurarFechasTarjetaDto {
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  @Type(() => Number)
+  diaCierre!: number;
+
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  @Type(() => Number)
+  diaPago!: number;
 }
 
 export class CuentaResponseDto {
@@ -52,6 +81,9 @@ export class CuentaResponseDto {
   alias!: string;
   saldoActual!: number;
   lineaCredito!: number | null;
+  diaCierre!: number | null;
+  diaPago!: number | null;
+  proximaFechaPago!: string | null;
   esTarjetaCredito!: boolean;
   moneda!: {
     id: number;

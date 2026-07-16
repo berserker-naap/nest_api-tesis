@@ -56,9 +56,6 @@ export class Transaccion extends Audit {
   descripcion!: string | null;
 
   @Column({ type: 'nvarchar', length: 500, nullable: true })
-  comprobanteUrl!: string | null;
-
-  @Column({ type: 'nvarchar', length: 500, nullable: true })
   nota!: string | null;
 
   @Column({ type: 'nvarchar', length: 120, nullable: true })

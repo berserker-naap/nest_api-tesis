@@ -1,9 +1,21 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { Auth, GetClientIp, GetUsuario } from 'src/auth/decorators';
 import { Usuario } from 'src/security/entities/usuario.entity';
 import {
+  ActualizarTransaccionDto,
   CrearEgresoDto,
   CrearIngresoDto,
+  CrearPagoTarjetaDto,
   CrearTransferenciaDto,
   FiltroTransaccionesDto,
 } from '../dto/transaccion.dto';
@@ -43,6 +55,15 @@ export class TransaccionFinanceController {
     return this.transaccionFinanceService.createTransferencia(dto, usuario, ip);
   }
 
+  @Post('pago-tarjeta')
+  createPagoTarjeta(
+    @Body() dto: CrearPagoTarjetaDto,
+    @GetUsuario() usuario: Usuario,
+    @GetClientIp() ip: string,
+  ) {
+    return this.transaccionFinanceService.createPagoTarjeta(dto, usuario, ip);
+  }
+
   @Get()
   findAll(
     @Query() query: FiltroTransaccionesDto,
@@ -58,4 +79,24 @@ export class TransaccionFinanceController {
   ) {
     return this.transaccionFinanceService.findOneById(id, usuario);
   }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ActualizarTransaccionDto,
+    @GetUsuario() usuario: Usuario,
+    @GetClientIp() ip: string,
+  ) {
+    return this.transaccionFinanceService.update(id, dto, usuario, ip);
+  }
+
+  @Delete(':id')
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUsuario() usuario: Usuario,
+    @GetClientIp() ip: string,
+  ) {
+    return this.transaccionFinanceService.remove(id, usuario, ip);
+  }
+
 }
