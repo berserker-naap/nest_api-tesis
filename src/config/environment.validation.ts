@@ -1,7 +1,4 @@
-import {
-  normalizeAppEnvironment,
-  toBooleanEnv,
-} from '../common/utils/env.util';
+import { normalizeAppEnvironment } from '../common/utils/env.util';
 
 const REQUIRED_PRODUCTION_VARIABLES = [
   'DB_HOST',
@@ -29,8 +26,6 @@ export function validateEnvironment(
     validateProductionServiceUrl(config.ML_SERVICE_URL);
     return config;
   }
-
-  validateDevelopmentSynchronization(config);
   return config;
 }
 
@@ -69,28 +64,6 @@ function validateProductionServiceUrl(value: unknown): void {
   ) {
     throw new Error(
       'ML_SERVICE_URL must use HTTPS and cannot point to localhost in production',
-    );
-  }
-}
-
-function validateDevelopmentSynchronization(
-  config: Record<string, unknown>,
-): void {
-  const synchronize = toBooleanEnv(
-    toOptionalString(config.DB_SYNCHRONIZE),
-    false,
-  );
-  if (!synchronize) {
-    return;
-  }
-
-  const host = toOptionalString(config.DB_HOST)?.toLowerCase();
-  const isLocalDatabase =
-    host === 'localhost' || host === '127.0.0.1' || host === '::1';
-
-  if (!isLocalDatabase) {
-    throw new Error(
-      'DB_SYNCHRONIZE=true is allowed only for a local development database',
     );
   }
 }
