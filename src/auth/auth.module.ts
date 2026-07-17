@@ -1,5 +1,5 @@
 import { UsuarioRol } from './../security/entities/usuario-rol.entity';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
@@ -14,11 +14,13 @@ import { Profile } from 'src/security/entities/profile.entity';
 import { Rol } from 'src/security/entities/rol.entity';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import { ReniecData } from 'src/security/entities/reniec-data.entity';
+import { MessagingModule } from 'src/messaging/messaging.module';
 
 @Module({
 
   imports: [
     ConfigModule,
+    forwardRef(() => MessagingModule),
     TypeOrmModule.forFeature([
       Usuario,
       Permiso,

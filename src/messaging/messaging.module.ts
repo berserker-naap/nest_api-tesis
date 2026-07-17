@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { RouterModule } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -46,7 +46,7 @@ import { PushNotificationLogService } from './services/push-notification-log.ser
         };
       },
     }),
-    AuthModule,
+    forwardRef(() => AuthModule),
     RouterModule.register([
       {
         path: 'integrations/messaging',

@@ -19,7 +19,7 @@ export class OtpVerificacion extends Audit {
   usuario!: Usuario;
 
   @Column({ type: 'nvarchar', length: 20 })
-  canal!: 'WHATSAPP';
+  canal!: 'WHATSAPP' | 'EMAIL';
 
   @Column({ type: 'nvarchar', length: 200 })
   destino!: string;

@@ -37,11 +37,8 @@ export class MessagingMailComposerService {
       subject: `Bienvenido a ${appName}`,
       plainText: `Hola ${nombre}. Tu cuenta en ${appName} fue creada correctamente.`,
       html: `
-        <div style="font-family: Arial, sans-serif; color: #1f2937;">
-          <h2>Bienvenido a ${this.escapeHtml(appName)}</h2>
-          <p>Hola ${this.escapeHtml(nombre)}.</p>
-          <p>Tu cuenta fue creada correctamente y ya puedes usar la plataforma.</p>
-        </div>
+        <p>Hola ${this.escapeHtml(nombre)}.</p>
+        <p>Tu cuenta en ${this.escapeHtml(appName)} fue creada correctamente.</p>
       `.trim(),
     };
   }
@@ -75,11 +72,8 @@ export class MessagingMailComposerService {
       subject: 'Recuperacion de acceso',
       plainText: `Hola ${nombre}. ${actionLine}`,
       html: `
-        <div style="font-family: Arial, sans-serif; color: #1f2937;">
-          <h2>Recuperacion de acceso</h2>
-          <p>Hola ${this.escapeHtml(nombre)}.</p>
-          ${htmlAction}
-        </div>
+        <p>Hola ${this.escapeHtml(nombre)}.</p>
+        ${htmlAction}
       `.trim(),
     };
   }

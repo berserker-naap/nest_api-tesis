@@ -25,17 +25,28 @@
     { "key": "accionId", "value": "1" },
     { "key": "multitablaId", "value": "1" },
     { "key": "categoriaId", "value": "1" },
+    { "key": "cuentaId", "value": "1" },
+    { "key": "cuentaDestinoId", "value": "2" },
+    { "key": "tarjetaCreditoId", "value": "2" },
     { "key": "transaccionId", "value": "1" },
+    { "key": "presupuestoId", "value": "1" },
+    { "key": "metaAhorroId", "value": "1" },
+    { "key": "recurrenteId", "value": "1" },
+    { "key": "campaignId", "value": "1" },
     { "key": "sessionId", "value": "1" },
     { "key": "numeroDocumento", "value": "12345678" },
     { "key": "fecha", "value": "2026-07-13" },
     { "key": "desde", "value": "2026-07-01" },
     { "key": "hasta", "value": "2026-07-13" },
+    { "key": "periodo", "value": "2026-07" },
     { "key": "limit", "value": "20" },
+    { "key": "monedaCodigo", "value": "PEN" },
     { "key": "countryCode", "value": "+51" },
     { "key": "phone", "value": "999888777" },
     { "key": "internationalPhoneNumber", "value": "51999888777" },
-    { "key": "otpCode", "value": "123456" },
+    { "key": "otpCode", "value": "12345" },
+    { "key": "recoveryLogin", "value": "admin@tesis.com" },
+    { "key": "recoveryNewPassword", "value": "Admin123*" },
     { "key": "verifyToken", "value": "mi_verify_token" },
     { "key": "challenge", "value": "challenge-demo" },
     { "key": "profilePhotoPath", "value": "C:/temp/profile.jpg" },
@@ -145,6 +156,69 @@
               "raw": "{{baseUrl}}/auth/validar-dni/{{numeroDocumento}}",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "validar-dni", "{{numeroDocumento}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Password Recovery - Request OTP",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"login\":\"{{recoveryLogin}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/security/password-recovery/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["security", "password-recovery", "request"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Password Recovery - Verify OTP",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"login\":\"{{recoveryLogin}}\",\"code\":\"{{otpCode}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/security/password-recovery/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["security", "password-recovery", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Password Recovery - Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"login\":\"{{recoveryLogin}}\",\"code\":\"{{otpCode}}\",\"password\":\"{{recoveryNewPassword}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/security/password-recovery/reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["security", "password-recovery", "reset"]
             }
           },
           "response": []
@@ -1094,6 +1168,26 @@
           "response": []
         },
         {
+          "name": "Configurar Fechas Tarjeta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"diaCierre\":25,\"diaPago\":5}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/cuentas/{{cuentaId}}/tarjeta-fechas",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "cuentas", "{{cuentaId}}", "tarjeta-fechas"]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Resumen Balance",
           "request": {
             "method": "GET",
@@ -1166,6 +1260,26 @@
           "response": []
         },
         {
+          "name": "Crear Pago Tarjeta",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"idCuentaOrigen\":\"{{cuentaId}}\",\"idTarjetaCredito\":\"{{tarjetaCreditoId}}\",\"monto\":150.0,\"nota\":\"Pago parcial de tarjeta\",\"fecha\":\"{{fecha}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/transacciones/pago-tarjeta",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "transacciones", "pago-tarjeta"]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Listar Transacciones",
           "request": {
             "method": "GET",
@@ -1186,6 +1300,38 @@
           "name": "Obtener Transaccion",
           "request": {
             "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/transacciones/{{transaccionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "transacciones", "{{transaccionId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Transaccion",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"idCuenta\":\"{{cuentaId}}\",\"idCategoria\":\"{{categoriaId}}\",\"idSubcategoria\":1,\"monto\":65.5,\"concepto\":\"Supermercado actualizado\",\"nota\":\"Ajuste manual\",\"fecha\":\"{{fecha}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/transacciones/{{transaccionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "transacciones", "{{transaccionId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar Transaccion",
+          "request": {
+            "method": "DELETE",
             "url": {
               "raw": "{{baseUrl}}/finance/transacciones/{{transaccionId}}",
               "host": ["{{baseUrl}}"],
@@ -1233,6 +1379,190 @@
                 { "key": "desde", "value": "{{desde}}" },
                 { "key": "hasta", "value": "{{hasta}}" },
                 { "key": "limit", "value": "30" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Presupuestos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/presupuestos?periodo={{periodo}}&monedaCodigo={{monedaCodigo}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "presupuestos"],
+              "query": [
+                { "key": "periodo", "value": "{{periodo}}" },
+                { "key": "monedaCodigo", "value": "{{monedaCodigo}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Guardar Presupuesto",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"idCategoria\":\"{{categoriaId}}\",\"periodo\":\"{{periodo}}\",\"monedaCodigo\":\"{{monedaCodigo}}\",\"montoLimite\":800.0}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/presupuestos",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "presupuestos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar Presupuesto",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/finance/presupuestos/{{presupuestoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "presupuestos", "{{presupuestoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Metas Ahorro",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/planificacion/metas",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "planificacion", "metas"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Meta Ahorro",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nombre\":\"Laptop nueva\",\"descripcion\":\"Meta de ahorro simple\",\"montoObjetivo\":3500.0,\"montoInicial\":200.0,\"fechaObjetivo\":\"2026-12-31\",\"monedaCodigo\":\"{{monedaCodigo}}\",\"idCuenta\":\"{{cuentaId}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/planificacion/metas",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "planificacion", "metas"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Abonar Meta Ahorro",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"monto\":100.0}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/planificacion/metas/{{metaAhorroId}}/abonos",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "planificacion", "metas", "{{metaAhorroId}}", "abonos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar Meta Ahorro",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/finance/planificacion/metas/{{metaAhorroId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "planificacion", "metas", "{{metaAhorroId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Pagos Recurrentes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/planificacion/recurrentes",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "planificacion", "recurrentes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Pago Recurrente",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"idCuenta\":\"{{cuentaId}}\",\"idCategoria\":\"{{categoriaId}}\",\"concepto\":\"Netflix\",\"monto\":44.9,\"frecuencia\":\"MENSUAL\",\"proximaFecha\":\"2026-08-01\",\"diasRecordatorio\":3,\"nota\":\"Suscripcion mensual\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/finance/planificacion/recurrentes",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "planificacion", "recurrentes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar Pago Recurrente",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/finance/planificacion/recurrentes/{{recurrenteId}}/registrar",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "planificacion", "recurrentes", "{{recurrenteId}}", "registrar"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar Pago Recurrente",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/finance/planificacion/recurrentes/{{recurrenteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "planificacion", "recurrentes", "{{recurrenteId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reporte Mensual Planificacion",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/finance/planificacion/reporte-mensual?periodo={{periodo}}&monedaCodigo={{monedaCodigo}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["finance", "planificacion", "reporte-mensual"],
+              "query": [
+                { "key": "periodo", "value": "{{periodo}}" },
+                { "key": "monedaCodigo", "value": "{{monedaCodigo}}" }
               ]
             }
           },
@@ -1438,6 +1768,122 @@
               "raw": "{{baseUrl}}/integrations/messaging/push/send-native",
               "host": ["{{baseUrl}}"],
               "path": ["integrations", "messaging", "push", "send-native"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Campaigns - My Inbox",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/campaigns/me?limit={{limit}}&onlyUnread=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "campaigns", "me"],
+              "query": [
+                { "key": "limit", "value": "{{limit}}" },
+                { "key": "onlyUnread", "value": "false" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Campaigns - Unread Count",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/campaigns/me/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "campaigns", "me", "unread-count"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Campaigns - Mark As Read",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/campaigns/me/{{campaignId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "campaigns", "me", "{{campaignId}}", "read"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Campaigns - List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "campaigns"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Campaigns - Get One",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "campaigns", "{{campaignId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Campaigns - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"scope\":\"ALL_USERS\",\"title\":\"Campana demo\",\"message\":\"Mensaje simple para todos\",\"deepLink\":\"/home\",\"sendPush\":true,\"publishInApp\":true}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "campaigns"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Campaigns - Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Campana demo actualizada\",\"message\":\"Mensaje actualizado\",\"deepLink\":\"/movimientos\",\"sendPush\":true,\"publishInApp\":true}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "campaigns", "{{campaignId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Campaigns - Send",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/integrations/messaging/campaigns/{{campaignId}}/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["integrations", "messaging", "campaigns", "{{campaignId}}", "send"]
             }
           },
           "response": []
