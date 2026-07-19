@@ -31,8 +31,7 @@ const isProduction = appEnvironment === 'production';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      ignoreEnvFile: isProduction,
-      envFilePath: '.env',
+      ignoreEnvFile: true,
       validate: validateEnvironment,
     }),
     DiscoveryModule,

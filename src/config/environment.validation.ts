@@ -30,6 +30,8 @@ export function validateEnvironment(
     validateProductionServiceUrl(config.ML_SERVICE_URL);
     return config;
   }
+
+  validateDevelopmentDatabaseSynchronization(config);
   return config;
 }
 
@@ -82,6 +84,24 @@ function validateWhatsappConfig(config: Record<string, unknown>): void {
   if (toOptionalString(config.WHATSAPP_TEST_PHONE_NUMBER)) {
     throw new Error(
       'WHATSAPP_TEST_PHONE_NUMBER is not allowed; use productive WhatsApp credentials in every environment',
+    );
+  }
+}
+
+function validateDevelopmentDatabaseSynchronization(
+  config: Record<string, unknown>,
+): void {
+  if (!toBoolean(config.DB_SYNCHRONIZE)) {
+    return;
+  }
+
+  const host = String(config.DB_HOST ?? '').trim().toLowerCase();
+  const isLocalDatabaseHost =
+    host === 'localhost' || host === '127.0.0.1' || host === '::1';
+
+  if (!isLocalDatabaseHost) {
+    throw new Error(
+      'DB_SYNCHRONIZE=true is allowed only for a local development database',
     );
   }
 }
