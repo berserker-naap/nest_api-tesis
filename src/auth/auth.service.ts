@@ -84,6 +84,16 @@ export class AuthService {
     return `El ${this.resolveDocumentLabel(tipoDocumento)} ${numeroDocumento} ya esta asociado a una cuenta activa. Si la cuenta es tuya, inicia sesion o recupera tu contrasena.`;
   }
 
+  private buildInvalidDocumentMessage(
+    tipoDocumento: Pick<Multitabla, 'nombre' | 'valor'> | null | undefined,
+  ): string {
+    const label = this.resolveDocumentLabel(tipoDocumento).toUpperCase();
+    if (label.includes('DNI')) {
+      return 'No se pudo validar el DNI ingresado. Verifica el numero e intenta nuevamente.';
+    }
+    return `No se pudo validar el ${this.resolveDocumentLabel(tipoDocumento)} ingresado.`;
+  }
+
   private async findActiveUsuarioByNormalizedLogin(
     login: string,
     manager?: EntityManager,
@@ -184,7 +194,9 @@ export class AuthService {
         queryRunner.manager,
       );
       if (!validacionDocumento.ok) {
-        throw new BadRequestException('Documento erroneo');
+        throw new BadRequestException(
+          this.buildInvalidDocumentMessage(tipoDocumento),
+        );
       }
 
       let profileSaved = await queryRunner.manager.findOne(Profile, {
@@ -231,20 +243,22 @@ export class AuthService {
         profileSaved.fechaModificacion = new Date();
         profileSaved = await queryRunner.manager.save(Profile, profileSaved);
       } else {
+        const validationStatus = this.resolveValidationStatus(
+          profileDto.idTipoDocumentoIdentidad,
+          profileDto.nombres,
+          profileDto.apellidos ?? null,
+          validacionDocumento.reniecIdentity ?? null,
+        );
+
         const profile = queryRunner.manager.create(Profile, {
           nombres: profileDto.nombres,
           apellidos: profileDto.apellidos ?? null,
           tipoDocumento,
           documentoIdentidad,
           fechaNacimiento: null,
-          status: this.resolveValidationStatus(
-            profileDto.idTipoDocumentoIdentidad,
-            profileDto.nombres,
-            profileDto.apellidos ?? null,
-            validacionDocumento.reniecIdentity ?? null,
-          ),
+          status: validationStatus,
           fechaVerificacion:
-            profileDto.idTipoDocumentoIdentidad === this.TIPO_DOC_DNI ? new Date() : null,
+            validationStatus === ProfileValidationStatus.PENDING ? null : new Date(),
           reniecData: validacionDocumento.reniecDataId
             ? ({ id: validacionDocumento.reniecDataId } as ReniecData)
             : null,
@@ -342,9 +356,13 @@ export class AuthService {
       const numero = numeroDocumento.trim();
 
       if (idTipoDocumentoIdentidad === this.TIPO_DOC_DNI) {
+        if (!/^\d{8}$/.test(numero)) {
+          return { ok: false };
+        }
+
         const reniecIdentity = await this.resolveReniecIdentity(numero, manager);
         if (!reniecIdentity) {
-          return { ok: false };
+          return { ok: true };
         }
         const reniecData = await this.findReniecDataByDocumento(this.TIPO_DOC_DNI, numero, manager);
         return {
@@ -352,6 +370,10 @@ export class AuthService {
           reniecDataId: reniecData?.id,
           reniecIdentity,
         };
+      }
+
+      if (idTipoDocumentoIdentidad !== this.TIPO_DOC_RUC) {
+        return { ok: true };
       }
 
       const data = await this.fetchDocumentoExterno(
@@ -445,7 +467,7 @@ export class AuthService {
       return ProfileValidationStatus.PENDING;
     }
     if (!reniecIdentity) {
-      return ProfileValidationStatus.FAILED;
+      return ProfileValidationStatus.PENDING;
     }
 
     const nombrePerfil = this.normalizeText(nombresProfile);
