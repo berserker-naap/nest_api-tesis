@@ -33,6 +33,14 @@ Azure App Settings. Usa los nombres documentados en `.env.example`, asignando
 los valores productivos en Azure. En produccion, `DB_SYNCHRONIZE` siempre se
 fuerza a `false`.
 
+Para WhatsApp, tanto en desarrollo como en produccion debes usar siempre
+credenciales productivas: `WHATSAPP_ACCESS_TOKEN`,
+`WHATSAPP_PHONE_NUMBER_ID` y `WHATSAPP_VERIFY_TOKEN`. El proyecto ya no admite
+`WHATSAPP_TEST_MODE` ni `WHATSAPP_TEST_PHONE_NUMBER`.
+
+Los endpoints `/integrations/whatsapp/test/*` solo quedan disponibles fuera de
+produccion, pero usan el mismo envio real de WhatsApp configurado en variables.
+
 ## Validacion
 
 ```bash

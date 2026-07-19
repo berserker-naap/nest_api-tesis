@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RouterModule } from '@nestjs/core';
+import { normalizeAppEnvironment } from 'src/common/utils/env.util';
 import { FinanceModule } from 'src/finance/finance.module';
 import { MessagingModule } from 'src/messaging/messaging.module';
 import { SecurityModule } from 'src/security/security.module';
@@ -10,6 +11,14 @@ import { WhatsappCommandParserService } from './services/whatsapp-command-parser
 import { WhatsappConversationSessionService } from './services/whatsapp-conversation-session.service';
 import { WhatsappMessageComposerService } from './services/whatsapp-message-composer.service';
 import { WhatsappWebhookService } from './services/whatsapp-webhook.service';
+
+const appEnvironment = normalizeAppEnvironment(
+  process.env.APP_ENV ?? process.env.NODE_ENV,
+);
+const isProduction = appEnvironment === 'production';
+const whatsappControllers = isProduction
+  ? [WhatsappWebhookController]
+  : [WhatsappWebhookController, WhatsappTestController];
 
 @Module({
   imports: [
@@ -23,7 +32,7 @@ import { WhatsappWebhookService } from './services/whatsapp-webhook.service';
       },
     ]),
   ],
-  controllers: [WhatsappWebhookController, WhatsappTestController],
+  controllers: whatsappControllers,
   providers: [
     WhatsappWebhookService,
     WhatsappLinkOrchestrator,
