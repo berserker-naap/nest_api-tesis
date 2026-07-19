@@ -21,12 +21,14 @@ export class OtpVerificacionService {
   }
 
   private generateCode(): string {
-    return randomInt(100000, 1000000).toString();
+    const min = 10 ** 4;
+    const max = 10 ** 5;
+    return randomInt(min, max).toString();
   }
 
   async createOtp(params: {
     usuario: Usuario;
-    canal: 'WHATSAPP';
+    canal: 'WHATSAPP' | 'EMAIL';
     destino: string;
     ttlMinutes?: number;
     maxAttempts?: number;
@@ -52,9 +54,10 @@ export class OtpVerificacionService {
 
   async validateOtp(params: {
     usuarioId: number;
-    canal: 'WHATSAPP';
+    canal: 'WHATSAPP' | 'EMAIL';
     destino: string;
     code: string;
+    consume?: boolean;
   }): Promise<OtpVerificacion> {
     const otp = await this.otpRepository.findOne({
       where: {
@@ -82,9 +85,10 @@ export class OtpVerificacionService {
       throw new BadRequestException('Codigo incorrecto');
     }
 
-    otp.fechaUso = new Date();
-    await this.otpRepository.save(otp);
+    if (params.consume !== false) {
+      otp.fechaUso = new Date();
+      await this.otpRepository.save(otp);
+    }
     return otp;
   }
 }
-

@@ -39,6 +39,9 @@ import { WhatsappMessageLog } from 'src/security/entities/whatsapp-message-log.e
 import { ProfilePhone } from './entities/profile-phone.entity';
 import { ProfilePhoneService } from './services/profile-phone.service';
 import { SecuritySeeder } from './seeders/security.seeder';
+import { MessagingModule } from 'src/messaging/messaging.module';
+import { PasswordRecoveryController } from './controllers/password-recovery.controller';
+import { PasswordRecoveryService } from './services/password-recovery.service';
 
 @Module({
   imports: [
@@ -72,6 +75,7 @@ import { SecuritySeeder } from './seeders/security.seeder';
       }
     }),
     AuthModule,
+    MessagingModule,
     RouterModule.register([
       {
         path: 'security',
@@ -88,6 +92,7 @@ import { SecuritySeeder } from './seeders/security.seeder';
     UsuarioController,
     ProfilePhoneController,
     ProfileController,
+    PasswordRecoveryController,
   ],
   providers: [
     SecuritySeeder,
@@ -98,6 +103,7 @@ import { SecuritySeeder } from './seeders/security.seeder';
     RolService,
     UsuarioService,
     OtpVerificacionService,
+    PasswordRecoveryService,
     ProfileService,
     ProfilePhoneService,
     BlobStorageService,

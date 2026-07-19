@@ -30,6 +30,7 @@ import { Profile } from 'src/security/entities/profile.entity';
 import { Multitabla } from 'src/businessparam/entities/multitabla.entity';
 import { ReniecData } from 'src/security/entities/reniec-data.entity';
 import { ProfileValidationStatus } from 'src/security/enums/profile-validation-status.enum';
+import { MessagingMailService } from 'src/messaging/services/messaging-mail.service';
 
 interface ResolvedReniecIdentity {
   numeroDocumento: string;
@@ -55,12 +56,32 @@ export class AuthService {
     private readonly multitablaRepository: Repository<Multitabla>,
     @InjectRepository(ReniecData)
     private readonly reniecDataRepository: Repository<ReniecData>,
+    private readonly messagingMailService: MessagingMailService,
     private readonly jwtService: JwtService,
     private readonly dataSource: DataSource,
   ) { }
 
   private normalizeLoginValue(value: string): string {
     return normalizeLogin(value);
+  }
+
+  private resolveDocumentLabel(
+    tipoDocumento: Pick<Multitabla, 'nombre' | 'valor'> | null | undefined,
+  ): string {
+    return String(
+      tipoDocumento?.valor?.trim() || tipoDocumento?.nombre?.trim() || 'documento',
+    );
+  }
+
+  private buildExistingLoginMessage(): string {
+    return 'Ya existe una cuenta activa con este correo. Si olvidaste tu contrasena, usa "Olvide mi contrasena".';
+  }
+
+  private buildDocumentLinkedMessage(
+    tipoDocumento: Pick<Multitabla, 'nombre' | 'valor'> | null | undefined,
+    numeroDocumento: string,
+  ): string {
+    return `El ${this.resolveDocumentLabel(tipoDocumento)} ${numeroDocumento} ya esta asociado a una cuenta activa. Si la cuenta es tuya, inicia sesion o recupera tu contrasena.`;
   }
 
   private async findActiveUsuarioByNormalizedLogin(
@@ -92,7 +113,7 @@ export class AuthService {
 
       const usuarioExistente = await this.findActiveUsuarioByNormalizedLogin(login);
       if (usuarioExistente) {
-        throw new BadRequestException('Ya existe un usuario con ese login');
+        throw new BadRequestException(this.buildExistingLoginMessage());
       }
 
       const entity = this.usuarioRepository.create({
@@ -104,6 +125,8 @@ export class AuthService {
       const usuario = await this.usuarioRepository.save(entity);
       if (!usuario)
         throw new InternalServerErrorException('No se pudo crear el usuario');
+
+      await this.sendWelcomeEmailSafe(usuario, login, ip);
 
       const session = await this.buildSessionPayload(usuario.id, usuario.login);
 
@@ -140,7 +163,7 @@ export class AuthService {
         queryRunner.manager,
       );
       if (usuarioExistente) {
-        throw new BadRequestException('Usted ya cuenta con una cuenta activa, si no recuerda su contraseña porfavor dele clic a olvide mi contraseña');
+        throw new BadRequestException(this.buildExistingLoginMessage());
       }
 
       const tipoDocumento = await queryRunner.manager.findOne(Multitabla, {
@@ -186,7 +209,7 @@ export class AuthService {
 
         if (usuarioActivo) {
           throw new BadRequestException(
-            'Usted ya cuenta con una cuenta activa, si no recuerda su contrasena por favor dele clic a olvide mi contrasena',
+            this.buildDocumentLinkedMessage(tipoDocumento, documentoIdentidad),
           );
         }
 
@@ -264,6 +287,12 @@ export class AuthService {
 
 
       await queryRunner.commitTransaction();
+
+      await this.sendWelcomeEmailSafe(
+        usuario,
+        profileSaved?.nombres?.trim() || loginNormalizado,
+        ip,
+      );
 
       const session = await this.buildSessionPayload(usuario.id, usuario.login);
       return new StatusResponse(true, 201, 'Registro creado exitosamente', session);
@@ -526,13 +555,18 @@ export class AuthService {
   async login(loginRequestDto: LoginRequestDto): Promise<StatusResponse<SessionResponseDto | null>> {
     try {
       const password = loginRequestDto.password;
-      const login = this.normalizeLoginValue(loginRequestDto.login);
+      const rawIdentifier = `${loginRequestDto.login ?? ''}`.trim();
+      const identifier = rawIdentifier.toLowerCase();
 
       const usuario = await this.usuarioRepository
         .createQueryBuilder('usuario')
+        .leftJoin('usuario.profile', 'profile')
         .leftJoinAndSelect('usuario.roles', 'usuarioRol')
         .leftJoinAndSelect('usuarioRol.rol', 'rol')
-        .where('LOWER(usuario.login) = :login', { login })
+        .where(
+          '(LOWER(usuario.login) = :identifier OR LOWER(profile.documentoIdentidad) = :identifier)',
+          { identifier },
+        )
         .andWhere('usuario.activo = :activo', { activo: true })
         .andWhere('usuario.eliminado = :eliminado', { eliminado: false })
         .select([
@@ -594,6 +628,33 @@ export class AuthService {
   private getJwtToken(payload: JwtPayload) {
     const token = this.jwtService.sign(payload);
     return token;
+  }
+
+  private async sendWelcomeEmailSafe(
+    usuario: Usuario,
+    nombre: string,
+    ip: string,
+  ): Promise<void> {
+    try {
+      const response = await this.messagingMailService.sendWelcomeEmail(
+        usuario.login,
+        nombre,
+        usuario,
+        ip,
+      );
+
+      if (!response.ok) {
+        console.error(
+          `No se pudo enviar correo de bienvenida a ${usuario.login}:`,
+          response.message,
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Fallo enviando correo de bienvenida a ${usuario.login}:`,
+        error,
+      );
+    }
   }
 
   async getPermisosUnificadosPorUsuario(usuarioId: number): Promise<any[]> {

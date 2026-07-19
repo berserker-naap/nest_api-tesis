@@ -132,16 +132,7 @@ export class WhatsappSenderService {
   }
 
   private resolveRecipient(originalToInternational: string): string {
-    const testModeRaw = this.configService.get<string>('WHATSAPP_TEST_MODE');
-    const isTestMode = ['1', 'true', 'yes', 'on'].includes(
-      (testModeRaw ?? '').trim().toLowerCase(),
-    );
-
-    const resolvedNumber = isTestMode
-      ? this.configService.get<string>('WHATSAPP_TEST_PHONE_NUMBER') ?? '51923983014'
-      : originalToInternational;
-
-    return resolvedNumber.replace(/\D/g, '');
+    return originalToInternational.replace(/\D/g, '');
   }
 
   private async sendRequest(

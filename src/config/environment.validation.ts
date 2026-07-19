@@ -1,7 +1,4 @@
-import {
-  normalizeAppEnvironment,
-  toBooleanEnv,
-} from '../common/utils/env.util';
+import { normalizeAppEnvironment } from '../common/utils/env.util';
 
 const REQUIRED_PRODUCTION_VARIABLES = [
   'DB_HOST',
@@ -11,6 +8,9 @@ const REQUIRED_PRODUCTION_VARIABLES = [
   'JWT_SECRET',
   'CORS_ALLOWED_ORIGINS',
   'ML_SERVICE_URL',
+  'WHATSAPP_ACCESS_TOKEN',
+  'WHATSAPP_PHONE_NUMBER_ID',
+  'WHATSAPP_VERIFY_TOKEN',
 ] as const;
 
 export function validateEnvironment(
@@ -22,6 +22,7 @@ export function validateEnvironment(
 
   config.APP_ENV = appEnvironment;
   config.NODE_ENV = appEnvironment;
+  validateWhatsappConfig(config);
 
   if (appEnvironment === 'production') {
     config.DB_SYNCHRONIZE = 'false';
@@ -29,8 +30,6 @@ export function validateEnvironment(
     validateProductionServiceUrl(config.ML_SERVICE_URL);
     return config;
   }
-
-  validateDevelopmentSynchronization(config);
   return config;
 }
 
@@ -73,26 +72,24 @@ function validateProductionServiceUrl(value: unknown): void {
   }
 }
 
-function validateDevelopmentSynchronization(
-  config: Record<string, unknown>,
-): void {
-  const synchronize = toBooleanEnv(
-    toOptionalString(config.DB_SYNCHRONIZE),
-    false,
-  );
-  if (!synchronize) {
-    return;
-  }
-
-  const host = toOptionalString(config.DB_HOST)?.toLowerCase();
-  const isLocalDatabase =
-    host === 'localhost' || host === '127.0.0.1' || host === '::1';
-
-  if (!isLocalDatabase) {
+function validateWhatsappConfig(config: Record<string, unknown>): void {
+  if (toBoolean(config.WHATSAPP_TEST_MODE)) {
     throw new Error(
-      'DB_SYNCHRONIZE=true is allowed only for a local development database',
+      'WHATSAPP_TEST_MODE is not allowed; use productive WhatsApp credentials in every environment',
     );
   }
+
+  if (toOptionalString(config.WHATSAPP_TEST_PHONE_NUMBER)) {
+    throw new Error(
+      'WHATSAPP_TEST_PHONE_NUMBER is not allowed; use productive WhatsApp credentials in every environment',
+    );
+  }
+}
+
+function toBoolean(value: unknown): boolean {
+  return ['1', 'true', 'yes', 'on'].includes(
+    String(value ?? '').trim().toLowerCase(),
+  );
 }
 
 function toOptionalString(value: unknown): string | undefined {

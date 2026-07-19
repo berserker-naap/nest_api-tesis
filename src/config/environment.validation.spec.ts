@@ -10,6 +10,9 @@ describe('validateEnvironment', () => {
     JWT_SECRET: 'secret',
     CORS_ALLOWED_ORIGINS: 'http://localhost',
     ML_SERVICE_URL: 'https://ml-service.azurewebsites.net',
+    WHATSAPP_ACCESS_TOKEN: 'token',
+    WHATSAPP_PHONE_NUMBER_ID: '123456789',
+    WHATSAPP_VERIFY_TOKEN: 'verify-token',
   };
 
   it('forces database synchronization off in production', () => {
@@ -28,6 +31,28 @@ describe('validateEnvironment', () => {
         ML_SERVICE_URL: 'http://127.0.0.1:8001',
       }),
     ).toThrow('ML_SERVICE_URL must use HTTPS');
+  });
+
+  it('rejects WhatsApp test mode in production', () => {
+    expect(() =>
+      validateEnvironment({
+        ...productionConfig,
+        WHATSAPP_TEST_MODE: 'true',
+      }),
+    ).toThrow(
+      'WHATSAPP_TEST_MODE is not allowed; use productive WhatsApp credentials in every environment',
+    );
+  });
+
+  it('rejects a WhatsApp test phone in development', () => {
+    expect(() =>
+      validateEnvironment({
+        APP_ENV: 'development',
+        WHATSAPP_TEST_PHONE_NUMBER: '51923983014',
+      }),
+    ).toThrow(
+      'WHATSAPP_TEST_PHONE_NUMBER is not allowed; use productive WhatsApp credentials in every environment',
+    );
   });
 
   it('rejects synchronization against a remote development database', () => {
