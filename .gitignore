@@ -37,6 +37,8 @@ lerna-debug.log*
 
 # dotenv environment variable files
 .env
+.env.*
+!.env.example
 
 # Firebase service account credentials
 keys/

@@ -26,12 +26,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build production artifact
-        env:
-          APP_ENV: production
-          NODE_ENV: production
-          DB_SYNCHRONIZE: 'false'
-        run: npm run build:prod
+      - name: Build main artifact
+        run: npm run build:main
 
       - name: Run tests
         env:
