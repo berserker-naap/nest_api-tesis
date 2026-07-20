@@ -33,6 +33,7 @@ import { ProfileController } from './controllers/profile.controller';
 import { ProfileService } from './services/profile.service';
 import { ReniecData } from './entities/reniec-data.entity';
 import { BlobStorageService } from 'src/common/services/blob-storage.service';
+import { ServiceErrorLog } from 'src/common/entity/service-error-log.entity';
 import { WhatsappSenderService } from 'src/common/services/whatsapp-sender.service';
 import { WhatsappMessageLogService } from 'src/common/services/whatsapp-message-log.service';
 import { WhatsappMessageLog } from 'src/security/entities/whatsapp-message-log.entity';
@@ -40,8 +41,12 @@ import { ProfilePhone } from './entities/profile-phone.entity';
 import { ProfilePhoneService } from './services/profile-phone.service';
 import { SecuritySeeder } from './seeders/security.seeder';
 import { MessagingModule } from 'src/messaging/messaging.module';
+import { EmailMessageLog } from 'src/messaging/entities/email-message-log.entity';
+import { PushNotificationLog } from 'src/messaging/entities/push-notification-log.entity';
 import { PasswordRecoveryController } from './controllers/password-recovery.controller';
+import { ReportesController } from './controllers/reportes.controller';
 import { PasswordRecoveryService } from './services/password-recovery.service';
+import { ReportesService } from './services/reportes.service';
 
 @Module({
   imports: [
@@ -60,6 +65,9 @@ import { PasswordRecoveryService } from './services/password-recovery.service';
       ProfilePhone,
       OtpVerificacion,
       WhatsappMessageLog,
+      ServiceErrorLog,
+      EmailMessageLog,
+      PushNotificationLog,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -93,6 +101,7 @@ import { PasswordRecoveryService } from './services/password-recovery.service';
     ProfilePhoneController,
     ProfileController,
     PasswordRecoveryController,
+    ReportesController,
   ],
   providers: [
     SecuritySeeder,
@@ -109,6 +118,7 @@ import { PasswordRecoveryService } from './services/password-recovery.service';
     BlobStorageService,
     WhatsappMessageLogService,
     WhatsappSenderService,
+    ReportesService,
   ],
   exports: [
     ProfilePhoneService,
