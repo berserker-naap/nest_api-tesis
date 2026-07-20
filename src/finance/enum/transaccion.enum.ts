@@ -16,6 +16,8 @@ export const OrigenTransaccion = {
   APERTURA: 'APERTURA',
   MANUAL: 'MANUAL',
   IMPORTACION: 'IMPORTACION',
+  TRANSFERENCIA: 'TRANSFERENCIA',
+  PAGO_TARJETA: 'PAGO_TARJETA',
 } as const;
 
 export type OrigenTransaccion =

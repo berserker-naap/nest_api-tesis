@@ -3,6 +3,8 @@ export interface DashboardPredictionItemDto {
   categoriaNombre: string;
   montoPredicho: number;
   confianza: number;
+  aptoPresupuesto: boolean;
+  montoPresupuestoSugerido: number | null;
   tendencia: 'UP' | 'DOWN' | 'STABLE';
 }
 
