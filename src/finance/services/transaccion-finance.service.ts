@@ -140,7 +140,7 @@ export class TransaccionFinanceService {
         monto,
         nota,
         externalMessageId: null,
-        origen: OrigenTransaccion.MANUAL,
+        origen: OrigenTransaccion.TRANSFERENCIA,
         usuarioRegistro: usuario.login,
         ipRegistro: ip,
       });
@@ -157,7 +157,7 @@ export class TransaccionFinanceService {
         monto,
         nota,
         externalMessageId: null,
-        origen: OrigenTransaccion.MANUAL,
+        origen: OrigenTransaccion.TRANSFERENCIA,
         usuarioRegistro: usuario.login,
         ipRegistro: ip,
       });
@@ -300,7 +300,7 @@ export class TransaccionFinanceService {
         monto,
         nota,
         externalMessageId: null,
-        origen: OrigenTransaccion.MANUAL,
+        origen: OrigenTransaccion.PAGO_TARJETA,
         usuarioRegistro: usuario.login,
         ipRegistro: ip,
       });
@@ -317,7 +317,7 @@ export class TransaccionFinanceService {
         monto,
         nota,
         externalMessageId: null,
-        origen: OrigenTransaccion.MANUAL,
+        origen: OrigenTransaccion.PAGO_TARJETA,
         usuarioRegistro: usuario.login,
         ipRegistro: ip,
       });

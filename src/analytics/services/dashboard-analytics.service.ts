@@ -5,12 +5,26 @@ import { Usuario } from 'src/security/entities/usuario.entity';
 import { Repository } from 'typeorm';
 import { Transaccion } from 'src/finance/entities/transaccion.entity';
 import {
+  OrigenTransaccion,
+  TipoTransaccion,
+} from 'src/finance/enum/transaccion.enum';
+import {
   DashboardAnalyticsResponseDto,
   DashboardAnomalyItemDto,
   DashboardPredictionItemDto,
   DashboardSegmentClusterDto,
   DashboardSegmentProfileDto,
 } from '../dto/dashboard-analytics.dto';
+import {
+  ANALYTICS_OTHER_CATEGORY,
+  analyticsCategoryName,
+  isAnalyticsExpense,
+} from '../utils/analytics-transaction.util';
+import {
+  MIN_BUDGET_CONFIDENCE,
+  calculatePredictionConfidence,
+  calculateSavingsRate,
+} from '../utils/analytics-prediction.util';
 
 interface AnalyticsTxPayload {
   id: number;
@@ -21,6 +35,10 @@ interface AnalyticsTxPayload {
   categoriaNombre: string;
   subcategoriaNombre: string;
   monedaCodigo: string;
+  origen: string;
+  concepto: string;
+  descripcion: string;
+  esMovimientoInterno: boolean;
 }
 
 interface MlPredictionResponse {
@@ -115,10 +133,28 @@ export class DashboardAnalyticsService {
 
     const categoryIdByName = this.categoryIdMap(payload);
     const transactionById = new Map(payload.map((item) => [item.id, item]));
-    const predictionItems = (prediction.items ?? []).map((item) => ({
-      ...item,
-      idCategoria: categoryIdByName.get(this.normalizeCategory(item.categoriaNombre)) ?? null,
-    }));
+    const predictionItems = (prediction.items ?? []).map((item) => {
+      const normalizedCategory = this.normalizeCategory(item.categoriaNombre);
+      const idCategoria = categoryIdByName.get(normalizedCategory) ?? null;
+      const confidence = Number(item.confianza ?? 0);
+      const aptoPresupuesto =
+        idCategoria !== null &&
+        confidence >= MIN_BUDGET_CONFIDENCE &&
+        normalizedCategory !== ANALYTICS_OTHER_CATEGORY;
+      return {
+        ...item,
+        idCategoria,
+        aptoPresupuesto,
+        montoPresupuestoSugerido: aptoPresupuesto
+          ? Number(
+              (
+                Number(item.montoPredicho) *
+                (1 - calculateSavingsRate(confidence))
+              ).toFixed(2),
+            )
+          : null,
+      };
+    });
     const anomalyItems = (anomalies.items ?? []).map((item) => {
       const transaction = item.idTransaccion ? transactionById.get(item.idTransaccion) : undefined;
       return {
@@ -138,10 +174,12 @@ export class DashboardAnalyticsService {
         nombre,
       })),
     }));
-    const rising = [...predictionItems]
+    const eligibleSavings = predictionItems.filter((item) => item.aptoPresupuesto);
+    const rising = [...eligibleSavings]
       .filter((item) => item.tendencia === 'UP')
       .sort((a, b) => b.montoPredicho - a.montoPredicho)[0] ?? null;
-    const savingBase = [...predictionItems].sort((a, b) => b.montoPredicho - a.montoPredicho)[0] ?? null;
+    const savingBase = [...eligibleSavings]
+      .sort((a, b) => b.montoPredicho - a.montoPredicho)[0] ?? null;
 
     const data: DashboardAnalyticsResponseDto = {
       periodoInicio: this.toDateOnlyIso(from),
@@ -160,7 +198,15 @@ export class DashboardAnalyticsService {
           ? {
               idCategoria: savingBase.idCategoria,
               nombre: savingBase.categoriaNombre,
-              montoEstimado: Number((savingBase.montoPredicho * 0.15).toFixed(2)),
+              montoEstimado: Number(
+                (
+                  savingBase.montoPredicho -
+                  Number(
+                    savingBase.montoPresupuestoSugerido ??
+                      savingBase.montoPredicho,
+                  )
+                ).toFixed(2),
+              ),
             }
           : null,
       },
@@ -195,7 +241,7 @@ export class DashboardAnalyticsService {
     const fromDate = new Date();
     fromDate.setDate(fromDate.getDate() - this.lookbackDays);
 
-    return this.transaccionRepository
+    const candidates = await this.transaccionRepository
       .createQueryBuilder('transaccion')
       .innerJoin('transaccion.usuario', 'usuario')
       .innerJoinAndSelect('transaccion.cuenta', 'cuenta')
@@ -205,11 +251,26 @@ export class DashboardAnalyticsService {
       .where('usuario.id = :idUsuario', { idUsuario })
       .andWhere('transaccion.activo = :activo', { activo: true })
       .andWhere('transaccion.eliminado = :eliminado', { eliminado: false })
+      .andWhere('transaccion.tipo = :expenseType', {
+        expenseType: TipoTransaccion.EGRESO,
+      })
+      .andWhere('transaccion.monto > 0')
+      .andWhere('transaccion.origen NOT IN (:...internalOrigins)', {
+        internalOrigins: [
+          OrigenTransaccion.APERTURA,
+          OrigenTransaccion.TRANSFERENCIA,
+          OrigenTransaccion.PAGO_TARJETA,
+        ],
+      })
       .andWhere('transaccion.fecha >= :fromDate', { fromDate })
       .orderBy('transaccion.fecha', 'DESC')
       .addOrderBy('transaccion.id', 'DESC')
-      .take(this.maxTransactions)
+      .take(this.maxTransactions * 2)
       .getMany();
+
+    return candidates
+      .filter((transaction) => isAnalyticsExpense(transaction))
+      .slice(0, this.maxTransactions);
   }
 
   private toPayload(item: Transaccion): AnalyticsTxPayload {
@@ -219,9 +280,13 @@ export class DashboardAnalyticsService {
       fecha: item.fecha instanceof Date ? item.fecha.toISOString() : String(item.fecha),
       monto: Number(item.monto ?? 0),
       tipo: item.tipo,
-      categoriaNombre: item.categoria?.nombre ?? 'SIN_CATEGORIA',
-      subcategoriaNombre: item.subcategoria?.nombre ?? 'SIN_SUBCATEGORIA',
+      categoriaNombre: analyticsCategoryName(item.categoria?.nombre),
+      subcategoriaNombre: analyticsCategoryName(item.subcategoria?.nombre),
       monedaCodigo: item.cuenta?.moneda?.codigo ?? 'N/A',
+      origen: item.origen,
+      concepto: item.concepto,
+      descripcion: item.descripcion ?? '',
+      esMovimientoInterno: false,
     };
   }
 
@@ -257,7 +322,7 @@ export class DashboardAnalyticsService {
     const egresos = rows.filter((item) => item.tipo === 'EGRESO' && item.monto > 0);
     const perCategory = new Map<string, Map<string, number>>();
     for (const item of egresos) {
-      const key = item.categoriaNombre || 'SIN_CATEGORIA';
+      const key = item.categoriaNombre || ANALYTICS_OTHER_CATEGORY;
       const month = item.fecha.slice(0, 7);
       const monthly = perCategory.get(key) ?? new Map<string, number>();
       monthly.set(month, (monthly.get(month) ?? 0) + item.monto);
@@ -284,12 +349,17 @@ export class DashboardAnalyticsService {
         );
         const avg = weighted.total / Math.max(weighted.weights, 1);
         const trend = this.detectTrend(montos);
-        const confianza = Number(Math.min(0.85, 0.45 + montos.length * 0.07).toFixed(2));
+        const movementCount = egresos.filter(
+          (item) => this.normalizeCategory(item.categoriaNombre) === this.normalizeCategory(categoria),
+        ).length;
+        const confianza = calculatePredictionConfidence(montos, movementCount);
         return {
           idCategoria: null,
           categoriaNombre: categoria,
           montoPredicho: Number(avg.toFixed(2)),
           confianza,
+          aptoPresupuesto: false,
+          montoPresupuestoSugerido: null,
           tendencia: trend,
         };
       })
