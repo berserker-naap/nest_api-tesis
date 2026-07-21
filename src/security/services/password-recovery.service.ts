@@ -45,7 +45,7 @@ export class PasswordRecoveryService {
         return new StatusResponse(
           true,
           200,
-          'Si la cuenta existe, enviaremos un codigo al correo registrado',
+          'Si la cuenta existe, enviaremos un código al correo registrado',
           { sent: false },
         );
       }
@@ -80,7 +80,7 @@ export class PasswordRecoveryService {
       return new StatusResponse(
         true,
         200,
-        'Si la cuenta existe, enviaremos un codigo al correo registrado',
+        'Si la cuenta existe, enviaremos un código al correo registrado',
         { sent: true },
       );
     } catch (error) {
@@ -124,7 +124,7 @@ export class PasswordRecoveryService {
         consume: false,
       });
 
-      return new StatusResponse(true, 200, 'Codigo validado correctamente', null);
+      return new StatusResponse(true, 200, 'Código validado correctamente', null);
     } catch (error) {
       const statusCode =
         error instanceof BadRequestException ||
@@ -135,7 +135,7 @@ export class PasswordRecoveryService {
         error instanceof BadRequestException ||
         error instanceof InternalServerErrorException
           ? error.message
-          : 'No se pudo validar el codigo';
+          : 'No se pudo validar el código';
 
       return new StatusResponse(false, statusCode, message, null);
     }
@@ -176,7 +176,7 @@ export class PasswordRecoveryService {
       return new StatusResponse(
         true,
         200,
-        'Contrasena actualizada correctamente',
+        'Contraseña actualizada correctamente',
         null,
       );
     } catch (error) {
@@ -189,7 +189,7 @@ export class PasswordRecoveryService {
         error instanceof BadRequestException ||
         error instanceof InternalServerErrorException
           ? error.message
-          : 'No se pudo restablecer la contrasena';
+          : 'No se pudo restablecer la contraseña';
 
       return new StatusResponse(false, statusCode, message, null);
     }

@@ -26,7 +26,7 @@ export class ResetPasswordRecoveryDto {
   @MaxLength(50)
   @Matches(/(?:(?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
     message:
-      'La contrasena debe tener una letra mayuscula, una letra minuscula y un numero',
+      'La contraseña debe tener una letra mayúscula, una letra minúscula y un número',
   })
   password!: string;
 }

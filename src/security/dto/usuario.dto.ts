@@ -192,7 +192,7 @@ export class UpdateUsuarioCredentialsDto {
   @MinLength(6)
   @MaxLength(50)
   @Matches(/(?:(?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
-    message: 'La contrasena debe tener una letra mayuscula, una letra minuscula y un numero',
+    message: 'La contraseña debe tener una letra mayúscula, una letra minúscula y un número',
   })
   password?: string;
 }

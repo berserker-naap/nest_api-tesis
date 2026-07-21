@@ -72,7 +72,7 @@ export class OtpVerificacionService {
 
     if (!otp) throw new BadRequestException('No existe OTP activo para ese destino');
     if (otp.fechaExpiracion.getTime() < Date.now()) {
-      throw new BadRequestException('El OTP expiro');
+      throw new BadRequestException('El OTP expiró');
     }
     if (otp.attempts >= otp.maxAttempts) {
       throw new BadRequestException('OTP bloqueado por intentos fallidos');
@@ -82,7 +82,7 @@ export class OtpVerificacionService {
     if (hash !== otp.codigoHash) {
       otp.attempts += 1;
       await this.otpRepository.save(otp);
-      throw new BadRequestException('Codigo incorrecto');
+      throw new BadRequestException('Código incorrecto');
     }
 
     if (params.consume !== false) {

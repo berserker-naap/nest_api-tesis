@@ -18,11 +18,11 @@ type TransferPayload = {
 @Injectable()
 export class WhatsappMessageComposerService {
   buildNotAssociated(): string {
-    return 'Debes asociar tu numero a tu cuenta desde la app para continuar.';
+    return 'Debes asociar tu número a tu cuenta desde la app para continuar.';
   }
 
   buildPendingOtp(plainCode: string): string {
-    return `Este es tu codigo: ${plainCode}. Verificalo desde tu cuenta en la app para continuar.`;
+    return `Este es tu código: ${plainCode}. Verifícalo desde tu cuenta en la app para continuar.`;
   }
 
   buildQuickHelp(login: string): string {
@@ -117,4 +117,3 @@ export class WhatsappMessageComposerService {
       : String(message ?? '').trim();
   }
 }
-

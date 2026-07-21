@@ -13,14 +13,14 @@ export class CreateProfilePhoneDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^\+\d{1,4}$/, {
-    message: 'countryCode debe tener formato +NN (de 1 a 4 digitos)',
+    message: 'countryCode debe tener formato +NN (de 1 a 4 dígitos)',
   })
   countryCode!: string;
 
   @IsString()
   @IsNotEmpty()
   @Matches(/^\d{6,15}$/, {
-    message: 'phone debe tener de 6 a 15 digitos',
+    message: 'phone debe tener de 6 a 15 dígitos',
   })
   phone!: string;
 
@@ -28,7 +28,7 @@ export class CreateProfilePhoneDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^\d{8,19}$/, {
-    message: 'internationalPhoneNumber debe tener solo digitos',
+    message: 'internationalPhoneNumber debe tener solo dígitos',
   })
   @IsInternationalPhoneConsistent({
     message: 'internationalPhoneNumber debe ser countryCode sin + seguido de phone',
@@ -46,7 +46,7 @@ export class VerifyProfilePhoneOtpDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^\d{8,19}$/, {
-    message: 'internationalPhoneNumber debe tener solo digitos',
+    message: 'internationalPhoneNumber debe tener solo dígitos',
   })
   internationalPhoneNumber!: string;
 
@@ -59,7 +59,7 @@ export class ResendProfilePhoneOtpDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^\d{8,19}$/, {
-    message: 'internationalPhoneNumber debe tener solo digitos',
+    message: 'internationalPhoneNumber debe tener solo dígitos',
   })
   internationalPhoneNumber!: string;
 }

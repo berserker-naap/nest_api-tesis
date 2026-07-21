@@ -675,7 +675,7 @@ export class UsuarioService {
 
       const isCurrentPasswordValid = bcrypt.compareSync(dto.currentPassword, usuario.password);
       if (!isCurrentPasswordValid) {
-        throw new BadRequestException('La contrasena actual es incorrecta');
+        throw new BadRequestException('La contraseña actual es incorrecta');
       }
 
       const loginNormalizado = this.normalizeLoginValue(dto.login);

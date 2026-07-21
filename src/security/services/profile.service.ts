@@ -76,7 +76,7 @@ export class ProfileService {
         .filter((item) => item.activo && !item.eliminado)
         .sort((a, b) => b.fechaRegistro.getTime() - a.fechaRegistro.getTime());
 
-      const phones = profilePhones.map((item) => ({
+      const phones = profilePhones.slice(0, 1).map((item) => ({
         id: item.id,
         countryCode: item.countryCode,
         phoneNumber: item.phoneNumber,

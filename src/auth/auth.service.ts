@@ -74,14 +74,14 @@ export class AuthService {
   }
 
   private buildExistingLoginMessage(): string {
-    return 'Ya existe una cuenta activa con este correo. Si olvidaste tu contrasena, usa "Olvide mi contrasena".';
+    return 'Ya existe una cuenta activa con este correo. Si olvidaste tu contraseña, usa "Olvidé mi contraseña".';
   }
 
   private buildDocumentLinkedMessage(
     tipoDocumento: Pick<Multitabla, 'nombre' | 'valor'> | null | undefined,
     numeroDocumento: string,
   ): string {
-    return `El ${this.resolveDocumentLabel(tipoDocumento)} ${numeroDocumento} ya esta asociado a una cuenta activa. Si la cuenta es tuya, inicia sesion o recupera tu contrasena.`;
+    return `El ${this.resolveDocumentLabel(tipoDocumento)} ${numeroDocumento} ya está asociado a una cuenta activa. Si la cuenta es tuya, inicia sesión o recupera tu contraseña.`;
   }
 
   private buildInvalidDocumentMessage(
@@ -89,7 +89,7 @@ export class AuthService {
   ): string {
     const label = this.resolveDocumentLabel(tipoDocumento).toUpperCase();
     if (label.includes('DNI')) {
-      return 'No se pudo validar el DNI ingresado. Verifica el numero e intenta nuevamente.';
+      return 'No se pudo validar el DNI ingresado. Verifica el número e intenta nuevamente.';
     }
     return `No se pudo validar el ${this.resolveDocumentLabel(tipoDocumento)} ingresado.`;
   }
@@ -328,7 +328,7 @@ export class AuthService {
     try {
       const numero = numeroDocumento.trim();
       if (!/^\d{8}$/.test(numero)) {
-        return new StatusResponse(false, 400, 'El DNI debe tener 8 digitos', null);
+        return new StatusResponse(false, 400, 'El DNI debe tener 8 dígitos', null);
       }
 
       const reniecIdentity = await this.resolveReniecIdentity(numero);
