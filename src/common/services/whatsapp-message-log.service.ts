@@ -19,6 +19,17 @@ export type WhatsappMessageLogInput = {
   ip?: string | null;
 };
 
+export type WhatsappProviderStatusLogInput = {
+  status: string;
+  phone: string;
+  providerMessageId?: string | null;
+  timestamp?: string | number | null;
+  conversationId?: string | null;
+  pricingCategory?: string | null;
+  errorMessage?: string | null;
+  payload?: unknown;
+};
+
 @Injectable()
 export class WhatsappMessageLogService {
   constructor(
@@ -93,6 +104,60 @@ export class WhatsappMessageLogService {
     });
   }
 
+  async logProviderStatus(input: WhatsappProviderStatusLogInput): Promise<void> {
+    const providerMessageId = this.toNullableString(input.providerMessageId, 150);
+    const status = this.toNullableString(input.status, 30) ?? 'UNKNOWN';
+    const phone = this.toNullableString(input.phone, 25);
+    if (!phone) {
+      return;
+    }
+
+    await this.updateOutgoingStatus(providerMessageId, status, input);
+    await this.logOutgoing({
+      status: `PROVIDER_${status}`.slice(0, 30),
+      phone,
+      providerMessageId: null,
+      text: this.buildProviderStatusText(input),
+      detail: this.buildProviderStatusDetail(input),
+      payload: input.payload,
+      ip: phone,
+    });
+  }
+
+  private async updateOutgoingStatus(
+    providerMessageId: string | null,
+    status: string,
+    input: WhatsappProviderStatusLogInput,
+  ): Promise<void> {
+    if (!providerMessageId) {
+      return;
+    }
+
+    try {
+      const existing = await this.logRepository.findOne({
+        where: {
+          direction: 'OUT',
+          providerMessageId,
+        },
+      });
+
+      if (!existing) {
+        return;
+      }
+
+      existing.status = status;
+      existing.detail = this.toNullableString(
+        this.buildProviderStatusDetail(input),
+        500,
+      );
+      existing.usuarioModificacion = 'system';
+      existing.fechaModificacion = new Date();
+      await this.logRepository.save(existing);
+    } catch (error) {
+      console.error('Error actualizando estado WhatsApp:', error);
+    }
+  }
+
   private async log(input: WhatsappMessageLogInput): Promise<void> {
     try {
       const phone = this.toNullableString(input.phone, 25);
@@ -139,6 +204,26 @@ export class WhatsappMessageLogService {
     } catch {
       return this.toNullableString(String(payload), maxLength);
     }
+  }
+
+  private buildProviderStatusText(input: WhatsappProviderStatusLogInput): string {
+    const parts = [
+      `Estado proveedor: ${input.status}`,
+      input.timestamp ? `timestamp: ${input.timestamp}` : null,
+    ].filter(Boolean);
+
+    return parts.join(' | ');
+  }
+
+  private buildProviderStatusDetail(input: WhatsappProviderStatusLogInput): string {
+    const parts = [
+      input.providerMessageId ? `providerMessageId=${input.providerMessageId}` : null,
+      input.conversationId ? `conversation=${input.conversationId}` : null,
+      input.pricingCategory ? `pricing=${input.pricingCategory}` : null,
+      input.errorMessage ? `error=${input.errorMessage}` : null,
+    ].filter(Boolean);
+
+    return parts.join('; ');
   }
 
   private toNullableString(value: unknown, maxLength: number): string | null {

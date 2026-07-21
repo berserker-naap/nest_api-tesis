@@ -72,9 +72,18 @@ export class ProfileService {
         throw new NotFoundException('Usuario no encontrado');
       }
 
-      const profilePhones = (usuario.profile?.profilePhones ?? [])
-        .filter((item) => item.activo && !item.eliminado)
-        .sort((a, b) => b.fechaRegistro.getTime() - a.fechaRegistro.getTime());
+      const profilePhones = usuario.profile
+        ? await this.profilePhoneRepository.find({
+            where: {
+              profile: { id: usuario.profile.id },
+              activo: true,
+              eliminado: false,
+            },
+            order: {
+              fechaRegistro: 'DESC',
+            },
+          })
+        : [];
 
       const phones = profilePhones.slice(0, 1).map((item) => ({
         id: item.id,

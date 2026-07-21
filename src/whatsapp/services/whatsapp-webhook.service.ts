@@ -22,6 +22,17 @@ type IncomingWhatsappMessage = {
   rawMessage: unknown;
 };
 
+type WhatsappProviderStatus = {
+  id: string;
+  status: string;
+  recipientId: string;
+  timestamp?: string | number | null;
+  conversationId?: string | null;
+  pricingCategory?: string | null;
+  errorMessage?: string | null;
+  rawStatus: unknown;
+};
+
 @Injectable()
 export class WhatsappWebhookService {
   private readonly sessionResetMinutes = this.toBoundedNumber(
@@ -68,6 +79,11 @@ export class WhatsappWebhookService {
 
   async processIncoming(payload: any): Promise<StatusResponse<any>> {
     try {
+      const statuses = this.extractStatuses(payload);
+      for (const status of statuses) {
+        await this.processProviderStatus(status);
+      }
+
       const messages = this.extractMessages(payload);
       for (const item of messages) {
         await this.processIncomingMessage(item);
@@ -78,6 +94,21 @@ export class WhatsappWebhookService {
       console.error('Error procesando webhook WhatsApp:', error);
       return new StatusResponse(false, 500, 'Error procesando webhook', error);
     }
+  }
+
+  private async processProviderStatus(
+    item: WhatsappProviderStatus,
+  ): Promise<void> {
+    await this.whatsappMessageLogService.logProviderStatus({
+      status: item.status,
+      phone: item.recipientId,
+      providerMessageId: item.id,
+      timestamp: item.timestamp,
+      conversationId: item.conversationId,
+      pricingCategory: item.pricingCategory,
+      errorMessage: item.errorMessage,
+      payload: item.rawStatus,
+    });
   }
 
   private async processIncomingMessage(
@@ -496,6 +527,55 @@ export class WhatsappWebhookService {
     }
 
     return result;
+  }
+
+  private extractStatuses(payload: any): WhatsappProviderStatus[] {
+    const result: WhatsappProviderStatus[] = [];
+    const entries = payload?.entry ?? [];
+
+    for (const entry of entries) {
+      const changes = entry?.changes ?? [];
+      for (const change of changes) {
+        const values = change?.value;
+        const statuses = values?.statuses ?? [];
+        for (const status of statuses) {
+          if (!status?.id || !status?.status) continue;
+          const recipientId = String(status.recipient_id ?? '').replace(/\D/g, '');
+          const normalizedStatus = String(status.status).trim().toUpperCase();
+          if (!recipientId || !normalizedStatus) continue;
+
+          result.push({
+            id: String(status.id),
+            status: normalizedStatus,
+            recipientId,
+            timestamp: status.timestamp ?? null,
+            conversationId: status.conversation?.id ?? null,
+            pricingCategory: status.pricing?.category ?? null,
+            errorMessage: this.extractStatusErrorMessage(status),
+            rawStatus: status,
+          });
+        }
+      }
+    }
+
+    return result;
+  }
+
+  private extractStatusErrorMessage(status: any): string | null {
+    const errors = Array.isArray(status?.errors) ? status.errors : [];
+    if (errors.length === 0) {
+      return null;
+    }
+
+    return errors
+      .map((error) => {
+        const code = error?.code ? `code=${error.code}` : null;
+        const title = error?.title ? `title=${error.title}` : null;
+        const message = error?.message ? `message=${error.message}` : null;
+        return [code, title, message].filter(Boolean).join(', ');
+      })
+      .filter(Boolean)
+      .join(' | ');
   }
 
   private toBoundedNumber(

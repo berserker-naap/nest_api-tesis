@@ -90,18 +90,6 @@ export class ProfilePhoneService {
       });
 
       if (!profilePhone) {
-        profilePhone = await this.profilePhoneRepository.findOne({
-          where: {
-            profile: { id: usuario.profile!.id },
-          },
-          relations: ['profile'],
-          order: {
-            fechaRegistro: 'DESC',
-          },
-        });
-      }
-
-      if (!profilePhone) {
         profilePhone = this.profilePhoneRepository.create({
           profile: usuario.profile!,
           countryCode: countryCode,
@@ -520,9 +508,18 @@ export class ProfilePhoneService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    const profilePhones = (usuarioProfilePhones.profile?.profilePhones ?? [])
-      .filter((item) => item.activo && !item.eliminado)
-      .sort((a, b) => b.fechaRegistro.getTime() - a.fechaRegistro.getTime());
+    const profilePhones = usuarioProfilePhones.profile
+      ? await this.profilePhoneRepository.find({
+          where: {
+            profile: { id: usuarioProfilePhones.profile.id },
+            activo: true,
+            eliminado: false,
+          },
+          order: {
+            fechaRegistro: 'DESC',
+          },
+        })
+      : [];
 
     return profilePhones.slice(0, 1).map((item) => ({
       id: item.id,
