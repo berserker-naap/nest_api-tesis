@@ -559,7 +559,12 @@ export class AuthService {
 
     let endpoint: string;
     if (idTipoDocumentoIdentidad === this.TIPO_DOC_DNI) {
-      endpoint = `https://api.decolecta.com/v1/reniec/dni?numero=${encodeURIComponent(numeroDocumento)}`;
+      const reniecDniApiUrl = process.env.RENIEC_DNI_API_URL?.trim();
+      if (!reniecDniApiUrl) {
+        return null;
+      }
+
+      endpoint = this.buildDocumentLookupUrl(reniecDniApiUrl, numeroDocumento);
     } else if (idTipoDocumentoIdentidad === this.TIPO_DOC_RUC) {
       endpoint = `https://api.decolecta.com/v1/sunat/ruc?numero=${encodeURIComponent(numeroDocumento)}`;
     } else {
@@ -572,6 +577,12 @@ export class AuthService {
     }
 
     return (await response.json()) as Record<string, any>;
+  }
+
+  private buildDocumentLookupUrl(baseUrl: string, numeroDocumento: string): string {
+    const url = new URL(baseUrl);
+    url.searchParams.set('numero', numeroDocumento);
+    return url.toString();
   }
 
   async login(loginRequestDto: LoginRequestDto): Promise<StatusResponse<SessionResponseDto | null>> {

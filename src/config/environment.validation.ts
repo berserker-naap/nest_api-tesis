@@ -11,6 +11,9 @@ const REQUIRED_PRODUCTION_VARIABLES = [
   'WHATSAPP_ACCESS_TOKEN',
   'WHATSAPP_PHONE_NUMBER_ID',
   'WHATSAPP_VERIFY_TOKEN',
+  'WHATSAPP_OTP_TEMPLATE_NAME',
+  'WHATSAPP_OTP_TEMPLATE_LANGUAGE',
+  'RENIEC_DNI_API_URL',
 ] as const;
 
 export function validateEnvironment(
@@ -27,7 +30,8 @@ export function validateEnvironment(
   if (appEnvironment === 'production') {
     config.DB_SYNCHRONIZE = 'false';
     validateRequiredProductionVariables(config);
-    validateProductionServiceUrl(config.ML_SERVICE_URL);
+    validateProductionServiceUrl(config.ML_SERVICE_URL, 'ML_SERVICE_URL');
+    validateProductionServiceUrl(config.RENIEC_DNI_API_URL, 'RENIEC_DNI_API_URL');
     return config;
   }
 
@@ -49,7 +53,7 @@ function validateRequiredProductionVariables(
   }
 }
 
-function validateProductionServiceUrl(value: unknown): void {
+function validateProductionServiceUrl(value: unknown, variableName: string): void {
   const rawUrl = toOptionalString(value);
   if (!rawUrl) {
     return;
@@ -59,7 +63,7 @@ function validateProductionServiceUrl(value: unknown): void {
   try {
     parsedUrl = new URL(rawUrl);
   } catch {
-    throw new Error('ML_SERVICE_URL must be a valid absolute URL');
+    throw new Error(`${variableName} must be a valid absolute URL`);
   }
 
   const hostname = parsedUrl.hostname.toLowerCase();
@@ -69,7 +73,7 @@ function validateProductionServiceUrl(value: unknown): void {
     hostname === '127.0.0.1'
   ) {
     throw new Error(
-      'ML_SERVICE_URL must use HTTPS and cannot point to localhost in production',
+      `${variableName} must use HTTPS and cannot point to localhost in production`,
     );
   }
 }

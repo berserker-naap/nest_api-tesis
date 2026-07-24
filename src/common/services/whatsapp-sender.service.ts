@@ -11,6 +11,27 @@ export type WhatsappSendLogMeta = {
   ip?: string | null;
 };
 
+type WhatsappTemplateTextParameter = {
+  type: 'text';
+  text: string;
+};
+
+type WhatsappTemplateBodyComponent = {
+  type: 'body';
+  parameters: WhatsappTemplateTextParameter[];
+};
+
+type WhatsappTemplateButtonComponent = {
+  type: 'button';
+  sub_type: 'url';
+  index: string;
+  parameters: WhatsappTemplateTextParameter[];
+};
+
+type WhatsappTemplateComponent =
+  | WhatsappTemplateBodyComponent
+  | WhatsappTemplateButtonComponent;
+
 @Injectable()
 export class WhatsappSenderService {
   constructor(
@@ -70,19 +91,30 @@ export class WhatsappSenderService {
     templateName: string,
     languageCode = 'en_US',
     meta?: WhatsappSendLogMeta,
+    components?: WhatsappTemplateComponent[],
   ): Promise<void> {
     const endpoint = this.getMessagesEndpoint();
     const cleanTo = this.resolveRecipient(toInternational);
+    const template: {
+      name: string;
+      language: { code: string };
+      components?: WhatsappTemplateComponent[];
+    } = {
+      name: templateName,
+      language: {
+        code: languageCode,
+      },
+    };
+
+    if (components?.length) {
+      template.components = components;
+    }
+
     const body = {
       messaging_product: 'whatsapp',
       to: cleanTo,
       type: 'template',
-      template: {
-        name: templateName,
-        language: {
-          code: languageCode,
-        },
-      },
+      template,
     };
 
     const templateSummary = `[template:${templateName}|lang:${languageCode}]`;
@@ -115,6 +147,52 @@ export class WhatsappSenderService {
       });
       throw error;
     }
+  }
+
+  async sendOtpTemplateMessage(
+    toInternational: string,
+    code: string,
+    meta?: WhatsappSendLogMeta,
+  ): Promise<void> {
+    const templateName =
+      this.configService.get<string>('WHATSAPP_OTP_TEMPLATE_NAME') ??
+      'authentication_code_copy_code_button';
+    const languageCode =
+      this.configService.get<string>('WHATSAPP_OTP_TEMPLATE_LANGUAGE') ?? 'es';
+    const includeCopyCodeButton =
+      String(
+        this.configService.get<string>('WHATSAPP_OTP_TEMPLATE_COPY_CODE_BUTTON') ??
+          'true',
+      )
+        .trim()
+        .toLowerCase() !== 'false';
+
+    const components: WhatsappTemplateComponent[] = [
+      {
+        type: 'body',
+        parameters: [{ type: 'text', text: code }],
+      },
+    ];
+
+    if (includeCopyCodeButton) {
+      components.push({
+        type: 'button',
+        sub_type: 'url',
+        index: '0',
+        parameters: [{ type: 'text', text: code }],
+      });
+    }
+
+    await this.sendTemplateMessage(
+      toInternational,
+      templateName,
+      languageCode,
+      {
+        ...meta,
+        inboundMessageId: meta?.inboundMessageId ?? 'otp_template',
+      },
+      components,
+    );
   }
 
   private getMessagesEndpoint(): string {

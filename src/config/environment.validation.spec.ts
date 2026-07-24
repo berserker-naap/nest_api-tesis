@@ -13,6 +13,9 @@ describe('validateEnvironment', () => {
     WHATSAPP_ACCESS_TOKEN: 'token',
     WHATSAPP_PHONE_NUMBER_ID: '123456789',
     WHATSAPP_VERIFY_TOKEN: 'verify-token',
+    WHATSAPP_OTP_TEMPLATE_NAME: 'authentication_code_copy_code_button',
+    WHATSAPP_OTP_TEMPLATE_LANGUAGE: 'es',
+    RENIEC_DNI_API_URL: 'https://api.decolecta.com/v1/reniec/dni',
   };
 
   it('forces database synchronization off in production', () => {

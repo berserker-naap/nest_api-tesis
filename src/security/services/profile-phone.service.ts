@@ -132,9 +132,9 @@ export class ProfilePhoneService {
         destino: internationalPhoneNumber,
       });
       
-      await this.whatsappSenderService.sendTextMessage(
+      await this.whatsappSenderService.sendOtpTemplateMessage(
         internationalPhoneNumber,
-        `Tu código de verificación es: ${plainCode}`,
+        plainCode,
       );
 
       const phones = await this.loadProfilePhonesByUser(usuarioRequest.id);
@@ -305,9 +305,9 @@ export class ProfilePhoneService {
         destino: internationalPhoneNumber,
       });
 
-      await this.whatsappSenderService.sendTextMessage(
+      await this.whatsappSenderService.sendOtpTemplateMessage(
         internationalPhoneNumber,
-        `Tu código de verificación es: ${plainCode}`,
+        plainCode,
       );
 
       profilePhone.status = ProfilePhoneStatus.PENDING;
